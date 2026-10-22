@@ -10,3 +10,6 @@ coverage/
 .DS_Store
 # drawio temp files
 *.dtmp
+
+# Cấu hình Claude Code trên máy (skill /buoc, launch.json) – không đưa lên git
+.claude/

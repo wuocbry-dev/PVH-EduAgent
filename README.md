@@ -109,3 +109,15 @@ Thao tác ảnh hưởng công khai (duyệt, hẹn giờ, gỡ bài) cần xác
 | `pnpm build` | Build shared → api → web |
 | `pnpm lint` | oxlint (api) + eslint (web) |
 | `pnpm test` | e2e test cho API |
+
+## Lộ trình phát triển với Claude Code
+
+Các bước tiếp theo (F01–F17, A01–A09) được đóng gói thành lệnh `/buoc` cho Claude Code (dùng được trong VS Code):
+
+| Lệnh | Việc |
+|---|---|
+| `/buoc tiep` | Làm bước kế tiếp chưa xong |
+| `/buoc 3` | Làm đúng bước 3 |
+| `/buoc tiendo` | Xem tiến độ |
+
+Yêu cầu từng bước: `.claude/skills/buoc/steps/`. Tiến độ: [docs/TIEN-DO.md](docs/TIEN-DO.md).
