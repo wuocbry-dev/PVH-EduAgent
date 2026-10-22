@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="PVH-diagram-generator" version="24.7.0" type="device">
+  <diagram id="sd6" name="14. SD06 Ra lệnh qua Telegram – AI Agent">
+    <mxGraphModel dx="1426" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1900" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="sd6-47" value="BGH" style="shape=umlLifeline;participant=umlActor;perimeter=lifelinePerimeter;whiteSpace=nowrap;html=1;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;spacingTop=58;outlineConnect=0;size=56;fontStyle=1;labelBackgroundColor=#ffffff;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="100" y="80" width="40" height="1458" as="geometry" />
+        </mxCell>
+        <mxCell id="sd6-46" value=":Telegram Bot API" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=50;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="255" y="80" width="160" height="1458" as="geometry" />
+        </mxCell>
+        <mxCell id="sd6-45" value=":TelegramGateway" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=50;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="470" y="80" width="160" height="1458" as="geometry" />
+        </mxCell>
+        <mxCell id="sd6-44" value=":AgentService" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=50;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="685" y="80" width="160" height="1458" as="geometry" />
+        </mxCell>
+        <mxCell id="sd6-43" value=":LLM API (Claude)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=50;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="900" y="80" width="160" height="1458" as="geometry" />
+        </mxCell>
+        <mxCell id="sd6-42" value=":ToolRegistry" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=50;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1115" y="80" width="160" height="1458" as="geometry" />
+        </mxCell>
+        <mxCell id="sd6-41" value=":PostService" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=50;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="80" width="160" height="1458" as="geometry" />
+        </mxCell>
+        <mxCell id="sd6-40" value=":AuditLogService" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=50;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1545" y="80" width="160" height="1458" as="geometry" />
+        </mxCell>
+        <mxCell id="sd6-39" value="alt" style="shape=umlFrame;whiteSpace=wrap;html=1;width=60;height=22;fontStyle=1;fillColor=none;strokeColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="460" y="964" width="1255" height="448" as="geometry" />
+        </mxCell>
+        <mxCell id="sd6-38" value="[xác nhận trong thời hạn &amp;amp; đúng người yêu cầu]" style="text;html=1;fontSize=11;fontStyle=2;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="528" y="966" width="420" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="sd6-1" value="Hình 14 – Sequence: Ra lệnh qua Telegram, AI Agent gọi tool có xác nhận" style="text;html=1;fontSize=20;fontStyle=1;align=left;verticalAlign=middle;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="1400" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="sd6-2" value="Hệ thống Website Trường THPT Phan Văn Hớn tích hợp AI Agent" style="text;html=1;fontSize=12;fontStyle=2;align=left;verticalAlign=middle;fontColor=#555555;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="1400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="sd6-3" value="1: “Dời bài khai giảng sang 8h sáng mai”" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="120" y="170" as="sourcePoint" />
+            <mxPoint x="335" y="170" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-4" value="2: webhook update" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="335" y="208" as="sourcePoint" />
+            <mxPoint x="550" y="208" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-5" value="3: Xác thực secret, tra chat_id → user" style="html=1;align=left;spacingLeft=4;endArrow=block;endFill=1;rounded=0;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="550" y="246" as="sourcePoint" />
+            <mxPoint x="550" y="268" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="590" y="246" />
+              <mxPoint x="590" y="268" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-6" value="4: handleMessage(user, text)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="550" y="294" as="sourcePoint" />
+            <mxPoint x="765" y="294" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-7" value="5: getAllowedTools(user.roles)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="765" y="332" as="sourcePoint" />
+            <mxPoint x="1195" y="332" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-8" value="6: [search_posts, reschedule_post, …]" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;fontSize=11;fontColor=#444444;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1195" y="370" as="sourcePoint" />
+            <mxPoint x="765" y="370" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-9" value="7: messages + tools (chỉ tool được phép)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="765" y="408" as="sourcePoint" />
+            <mxPoint x="980" y="408" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-10" value="8: tool_use: search_posts(“khai giảng”)" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;fontSize=11;fontColor=#444444;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="446" as="sourcePoint" />
+            <mxPoint x="765" y="446" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-11" value="9: execute(search_posts, args, user)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="765" y="484" as="sourcePoint" />
+            <mxPoint x="1195" y="484" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-12" value="10: search(“khai giảng”)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1195" y="522" as="sourcePoint" />
+            <mxPoint x="1410" y="522" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-13" value="11: post #42 (SCHEDULED 07:00)" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;fontSize=11;fontColor=#444444;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1410" y="560" as="sourcePoint" />
+            <mxPoint x="1195" y="560" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-14" value="12: tool_result" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;fontSize=11;fontColor=#444444;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1195" y="598" as="sourcePoint" />
+            <mxPoint x="765" y="598" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-15" value="13: tool_result" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="765" y="636" as="sourcePoint" />
+            <mxPoint x="980" y="636" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-16" value="14: tool_use: reschedule_post(42, 08:00)" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;fontSize=11;fontColor=#444444;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="674" as="sourcePoint" />
+            <mxPoint x="765" y="674" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-17" value="15: needsConfirmation(reschedule_post)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="765" y="712" as="sourcePoint" />
+            <mxPoint x="1195" y="712" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-18" value="16: true → tạo AgentAction (PENDING, hạn 5')" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;fontSize=11;fontColor=#444444;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1195" y="750" as="sourcePoint" />
+            <mxPoint x="765" y="750" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-19" value="17: requestConfirm(actionId, mô tả)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="765" y="788" as="sourcePoint" />
+            <mxPoint x="550" y="788" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-20" value="18: sendMessage + nút [Xác nhận] [Huỷ]" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="550" y="826" as="sourcePoint" />
+            <mxPoint x="335" y="826" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-21" value="19: Hiển thị yêu cầu xác nhận" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;fontSize=11;fontColor=#444444;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="335" y="864" as="sourcePoint" />
+            <mxPoint x="120" y="864" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-22" value="20: Bấm “Xác nhận”" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="120" y="902" as="sourcePoint" />
+            <mxPoint x="335" y="902" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-23" value="21: callback_query(actionId)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="335" y="940" as="sourcePoint" />
+            <mxPoint x="550" y="940" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-24" value="22: confirmAction(actionId)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="550" y="1004" as="sourcePoint" />
+            <mxPoint x="765" y="1004" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-25" value="23: execute(reschedule_post, args, user)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="765" y="1042" as="sourcePoint" />
+            <mxPoint x="1195" y="1042" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-26" value="24: Kiểm tra quyền post:schedule (server-side)" style="html=1;align=left;spacingLeft=4;endArrow=block;endFill=1;rounded=0;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1195" y="1080" as="sourcePoint" />
+            <mxPoint x="1195" y="1102" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="1235" y="1080" />
+              <mxPoint x="1235" y="1102" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-27" value="25: reschedule(42, 08:00)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1195" y="1128" as="sourcePoint" />
+            <mxPoint x="1410" y="1128" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-28" value="26: ok (job đã cập nhật)" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;fontSize=11;fontColor=#444444;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1410" y="1166" as="sourcePoint" />
+            <mxPoint x="1195" y="1166" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-29" value="27: log(channel=TELEGRAM, tool, args, result)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1195" y="1204" as="sourcePoint" />
+            <mxPoint x="1625" y="1204" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-30" value="28: tool_result" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="765" y="1242" as="sourcePoint" />
+            <mxPoint x="980" y="1242" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-31" value="29: “Đã dời bài … sang 08:00”" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;fontSize=11;fontColor=#444444;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="980" y="1280" as="sourcePoint" />
+            <mxPoint x="765" y="1280" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-32" value="30: reply" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;fontSize=11;fontColor=#444444;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="765" y="1318" as="sourcePoint" />
+            <mxPoint x="550" y="1318" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-33" value="31: log(ACTION_CANCELLED)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="550" y="1380" as="sourcePoint" />
+            <mxPoint x="1625" y="1380" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-34" value="32: sendMessage(kết quả)" style="html=1;verticalAlign=bottom;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="550" y="1432" as="sourcePoint" />
+            <mxPoint x="335" y="1432" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-35" value="33: Hiển thị kết quả" style="html=1;verticalAlign=bottom;endArrow=open;dashed=1;endSize=8;fontSize=11;fontColor=#444444;labelBackgroundColor=none;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="335" y="1470" as="sourcePoint" />
+            <mxPoint x="120" y="1470" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-36" value="" style="endArrow=none;dashed=1;html=1;strokeColor=#666666;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="460" y="1346" as="sourcePoint" />
+            <mxPoint x="1715" y="1346" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sd6-37" value="[Huỷ / quá hạn]" style="text;html=1;fontSize=11;fontStyle=2;align=left;verticalAlign=top;" vertex="1" parent="1">
+          <mxGeometry x="468" y="1348" width="400" height="18" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="PVH-diagram-generator" version="24.7.0" type="device">
+  <diagram id="ad1" name="04. AD01 Liên kết Telegram">
+    <mxGraphModel dx="1426" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="ad1-1" value="Hình 4 – Activity: Liên kết tài khoản với Telegram" style="text;html=1;fontSize=20;fontStyle=1;align=left;verticalAlign=middle;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="1400" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-2" value="Hệ thống Website Trường THPT Phan Văn Hớn tích hợp AI Agent" style="text;html=1;fontSize=12;fontStyle=2;align=left;verticalAlign=middle;fontColor=#555555;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="1400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-3" value="Người dùng" style="swimlane;html=1;startSize=40;fontStyle=1;fontSize=13;swimlaneFillColor=#ffffff;whiteSpace=wrap;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="340" height="1090" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-4" value="Hệ thống (CMS / Backend)" style="swimlane;html=1;startSize=40;fontStyle=1;fontSize=13;swimlaneFillColor=#ffffff;whiteSpace=wrap;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="380" y="80" width="340" height="1090" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-5" value="Telegram Bot" style="swimlane;html=1;startSize=40;fontStyle=1;fontSize=13;swimlaneFillColor=#ffffff;whiteSpace=wrap;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="720" y="80" width="340" height="1090" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-6" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="195" y="145" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-7" value="Đăng nhập trang quản trị" style="rounded=1;whiteSpace=wrap;html=1;arcSize=35;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="110" y="213" width="200" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-8" value="Chọn chức năng “Liên kết Telegram”" style="rounded=1;whiteSpace=wrap;html=1;arcSize=35;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="110" y="293" width="200" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-9" value="Sinh mã OTP 6 số (hiệu lực 5 phút), lưu Redis" style="rounded=1;whiteSpace=wrap;html=1;arcSize=35;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="450" y="373" width="200" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-10" value="Hiển thị mã OTP / QR deep-link" style="rounded=1;whiteSpace=wrap;html=1;arcSize=35;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="450" y="453" width="200" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-11" value="Mở bot trên điện thoại, gửi /start &amp;lt;OTP&amp;gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=35;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="110" y="533" width="200" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-12" value="Nhận webhook, xác thực secret token" style="rounded=1;whiteSpace=wrap;html=1;arcSize=35;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="790" y="613" width="200" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-13" value="OTP hợp lệ&lt;br&gt;&amp;amp; còn hạn?" style="rhombus;whiteSpace=wrap;html=1;fontSize=11;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="475" y="688" width="150" height="64" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-14" value="Lưu telegram_chat_id vào tài khoản, xoá OTP" style="rounded=1;whiteSpace=wrap;html=1;arcSize=35;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="450" y="773" width="200" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-15" value="Báo lỗi: mã sai / hết hạn" style="rounded=1;whiteSpace=wrap;html=1;arcSize=35;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="790" y="773" width="200" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-16" value="Ghi nhật ký LINK_TELEGRAM" style="rounded=1;whiteSpace=wrap;html=1;arcSize=35;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="450" y="853" width="200" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-17" value="Gửi lời chào &amp;amp; danh sách lệnh theo quyền" style="rounded=1;whiteSpace=wrap;html=1;arcSize=35;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="790" y="933" width="200" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-18" value="Nhận xác nhận liên kết thành công" style="rounded=1;whiteSpace=wrap;html=1;arcSize=35;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="110" y="1013" width="200" height="54" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-19" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="194" y="1104" width="32" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="ad1-6" target="ad1-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-21" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="ad1-7" target="ad1-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-22" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="ad1-8" target="ad1-9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-23" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="ad1-9" target="ad1-10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-24" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="ad1-10" target="ad1-11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-25" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="ad1-11" target="ad1-12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-26" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="ad1-12" target="ad1-13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-27" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="ad1-14" target="ad1-16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-28" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="ad1-16" target="ad1-17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-29" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="ad1-17" target="ad1-18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-30" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="ad1-18" target="ad1-19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-31" value="[Có]" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ad1-13" target="ad1-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-32" value="[Không]" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="ad1-13" target="ad1-15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ad1-33" value="tạo mã mới" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="ad1-15" target="ad1-8">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1040" y="800" />
+              <mxPoint x="1040" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="PVH-diagram-generator" version="24.7.0" type="device">
+  <diagram id="stm" name="21. State Machine – Bài viết">
+    <mxGraphModel dx="1426" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="820" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="stm-1" value="Hình 21 – Sơ đồ trạng thái: Vòng đời bài viết (Post)" style="text;html=1;fontSize=20;fontStyle=1;align=left;verticalAlign=middle;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="1400" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="stm-2" value="Hệ thống Website Trường THPT Phan Văn Hớn tích hợp AI Agent" style="text;html=1;fontSize=12;fontStyle=2;align=left;verticalAlign=middle;fontColor=#555555;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="1400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="stm-3" value="" style="ellipse;html=1;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="60" y="155" width="30" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="stm-4" value="&lt;b&gt;Nháp&lt;/b&gt; (DRAFT)&lt;hr&gt;do / chỉnh sửa nội dung" style="rounded=1;whiteSpace=wrap;html=1;arcSize=25;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="160" y="120" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="stm-5" value="&lt;b&gt;Chờ duyệt&lt;/b&gt; (PENDING_REVIEW)&lt;hr&gt;entry / thông báo người duyệt" style="rounded=1;whiteSpace=wrap;html=1;arcSize=25;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="540" y="120" width="240" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="stm-6" value="&lt;b&gt;Đã lên lịch&lt;/b&gt; (SCHEDULED)&lt;hr&gt;entry / tạo job BullMQ&lt;br&gt;exit / xoá job" style="rounded=1;whiteSpace=wrap;html=1;arcSize=25;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="940" y="120" width="230" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="stm-7" value="&lt;b&gt;Bị từ chối&lt;/b&gt; (REJECTED)&lt;hr&gt;entry / gửi lý do cho tác giả" style="rounded=1;whiteSpace=wrap;html=1;arcSize=25;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="340" y="400" width="230" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="stm-8" value="&lt;b&gt;Đã đăng&lt;/b&gt; (PUBLISHED)&lt;hr&gt;entry / revalidate cache,&lt;br&gt;gửi thông báo Telegram" style="rounded=1;whiteSpace=wrap;html=1;arcSize=25;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="940" y="420" width="230" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="stm-9" value="&lt;b&gt;Lưu trữ / Ẩn&lt;/b&gt; (ARCHIVED)&lt;hr&gt;entry / gỡ khỏi trang công khai" style="rounded=1;whiteSpace=wrap;html=1;arcSize=25;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="1290" y="420" width="240" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="stm-10" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="254" y="640" width="32" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="stm-11" value="" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="1394" y="640" width="32" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="stm-12" value="tạo bài viết" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="stm-3" target="stm-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="stm-13" value="gửi duyệt [nội dung hợp lệ]" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="stm-4" target="stm-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="stm-14" value="từ chối(lý do)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="stm-5" target="stm-7">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="612" y="320" />
+              <mxPoint x="455" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="stm-15" value="chỉnh sửa" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="stm-7" target="stm-4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="270" y="450" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="stm-16" value="duyệt [publishAt &amp;gt; now]&lt;br&gt;/ tạo job" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="stm-5" target="stm-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="stm-17" value="duyệt [đăng ngay]" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" edge="1" parent="1" source="stm-5" target="stm-8">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="720" y="453" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="stm-18" value="đến publishAt&lt;br&gt;/ Scheduler đăng" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="stm-6" target="stm-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="stm-19" value="dời lịch(publishAt mới)&lt;br&gt;/ cập nhật job" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="stm-6" target="stm-6">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1230" y="150" />
+              <mxPoint x="1230" y="195" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="stm-20" value="huỷ lịch / xoá job" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="stm-6" target="stm-4">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1055" y="85" />
+              <mxPoint x="270" y="85" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="stm-21" value="gỡ / ẩn bài [đã xác nhận]" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.3;entryDx=0;entryDy=0;" edge="1" parent="1" source="stm-8" target="stm-9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="stm-22" value="khôi phục" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="stm-9" target="stm-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="stm-23" value="xoá vĩnh viễn&lt;br&gt;[chỉ Admin, trên web]" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="stm-9" target="stm-11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="stm-24" value="xoá nháp" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="stm-4" target="stm-10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="stm-25" value="&lt;b&gt;AI Agent (Telegram)&lt;/b&gt; được kích hoạt: duyệt, hẹn giờ, dời lịch, gỡ/ẩn — đều cần người dùng bấm [Xác nhận].&lt;br&gt;&lt;b&gt;Không&lt;/b&gt; được: xoá vĩnh viễn." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="560" y="600" width="330" height="90" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

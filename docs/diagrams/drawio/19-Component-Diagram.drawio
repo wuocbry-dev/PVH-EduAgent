@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="PVH-diagram-generator" version="24.7.0" type="device">
+  <diagram id="cmp" name="19. Component Diagram">
+    <mxGraphModel dx="1426" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1720" pageHeight="1080" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="cmp-1" value="Hình 19 – Sơ đồ thành phần (Component Diagram)" style="text;html=1;fontSize=20;fontStyle=1;align=left;verticalAlign=middle;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="1400" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-2" value="Hệ thống Website Trường THPT Phan Văn Hớn tích hợp AI Agent" style="text;html=1;fontSize=12;fontStyle=2;align=left;verticalAlign=middle;fontColor=#555555;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="1400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-3" value="«component»&lt;br&gt;&lt;b&gt;Web Public (Next.js)&lt;/b&gt;" style="shape=component;align=left;spacingLeft=36;rounded=0;html=1;whiteSpace=wrap;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="50" y="140" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-4" value="«component»&lt;br&gt;&lt;b&gt;Admin CMS (Next.js)&lt;/b&gt;" style="shape=component;align=left;spacingLeft=36;rounded=0;html=1;whiteSpace=wrap;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="50" y="300" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-5" value="«component»&lt;br&gt;&lt;b&gt;Telegram Bot API&lt;/b&gt;" style="shape=component;align=left;spacingLeft=36;rounded=0;html=1;whiteSpace=wrap;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="50" y="590" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-6" value="«subsystem» Backend API (NestJS)" style="rounded=0;whiteSpace=wrap;html=1;verticalAlign=top;fontStyle=1;fontSize=13;fillColor=#f5f9ff;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="410" y="80" width="930" height="790" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-7" value="IRestAPI" style="ellipse;html=1;aspect=fixed;fillColor=#ffffff;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="399" y="270" width="22" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-8" value="IWebhook" style="ellipse;html=1;aspect=fixed;fillColor=#ffffff;labelPosition=center;verticalLabelPosition=top;align=center;verticalAlign=bottom;fontSize=11;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="399" y="614" width="22" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-9" value="«component»&lt;br&gt;&lt;b&gt;API Controllers (REST)&lt;/b&gt;" style="shape=component;align=left;spacingLeft=36;rounded=0;html=1;whiteSpace=wrap;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="470" y="245" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-10" value="«component»&lt;br&gt;&lt;b&gt;Auth &amp;amp; RBAC&lt;/b&gt;" style="shape=component;align=left;spacingLeft=36;rounded=0;html=1;whiteSpace=wrap;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="470" y="400" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-11" value="«component»&lt;br&gt;&lt;b&gt;Telegram Gateway&lt;/b&gt;" style="shape=component;align=left;spacingLeft=36;rounded=0;html=1;whiteSpace=wrap;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="470" y="590" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-12" value="«component»&lt;br&gt;&lt;b&gt;Post Service&lt;/b&gt;" style="shape=component;align=left;spacingLeft=36;rounded=0;html=1;whiteSpace=wrap;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="790" y="130" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-13" value="«component»&lt;br&gt;&lt;b&gt;Task Service&lt;/b&gt;" style="shape=component;align=left;spacingLeft=36;rounded=0;html=1;whiteSpace=wrap;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="790" y="250" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-14" value="«component»&lt;br&gt;&lt;b&gt;Notification Service&lt;/b&gt;" style="shape=component;align=left;spacingLeft=36;rounded=0;html=1;whiteSpace=wrap;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="790" y="370" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-15" value="«component»&lt;br&gt;&lt;b&gt;Agent Service&lt;/b&gt;" style="shape=component;align=left;spacingLeft=36;rounded=0;html=1;whiteSpace=wrap;fontSize=11;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="790" y="590" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-16" value="«component»&lt;br&gt;&lt;b&gt;Scheduler (Queue Producer)&lt;/b&gt;" style="shape=component;align=left;spacingLeft=36;rounded=0;html=1;whiteSpace=wrap;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="130" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-17" value="«component»&lt;br&gt;&lt;b&gt;Monitor Service&lt;/b&gt;" style="shape=component;align=left;spacingLeft=36;rounded=0;html=1;whiteSpace=wrap;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="370" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-18" value="«component»&lt;br&gt;&lt;b&gt;Tool Registry&lt;/b&gt;" style="shape=component;align=left;spacingLeft=36;rounded=0;html=1;whiteSpace=wrap;fontSize=11;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="590" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-19" value="«component»&lt;br&gt;&lt;b&gt;Audit Service&lt;/b&gt;" style="shape=component;align=left;spacingLeft=36;rounded=0;html=1;whiteSpace=wrap;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="740" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-20" value="«component»&lt;br&gt;&lt;b&gt;Data Access (Prisma)&lt;/b&gt;" style="shape=component;align=left;spacingLeft=36;rounded=0;html=1;whiteSpace=wrap;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="790" y="760" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-21" value="«component»&lt;br&gt;&lt;b&gt;Scheduler Worker&lt;/b&gt;" style="shape=component;align=left;spacingLeft=36;rounded=0;html=1;whiteSpace=wrap;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1430" y="250" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-22" value="«component»&lt;br&gt;&lt;b&gt;Redis&lt;/b&gt;" style="shape=component;align=left;spacingLeft=36;rounded=0;html=1;whiteSpace=wrap;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1430" y="120" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-23" value="«component»&lt;br&gt;&lt;b&gt;LLM API (Claude)&lt;/b&gt;" style="shape=component;align=left;spacingLeft=36;rounded=0;html=1;whiteSpace=wrap;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1430" y="590" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-24" value="«component»&lt;br&gt;&lt;b&gt;PostgreSQL&lt;/b&gt;" style="shape=component;align=left;spacingLeft=36;rounded=0;html=1;whiteSpace=wrap;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="790" y="940" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-25" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="cmp-9" target="cmp-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-26" value="" style="endArrow=none;html=1;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="cmp-11" target="cmp-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-27" value="«use»" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;dashed=1;html=1;endSize=10;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="cmp-3" target="cmp-7">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="330" y="175" />
+              <mxPoint x="330" y="281" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmp-28" value="«use»" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;dashed=1;html=1;endSize=10;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="cmp-4" target="cmp-7">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="330" y="335" />
+              <mxPoint x="330" y="281" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmp-29" value="webhook" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;dashed=1;html=1;endSize=10;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="cmp-5" target="cmp-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-30" value="IAuth" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;dashed=1;html=1;endSize=10;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cmp-9" target="cmp-10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-31" value="IPostService" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;dashed=1;html=1;endSize=10;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="cmp-9" target="cmp-12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-32" value="ITaskService" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;dashed=1;html=1;endSize=10;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.6;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="cmp-9" target="cmp-13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-33" value="ISchedule" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;dashed=1;html=1;endSize=10;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="cmp-12" target="cmp-16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-34" value="INotifier" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;dashed=1;html=1;endSize=10;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cmp-13" target="cmp-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-35" value="ITelegramSender" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;dashed=1;html=1;endSize=10;fontSize=11;labelBackgroundColor=#ffffff;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cmp-14" target="cmp-11">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="740" y="405" />
+              <mxPoint x="740" y="540" />
+              <mxPoint x="585" y="540" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmp-36" value="IAgent" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;dashed=1;html=1;endSize=10;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="cmp-11" target="cmp-15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-37" value="IToolRegistry" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;dashed=1;html=1;endSize=10;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="cmp-15" target="cmp-18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-38" value="tool → IPostService" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;dashed=1;html=1;endSize=10;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="cmp-18" target="cmp-12">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1150" y="520" />
+              <mxPoint x="1050" y="520" />
+              <mxPoint x="1050" y="183" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmp-39" value="tool → IHealth" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;dashed=1;html=1;endSize=10;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.7;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="cmp-18" target="cmp-17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-40" value="IAudit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;dashed=1;html=1;endSize=10;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cmp-18" target="cmp-19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-41" value="ILLMProvider (HTTPS)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;dashed=1;html=1;endSize=10;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="cmp-15" target="cmp-23">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="905" y="710" />
+              <mxPoint x="1545" y="710" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmp-42" value="enqueue" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;dashed=1;html=1;endSize=10;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.3;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="cmp-16" target="cmp-22">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-43" value="consume" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;dashed=1;html=1;endSize=10;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="cmp-21" target="cmp-22">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-44" value="publishScheduled()" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;dashed=1;html=1;endSize=10;fontSize=11;labelBackgroundColor=#ffffff;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.25;entryDx=0;entryDy=0;" edge="1" parent="1" source="cmp-21" target="cmp-12">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1370" y="285" />
+              <mxPoint x="1370" y="230" />
+              <mxPoint x="1050" y="230" />
+              <mxPoint x="1050" y="148" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmp-45" value="SQL / TCP 5432" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;dashed=1;html=1;endSize=10;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cmp-20" target="cmp-24">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="cmp-46" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=open;dashed=1;html=1;endSize=10;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.1;exitY=1;exitDx=0;exitDy=0;entryX=0.1;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="cmp-12" target="cmp-20">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="813" y="230" />
+              <mxPoint x="760" y="230" />
+              <mxPoint x="760" y="740" />
+              <mxPoint x="813" y="740" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="cmp-47" value="Các Service đều truy cập dữ liệu qua &lt;b&gt;Data Access (Prisma)&lt;/b&gt; (lược bớt mũi tên)." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="860" width="250" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

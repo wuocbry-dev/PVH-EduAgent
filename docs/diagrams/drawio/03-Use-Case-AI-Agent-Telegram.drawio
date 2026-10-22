@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="PVH-diagram-generator" version="24.7.0" type="device">
+  <diagram id="uc2" name="03. Use Case AI Agent &amp; Telegram">
+    <mxGraphModel dx="1426" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1160" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="uc2-1" value="Hình 3 – Sơ đồ Use Case phân hệ AI Agent &amp;amp; Telegram Bot" style="text;html=1;fontSize=20;fontStyle=1;align=left;verticalAlign=middle;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="1400" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-2" value="Hệ thống Website Trường THPT Phan Văn Hớn tích hợp AI Agent" style="text;html=1;fontSize=12;fontStyle=2;align=left;verticalAlign=middle;fontColor=#555555;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="1400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-3" value="Phân hệ AI Agent &amp;amp; Telegram Bot" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;verticalAlign=top;fontStyle=1;fontSize=14;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="380" y="70" width="980" height="960" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-4" value="Giáo viên" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;whiteSpace=nowrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="40" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-5" value="Biên tập viên" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;whiteSpace=nowrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="440" width="40" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-6" value="BGH / Quản trị viên" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;whiteSpace=nowrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="690" width="40" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-7" value="Người dùng Telegram&lt;br&gt;(đã liên kết)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;whiteSpace=nowrap;" vertex="1" parent="1">
+          <mxGeometry x="230" y="440" width="40" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-8" value="" style="endArrow=block;endFill=0;html=1;endSize=14;rounded=0;" edge="1" parent="1" source="uc2-4" target="uc2-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-9" value="" style="endArrow=block;endFill=0;html=1;endSize=14;rounded=0;" edge="1" parent="1" source="uc2-5" target="uc2-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-10" value="" style="endArrow=block;endFill=0;html=1;endSize=14;rounded=0;" edge="1" parent="1" source="uc2-6" target="uc2-7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-11" value="LLM API" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;whiteSpace=nowrap;" vertex="1" parent="1">
+          <mxGeometry x="1440" y="50" width="40" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-12" value="Scheduler&lt;br&gt;(Thời gian)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;whiteSpace=nowrap;" vertex="1" parent="1">
+          <mxGeometry x="1440" y="800" width="40" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-13" value="Telegram Bot API" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fontStyle=1;whiteSpace=nowrap;" vertex="1" parent="1">
+          <mxGeometry x="850" y="1050" width="40" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-14" value="Chat ngôn ngữ tự nhiên&lt;br&gt;với AI Agent" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="420" y="75" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-15" value="Liên kết / huỷ liên kết tài khoản" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="420" y="165" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-16" value="Kiểm tra trạng thái hệ thống&lt;br&gt;(/status)" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="420" y="255" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-17" value="Xem hạn chót công việc&lt;br&gt;(/deadline)" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="420" y="345" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-18" value="Tạo nháp bài viết" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="420" y="435" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-19" value="Hẹn giờ / dời lịch đăng bài" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="420" y="525" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-20" value="Gỡ / ẩn bài viết" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="420" y="615" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-21" value="Cập nhật trạng thái công việc" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="420" y="705" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-22" value="" style="endArrow=none;html=1;rounded=0;" edge="1" parent="1" source="uc2-7" target="uc2-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-23" value="" style="endArrow=none;html=1;rounded=0;" edge="1" parent="1" source="uc2-7" target="uc2-15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-24" value="" style="endArrow=none;html=1;rounded=0;" edge="1" parent="1" source="uc2-7" target="uc2-16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-25" value="" style="endArrow=none;html=1;rounded=0;" edge="1" parent="1" source="uc2-7" target="uc2-17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-26" value="" style="endArrow=none;html=1;rounded=0;" edge="1" parent="1" source="uc2-7" target="uc2-18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-27" value="" style="endArrow=none;html=1;rounded=0;" edge="1" parent="1" source="uc2-7" target="uc2-19">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-28" value="" style="endArrow=none;html=1;rounded=0;" edge="1" parent="1" source="uc2-7" target="uc2-20">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-29" value="" style="endArrow=none;html=1;rounded=0;" edge="1" parent="1" source="uc2-7" target="uc2-21">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-30" value="" style="endArrow=none;html=1;rounded=0;" edge="1" parent="1" source="uc2-11" target="uc2-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-31" value="&lt;b&gt;Kiểm tra quyền (RBAC)&lt;/b&gt;" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="760" y="400" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-32" value="&lt;b&gt;Xác nhận thao tác&lt;/b&gt;&lt;br&gt;[Xác nhận] / [Huỷ]" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="760" y="610" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-33" value="Gửi tin nhắn Telegram" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="760" y="840" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-34" value="«include»" style="endArrow=open;dashed=1;html=1;endSize=10;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="uc2-16" target="uc2-31">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-35" value="«include»" style="endArrow=open;dashed=1;html=1;endSize=10;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="uc2-17" target="uc2-31">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-36" value="«include»" style="endArrow=open;dashed=1;html=1;endSize=10;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="uc2-18" target="uc2-31">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-37" value="«include»" style="endArrow=open;dashed=1;html=1;endSize=10;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="uc2-19" target="uc2-31">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-38" value="«include»" style="endArrow=open;dashed=1;html=1;endSize=10;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="uc2-20" target="uc2-31">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-39" value="«include»" style="endArrow=open;dashed=1;html=1;endSize=10;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="uc2-21" target="uc2-31">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-40" value="«include»" style="endArrow=open;dashed=1;html=1;endSize=10;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="uc2-19" target="uc2-32">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-41" value="«include»" style="endArrow=open;dashed=1;html=1;endSize=10;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="uc2-20" target="uc2-32">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-42" value="" style="endArrow=none;html=1;rounded=0;" edge="1" parent="1" source="uc2-13" target="uc2-33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-43" value="Tự động đăng bài khi đến hạn" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="720" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-44" value="Nhắc hạn chót tự động" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="815" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-45" value="Gửi báo cáo định kỳ (07:00)" style="ellipse;whiteSpace=wrap;html=1;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="910" width="240" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-46" value="" style="endArrow=none;html=1;rounded=0;" edge="1" parent="1" source="uc2-12" target="uc2-43">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-47" value="«include»" style="endArrow=open;dashed=1;html=1;endSize=10;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="uc2-43" target="uc2-33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-48" value="" style="endArrow=none;html=1;rounded=0;" edge="1" parent="1" source="uc2-12" target="uc2-44">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-49" value="«include»" style="endArrow=open;dashed=1;html=1;endSize=10;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="uc2-44" target="uc2-33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-50" value="" style="endArrow=none;html=1;rounded=0;" edge="1" parent="1" source="uc2-12" target="uc2-45">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-51" value="«include»" style="endArrow=open;dashed=1;html=1;endSize=10;fontSize=10;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="uc2-45" target="uc2-33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-52" value="&lt;b&gt;❌ AI Agent KHÔNG được phép&lt;/b&gt;&lt;br&gt;• Xoá vĩnh viễn dữ liệu&lt;br&gt;• Quản lý người dùng / phân quyền&lt;br&gt;• Thay đổi cấu hình hệ thống, khoá bí mật&lt;br&gt;• Trả dữ liệu cá nhân học sinh qua Telegram" style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="250" width="270" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="uc2-53" value="&lt;b&gt;Nguyên tắc&lt;/b&gt;&lt;br&gt;Agent không có quyền riêng: chỉ thực thi trong phạm vi quyền của người dùng đã liên kết. Mọi thao tác ghi Audit Log (kênh TELEGRAM / SCHEDULER)." style="shape=note;whiteSpace=wrap;html=1;size=14;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="410" width="270" height="110" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

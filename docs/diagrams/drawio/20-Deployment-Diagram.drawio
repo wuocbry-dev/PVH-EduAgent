@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="PVH-diagram-generator" version="24.7.0" type="device">
+  <diagram id="dep" name="20. Deployment Diagram">
+    <mxGraphModel dx="1426" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1720" pageHeight="1060" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="dep-1" value="Hình 20 – Sơ đồ triển khai (Deployment Diagram)" style="text;html=1;fontSize=20;fontStyle=1;align=left;verticalAlign=middle;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="10" width="1400" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-2" value="Hệ thống Website Trường THPT Phan Văn Hớn tích hợp AI Agent" style="text;html=1;fontSize=12;fontStyle=2;align=left;verticalAlign=middle;fontColor=#555555;whiteSpace=wrap;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="1400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-3" value="«device»&lt;br&gt;&lt;b&gt;Điện thoại (Android / iOS)&lt;/b&gt;" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=12;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="90" width="290" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-4" value="«execution environment»&lt;br&gt;&lt;b&gt;Telegram App&lt;/b&gt;" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=12;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=12;fillColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="70" y="170" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-5" value="«cloud»&lt;br&gt;&lt;b&gt;Telegram Cloud&lt;/b&gt;&lt;br&gt;Bot API" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=12;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=12;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="40" y="330" width="290" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-6" value="«device»&lt;br&gt;&lt;b&gt;Máy tính người dùng&lt;/b&gt;" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=12;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=12;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="40" y="560" width="290" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-7" value="«execution environment»&lt;br&gt;&lt;b&gt;Trình duyệt Web&lt;/b&gt;" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=12;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=12;fillColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="70" y="640" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-8" value="«device»&lt;br&gt;&lt;b&gt;VPS Ubuntu 22.04 LTS&lt;/b&gt; (4 vCPU · 8 GB RAM · 80 GB SSD)" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=12;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=12;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="400" y="80" width="940" height="900" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-9" value="«execution environment»&lt;br&gt;&lt;b&gt;Docker Engine + Docker Compose&lt;/b&gt; &amp;nbsp;—&amp;nbsp; network: pvh-net" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=12;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=12;fillColor=#ffffff;" vertex="1" parent="1">
+          <mxGeometry x="430" y="150" width="880" height="810" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-10" value="«container»&lt;br&gt;&lt;b&gt;nginx:alpine&lt;/b&gt;" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=12;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="470" y="400" width="240" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-11" value="«artifact»&lt;br&gt;nginx.conf · SSL cert&lt;br&gt;:80 / :443" style="shape=note;size=12;whiteSpace=wrap;html=1;fillColor=#ffffff;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="488" y="475" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-12" value="«container»&lt;br&gt;&lt;b&gt;web&lt;/b&gt;" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=12;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="770" y="220" width="240" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-13" value="«artifact»&lt;br&gt;Next.js build&lt;br&gt;:3000" style="shape=note;size=12;whiteSpace=wrap;html=1;fillColor=#ffffff;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="788" y="295" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-14" value="«container»&lt;br&gt;&lt;b&gt;worker&lt;/b&gt;" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=12;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=12;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="220" width="240" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-15" value="«artifact»&lt;br&gt;worker.js (BullMQ)" style="shape=note;size=12;whiteSpace=wrap;html=1;fillColor=#ffffff;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1068" y="295" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-16" value="«container»&lt;br&gt;&lt;b&gt;api&lt;/b&gt;" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=12;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=12;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="770" y="470" width="240" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-17" value="«artifact»&lt;br&gt;NestJS dist/main.js&lt;br&gt;:4000" style="shape=note;size=12;whiteSpace=wrap;html=1;fillColor=#ffffff;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="788" y="545" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-18" value="«container»&lt;br&gt;&lt;b&gt;postgres:16&lt;/b&gt;" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=12;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=12;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="470" y="740" width="240" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-19" value="«artifact»&lt;br&gt;volume pgdata&lt;br&gt;:5432" style="shape=note;size=12;whiteSpace=wrap;html=1;fillColor=#ffffff;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="488" y="815" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-20" value="«container»&lt;br&gt;&lt;b&gt;redis:7&lt;/b&gt;" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=12;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=12;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="770" y="740" width="240" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-21" value="«artifact»&lt;br&gt;volume redis-data&lt;br&gt;:6379" style="shape=note;size=12;whiteSpace=wrap;html=1;fillColor=#ffffff;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="788" y="815" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-22" value="«container»&lt;br&gt;&lt;b&gt;minio&lt;/b&gt;" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=12;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=12;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="740" width="240" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-23" value="«artifact»&lt;br&gt;volume media&lt;br&gt;:9000" style="shape=note;size=12;whiteSpace=wrap;html=1;fillColor=#ffffff;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="1068" y="815" width="200" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-24" value="«cloud»&lt;br&gt;&lt;b&gt;Anthropic API&lt;/b&gt;&lt;br&gt;(Claude – LLM)" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=12;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=12;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="400" width="280" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-25" value="«device»&lt;br&gt;&lt;b&gt;Mail Server&lt;/b&gt;&lt;br&gt;(SMTP)" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;size=12;verticalAlign=top;align=left;spacingLeft=10;spacingTop=6;fontSize=12;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="620" width="280" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-26" value="HTTPS / MTProto" style="endArrow=none;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="dep-4" target="dep-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-27" value="HTTPS :443" style="endArrow=none;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="dep-7" target="dep-10">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="420" y="670" />
+              <mxPoint x="420" y="512" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dep-28" value="HTTPS :443 (webhook)" style="endArrow=none;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.35;entryDx=0;entryDy=0;" edge="1" parent="1" source="dep-5" target="dep-10">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="380" y="405" />
+              <mxPoint x="380" y="452" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dep-29" value="HTTP :3000" style="endArrow=none;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="dep-10" target="dep-12">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="590" y="295" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dep-30" value="HTTP :4000" style="endArrow=none;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="dep-10" target="dep-16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-31" value="HTTP (SSR fetch)" style="endArrow=none;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="dep-12" target="dep-16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-32" value="TCP :5432" style="endArrow=none;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="dep-16" target="dep-18">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="818" y="680" />
+              <mxPoint x="590" y="680" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dep-33" value="TCP :6379" style="endArrow=none;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="dep-16" target="dep-20">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-34" value="S3 API :9000" style="endArrow=none;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.8;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="dep-16" target="dep-22">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="962" y="690" />
+              <mxPoint x="1170" y="690" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dep-35" value="TCP :6379" style="endArrow=none;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=11;labelBackgroundColor=#ffffff;exitX=0.3;exitY=1;exitDx=0;exitDy=0;entryX=0.8;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="dep-14" target="dep-20">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1122" y="430" />
+              <mxPoint x="1030" y="430" />
+              <mxPoint x="1030" y="705" />
+              <mxPoint x="962" y="705" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dep-36" value="HTTPS :443" style="endArrow=none;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="dep-16" target="dep-24">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dep-37" value="SMTP :587" style="endArrow=none;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=11;labelBackgroundColor=#ffffff;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="dep-16" target="dep-25">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1360" y="590" />
+              <mxPoint x="1360" y="685" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dep-38" value="HTTPS :443 (sendMessage)" style="endArrow=none;html=1;rounded=0;edgeStyle=orthogonalEdgeStyle;fontSize=11;labelBackgroundColor=#ffffff;exitX=0;exitY=0.85;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="dep-16" target="dep-5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="740" y="597" />
+              <mxPoint x="740" y="540" />
+              <mxPoint x="185" y="540" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
