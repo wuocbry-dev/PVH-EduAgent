@@ -1,0 +1,301 @@
+// Lược đồ CSDL theo ERD (docs/diagrams/drawio/17-ERD.drawio).
+// Tên model/field theo camelCase trong code, map sang snake_case trong PostgreSQL.
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── Phân quyền (RBAC) ─────────────────────────────
+
+model Role {
+  id          BigInt           @id @default(autoincrement())
+  code        String           @unique @db.VarChar(50)
+  name        String           @db.VarChar(100)
+  permissions RolePermission[]
+  users       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          BigInt           @id @default(autoincrement())
+  code        String           @unique @db.VarChar(80)
+  description String?          @db.VarChar(255)
+  roles       RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       BigInt     @map("role_id")
+  permissionId BigInt     @map("permission_id")
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+enum UserStatus {
+  ACTIVE
+  LOCKED
+}
+
+model User {
+  id             BigInt     @id @default(autoincrement())
+  email          String     @unique @db.VarChar(150)
+  passwordHash   String     @map("password_hash") @db.VarChar(255)
+  fullName       String     @map("full_name") @db.VarChar(120)
+  phone          String?    @db.VarChar(20)
+  telegramChatId String?    @unique @map("telegram_chat_id") @db.VarChar(50)
+  status         UserStatus @default(ACTIVE)
+  createdAt      DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+  roles          UserRole[]
+  authoredPosts  Post[]          @relation("PostAuthor")
+  reviewedPosts  Post[]          @relation("PostReviewer")
+  createdTasks   Task[]          @relation("TaskCreator")
+  assignedTasks  Task[]          @relation("TaskAssignee")
+  events         Event[]
+  media          Media[]
+  notifications  Notification[]
+  agentActions   AgentAction[]
+  auditLogs      AuditLog[]
+  systemSettings SystemSetting[]
+
+  @@map("users")
+}
+
+model UserRole {
+  userId BigInt @map("user_id")
+  roleId BigInt @map("role_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+// ───────────────────────────── Nội dung (CMS) ─────────────────────────────
+
+model Category {
+  id        BigInt     @id @default(autoincrement())
+  parentId  BigInt?    @map("parent_id")
+  name      String     @db.VarChar(120)
+  slug      String     @unique @db.VarChar(120)
+  sortOrder Int        @default(0) @map("sort_order")
+  parent    Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Category[] @relation("CategoryTree")
+  posts     Post[]
+
+  @@map("categories")
+}
+
+enum PostStatus {
+  DRAFT
+  PENDING_REVIEW
+  REJECTED
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+model Post {
+  id           BigInt     @id @default(autoincrement())
+  categoryId   BigInt?    @map("category_id")
+  authorId     BigInt     @map("author_id")
+  reviewerId   BigInt?    @map("reviewer_id")
+  title        String     @db.VarChar(255)
+  slug         String     @unique @db.VarChar(255)
+  summary      String?    @db.VarChar(500)
+  content      String
+  thumbnailUrl String?    @map("thumbnail_url") @db.VarChar(500)
+  status       PostStatus @default(DRAFT)
+  publishAt    DateTime?  @map("publish_at") @db.Timestamptz
+  publishedAt  DateTime?  @map("published_at") @db.Timestamptz
+  rejectReason String?    @map("reject_reason")
+  viewCount    Int        @default(0) @map("view_count")
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz
+
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  author   User      @relation("PostAuthor", fields: [authorId], references: [id])
+  reviewer User?     @relation("PostReviewer", fields: [reviewerId], references: [id])
+  media    Media[]
+
+  // Scheduler quét bài SCHEDULED có publish_at đã đến hạn.
+  @@index([status, publishAt])
+  @@map("posts")
+}
+
+model Media {
+  id         BigInt  @id @default(autoincrement())
+  postId     BigInt? @map("post_id")
+  uploadedBy BigInt  @map("uploaded_by")
+  url        String  @db.VarChar(500)
+  mimeType   String  @map("mime_type") @db.VarChar(80)
+  size       Int
+  post       Post?   @relation(fields: [postId], references: [id], onDelete: SetNull)
+  uploader   User    @relation(fields: [uploadedBy], references: [id])
+
+  @@map("media")
+}
+
+model Event {
+  id        BigInt   @id @default(autoincrement())
+  createdBy BigInt   @map("created_by")
+  title     String   @db.VarChar(255)
+  location  String?  @db.VarChar(255)
+  startAt   DateTime @map("start_at") @db.Timestamptz
+  endAt     DateTime @map("end_at") @db.Timestamptz
+  creator   User     @relation(fields: [createdBy], references: [id])
+
+  @@index([startAt])
+  @@map("events")
+}
+
+model AdmissionStat {
+  id           BigInt   @id @default(autoincrement())
+  schoolYear   String   @unique @map("school_year") @db.VarChar(9)
+  quota        Int
+  benchmarkNv1 Decimal? @map("benchmark_nv1") @db.Decimal(4, 2)
+  benchmarkNv2 Decimal? @map("benchmark_nv2") @db.Decimal(4, 2)
+  benchmarkNv3 Decimal? @map("benchmark_nv3") @db.Decimal(4, 2)
+  note         String?
+
+  @@map("admission_stats")
+}
+
+model Contact {
+  id        BigInt   @id @default(autoincrement())
+  fullName  String   @map("full_name") @db.VarChar(120)
+  email     String?  @db.VarChar(150)
+  phone     String?  @db.VarChar(20)
+  subject   String   @db.VarChar(200)
+  message   String
+  status    String   @default("NEW") @db.VarChar(20)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("contacts")
+}
+
+// ───────────────────────────── Công việc & hạn chót ─────────────────────────────
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  OVERDUE
+}
+
+model Task {
+  id          BigInt       @id @default(autoincrement())
+  createdBy   BigInt       @map("created_by")
+  assigneeId  BigInt       @map("assignee_id")
+  title       String       @db.VarChar(255)
+  description String?
+  priority    TaskPriority @default(MEDIUM)
+  status      TaskStatus   @default(TODO)
+  dueAt       DateTime     @map("due_at") @db.Timestamptz
+  completedAt DateTime?    @map("completed_at") @db.Timestamptz
+
+  creator   User           @relation("TaskCreator", fields: [createdBy], references: [id])
+  assignee  User           @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  reminders TaskReminder[]
+
+  @@index([assigneeId, dueAt])
+  @@index([status, dueAt])
+  @@map("tasks")
+}
+
+model TaskReminder {
+  id         BigInt   @id @default(autoincrement())
+  taskId     BigInt   @map("task_id")
+  remindType String   @map("remind_type") @db.VarChar(20)
+  sentAt     DateTime @default(now()) @map("sent_at") @db.Timestamptz
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("task_reminders")
+}
+
+// ───────────────────────────── Hệ thống, AI Agent, nhật ký ─────────────────────────────
+
+model SystemSetting {
+  key       String   @id @db.VarChar(100)
+  value     String
+  updatedBy BigInt?  @map("updated_by")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  updater   User?    @relation(fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@map("system_settings")
+}
+
+model Notification {
+  id      BigInt    @id @default(autoincrement())
+  userId  BigInt    @map("user_id")
+  channel String    @db.VarChar(20)
+  title   String    @db.VarChar(200)
+  body    String
+  sentAt  DateTime? @map("sent_at") @db.Timestamptz
+  readAt  DateTime? @map("read_at") @db.Timestamptz
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+enum AgentActionStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+  DONE
+  FAILED
+}
+
+// Thao tác của agent chờ người dùng bấm Xác nhận/Huỷ trên Telegram (A08).
+model AgentAction {
+  id          BigInt            @id @default(autoincrement())
+  userId      BigInt            @map("user_id")
+  toolName    String            @map("tool_name") @db.VarChar(80)
+  args        Json
+  status      AgentActionStatus @default(PENDING)
+  expiresAt   DateTime          @map("expires_at") @db.Timestamptz
+  confirmedAt DateTime?         @map("confirmed_at") @db.Timestamptz
+  result      Json?
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("agent_actions")
+}
+
+model AuditLog {
+  id         BigInt   @id @default(autoincrement())
+  userId     BigInt?  @map("user_id")
+  channel    String   @db.VarChar(20)
+  action     String   @db.VarChar(80)
+  targetType String?  @map("target_type") @db.VarChar(50)
+  targetId   BigInt?  @map("target_id")
+  payload    Json?
+  ip         String?  @db.Inet
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@map("audit_logs")
+}
