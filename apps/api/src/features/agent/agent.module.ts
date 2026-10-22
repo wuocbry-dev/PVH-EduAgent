@@ -1,0 +1,28 @@
+import { Module } from '@nestjs/common';
+import { PostsAgentTools } from '../posts/posts.agent-tools.js';
+import { PostsModule } from '../posts/posts.module.js';
+import { SystemAgentTools } from '../system/system.agent-tools.js';
+import { SystemModule } from '../system/system.module.js';
+import { TasksAgentTools } from '../tasks/tasks.agent-tools.js';
+import { TasksModule } from '../tasks/tasks.module.js';
+import { AGENT_TOOL_PROVIDERS, type AgentToolProvider } from './agent-tool.js';
+import { AgentController } from './agent.controller.js';
+import { AgentService } from './agent.service.js';
+
+// Thêm tool cho feature mới: import module của feature và thêm provider vào danh sách này.
+const toolProviders = [PostsAgentTools, TasksAgentTools, SystemAgentTools];
+
+@Module({
+  imports: [PostsModule, TasksModule, SystemModule],
+  controllers: [AgentController],
+  providers: [
+    AgentService,
+    {
+      provide: AGENT_TOOL_PROVIDERS,
+      useFactory: (...providers: AgentToolProvider[]) => providers,
+      inject: toolProviders,
+    },
+  ],
+  exports: [AgentService],
+})
+export class AgentModule {}
