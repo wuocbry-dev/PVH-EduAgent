@@ -1,0 +1,2 @@
+# Prisma Client sinh tự động (pnpm db:generate)
+src/generated/
