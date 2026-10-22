@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { env } from "@/shared/config/env";
 import { sendAgentMessage } from "../api/send-agent-message";
 
 interface ChatLine {
@@ -8,7 +9,9 @@ interface ChatLine {
   text: string;
 }
 
+// Chỉ hiện khi chạy dev (NEXT_PUBLIC_DEV_AUTH=true, API bật DEV_AUTH=true).
 const DEV_USERS = [
+  { email: "", label: "Tài khoản đang đăng nhập" },
   { email: "bgh@pvh.edu.vn", label: "Ban giám hiệu" },
   { email: "bientap@pvh.edu.vn", label: "Biên tập viên" },
   { email: "gv.toan@pvh.edu.vn", label: "Giáo viên" },
@@ -29,7 +32,7 @@ export function AgentChat() {
     setLines((l) => [...l, { role: "user", text: message }]);
     setPending(true);
     try {
-      const res = await sendAgentMessage({ message }, devUserEmail);
+      const res = await sendAgentMessage({ message }, devUserEmail || undefined);
       setLines((l) => [...l, { role: "agent", text: res.reply }]);
     } catch (err) {
       setLines((l) => [...l, { role: "error", text: err instanceof Error ? err.message : String(err) }]);
@@ -40,20 +43,22 @@ export function AgentChat() {
 
   return (
     <div className="flex flex-col gap-4">
-      <label className="flex items-center gap-2 text-sm">
-        Thử với vai trò
-        <select
-          className="rounded border border-black/20 bg-transparent px-2 py-1 dark:border-white/20"
-          value={devUserEmail}
-          onChange={(e) => setDevUserEmail(e.target.value)}
-        >
-          {DEV_USERS.map((u) => (
-            <option key={u.email} value={u.email}>
-              {u.label}
-            </option>
-          ))}
-        </select>
-      </label>
+      {env.devAuth && (
+        <label className="flex items-center gap-2 text-sm">
+          Thử với vai trò
+          <select
+            className="rounded border border-black/20 bg-transparent px-2 py-1 dark:border-white/20"
+            value={devUserEmail}
+            onChange={(e) => setDevUserEmail(e.target.value)}
+          >
+            {DEV_USERS.map((u) => (
+              <option key={u.email} value={u.email}>
+                {u.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       <div className="min-h-64 space-y-3 rounded-lg border border-black/10 p-4 dark:border-white/15">
         {lines.length === 0 && (

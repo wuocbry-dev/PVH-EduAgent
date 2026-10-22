@@ -23,7 +23,7 @@ apps/api/src/
 ├── generated/prisma/            # Prisma Client sinh tự động (không commit)
 ├── common/                      # decorator, pipe, kiểm tra quyền, kiểu dùng chung
 └── features/
-    ├── auth/                    # guard toàn cục (tạm: DevAuthGuard, sau: JWT)
+    ├── auth/                    # F10: đăng nhập JWT (cookie httpOnly), refresh, đổi/quên mật khẩu, guard toàn cục
     ├── users/
     ├── posts/                   # bài viết + posts.agent-tools.ts
     ├── tasks/                   # công việc & hạn chót + tasks.agent-tools.ts
@@ -38,14 +38,17 @@ apps/api/src/
     └── scheduler/               # (khung) BullMQ: đăng bài hẹn giờ, nhắc hạn
 
 apps/web/src/
+├── proxy.ts                     # chặn /admin khi chưa đăng nhập, tự refresh token
 ├── app/                         # chỉ định tuyến, trang mỏng
 │   ├── (public)/                #   /, /tin-tuc
-│   └── admin/                   #   /admin, /admin/tro-ly-ai
+│   ├── (auth)/                  #   /dang-nhap, /quen-mat-khau, /dat-lai-mat-khau
+│   └── admin/                   #   /admin, /admin/tro-ly-ai, /admin/doi-mat-khau
 ├── features/
+│   ├── auth/    {api, components, proxy.ts, index.ts}
 │   ├── posts/   {api, components, index.ts}
 │   ├── tasks/   {api, components, index.ts}
 │   └── agent/   {api, components, index.ts}
-└── shared/      {config, lib/api-client.ts}
+└── shared/      {config, lib/api-client.ts, lib/server-api.ts}
 ```
 
 Quy ước: trang trong `app/` chỉ import từ `@/features/<tên>` (file `index.ts`), không import sâu vào bên trong feature.
@@ -64,13 +67,13 @@ cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env.local
 ```
 
-Điền `ANTHROPIC_API_KEY` trong `apps/api/.env` (tạo key tại https://console.anthropic.com/settings/keys), rồi:
+Trong `apps/api/.env`: điền `JWT_ACCESS_SECRET` (chuỗi ngẫu nhiên ≥ 32 ký tự, vd. `openssl rand -hex 32`) và `ANTHROPIC_API_KEY` (tạo key tại https://console.anthropic.com/settings/keys), rồi:
 
 ```bash
 pnpm dev
 ```
 
-- Web: http://localhost:3000 · Trợ lý AI: http://localhost:3000/admin/tro-ly-ai
+- Web: http://localhost:3000 · Quản trị: http://localhost:3000/admin (đăng nhập bằng tài khoản mẫu, mật khẩu `Pvh@2026`) · Trợ lý AI: http://localhost:3000/admin/tro-ly-ai
 - API: http://localhost:4000/api (vd. `/api/system/health`)
 
 ### Cơ sở dữ liệu (PostgreSQL + Prisma)
@@ -86,6 +89,22 @@ pnpm db:seed
 ```
 
 Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, migration, sao lưu, lỗi thường gặp): [docs/02-huong-dan-postgresql.md](docs/02-huong-dan-postgresql.md).
+
+## Đăng nhập (F10)
+
+| Endpoint | Việc |
+|---|---|
+| `POST /api/auth/login` | Email + mật khẩu → đặt cookie `pvh_access` (JWT 15 phút) và `pvh_refresh` (7 ngày) |
+| `POST /api/auth/refresh` | Cấp cặp token mới, thu hồi refresh token cũ |
+| `POST /api/auth/logout` | Thu hồi refresh token, xoá cookie |
+| `GET /api/auth/me` | Người đang đăng nhập (tên, vai trò, quyền) |
+| `POST /api/auth/change-password` | Đổi mật khẩu, đăng xuất mọi phiên khác |
+| `POST /api/auth/forgot-password`, `/reset-password` | Link đặt lại mật khẩu hạn 30 phút (tạm in ra log API, chưa gửi email) |
+
+- Cookie `httpOnly`, `SameSite=Lax`, `Secure` khi production; refresh token chỉ lưu bản băm (bảng `refresh_tokens`).
+- Sai mật khẩu 5 lần/phút (theo IP + email) thì bị chặn tạm thời (429). Đăng nhập thành công/thất bại đều ghi `audit_logs`.
+- Web: `src/proxy.ts` chuyển `/admin/*` về `/dang-nhap` khi chưa đăng nhập và tự refresh khi access token hết hạn. Web và API phải cùng tên miền gốc để dùng chung cookie (dev: cùng `localhost`).
+- Chế độ thử nghiệm: `DEV_AUTH=true` (API, chỉ khi `NODE_ENV=development`) + `NEXT_PUBLIC_DEV_AUTH=true` (web) → trang Trợ lý AI có ô chọn vai trò (header `x-dev-user-email`).
 
 ## AI Agent và API key
 
@@ -108,7 +127,7 @@ Thao tác ảnh hưởng công khai (duyệt, hẹn giờ, gỡ bài) cần xác
 |---|---|
 | `pnpm build` | Build shared → api → web |
 | `pnpm lint` | oxlint (api) + eslint (web) |
-| `pnpm test` | e2e test cho API |
+| `pnpm test` | e2e test cho API (cần PostgreSQL đã migrate + seed) |
 
 ## Lộ trình phát triển với Claude Code
 

@@ -1,7 +1,8 @@
 import { getDeadlines } from "../api/get-deadlines";
 
-export async function DeadlineList({ devUserEmail }: { devUserEmail: string }) {
-  const tasks = await getDeadlines(devUserEmail);
+// Đọc phiên đăng nhập nên phải đặt trong <Suspense>.
+export async function DeadlineList() {
+  const tasks = await getDeadlines();
 
   if (tasks.length === 0) {
     return <p className="text-sm opacity-70">Không có việc nào sắp đến hạn.</p>;

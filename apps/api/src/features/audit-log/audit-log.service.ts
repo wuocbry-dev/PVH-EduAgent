@@ -13,6 +13,7 @@ export interface AuditEntry {
   params?: unknown;
   ok: boolean;
   error?: string;
+  ip?: string;
 }
 
 // F16 – ghi mọi thao tác, kể cả của AI Agent, vào bảng audit_logs.
@@ -37,6 +38,7 @@ export class AuditLogService {
             ok: entry.ok,
             error: entry.error,
           } as Prisma.InputJsonObject,
+          ip: entry.ip,
         },
       });
     } catch (err) {

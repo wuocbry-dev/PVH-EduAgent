@@ -11,14 +11,14 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 - Monorepo pnpm: Next.js 16 (`apps/web`), NestJS 12 (`apps/api`), `packages/shared`; cấu trúc feature-based.
 - AI Agent bằng Claude Agent SDK: `POST /api/agent/chat`, tool `list_posts`, `create_post_draft`, `check_deadlines`, `get_system_status`; tool nào cũng kiểm tra quyền và ghi audit log.
 - PostgreSQL 18 + Prisma 7: 17 bảng theo ERD, migration `init`, seed dữ liệu mẫu (docs/02-huong-dan-postgresql.md).
-- Xác thực tạm qua header `x-dev-user-email` (DevAuthGuard).
+- Xác thực tạm qua header `x-dev-user-email` (DevAuthGuard) – đã thay bằng JWT ở bước 1.
 
 ## Lộ trình
 
 | | Bước | Nội dung | Ngày xong |
 |---|---|---|---|
 | [x] | 0 | Ghi quy ước dự án vào CLAUDE.md | 2026-10-22 |
-| [ ] | 1 | Đăng nhập JWT (F10) | |
+| [x] | 1 | Đăng nhập JWT (F10) | 2026-10-22 |
 | [ ] | 2 | Người dùng & phân quyền (F11) | |
 | [ ] | 3 | Quy trình bài viết, chuyên mục, media (F12, F13) | |
 | [ ] | 4 | Website public (F01–F07) | |
@@ -40,3 +40,10 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 - **Đã làm:** tạo `CLAUDE.md` (58 dòng) ghi quy ước monorepo, feature-based, zod + `assertPermission` trong service, Prisma 7/BigInt/migration, AI Agent tool + xác nhận 2 bước, audit log, múi giờ, lệnh kiểm tra, lộ trình `/buoc`, quy tắc git. Không sửa code.
 - **Lệch thiết kế:** không có.
 - **Còn lại:** không.
+
+### Bước 1 – Đăng nhập JWT (F10) (2026-10-22)
+
+- **Đã làm:** API `features/auth`: login/refresh/logout/me/change-password/forgot-password/reset-password; access JWT 15 phút (jose) + refresh token 7 ngày trong cookie httpOnly, lưu băm ở bảng mới `refresh_tokens`, dùng một lần; `JwtAuthGuard` toàn cục thay `DevAuthGuard` (header dev chỉ khi `NODE_ENV=development` + `DEV_AUTH=true`); chặn 5 lần sai/phút theo IP + email; audit log đăng nhập/đăng xuất/đổi mật khẩu.
+- Web: `src/proxy.ts` chặn `/admin` và tự refresh; trang `/dang-nhap`, `/quen-mat-khau`, `/dat-lai-mat-khau`, `/admin/doi-mat-khau`; tên + vai trò + nút đăng xuất ở sidebar; `serverApi` chuyển tiếp cookie cho Server Component. e2e: 17 test (login, me, refresh, thu hồi, 401, 429, đổi mật khẩu).
+- **Lệch thiết kế:** thêm bảng `refresh_tokens` ngoài ERD (ghi ở docs/02). Token đặt lại mật khẩu là JWT gắn dấu vân tay `password_hash` thay vì bảng riêng. Dùng lại refresh token đã thu hồi sau 10 giây ân hạn → thu hồi mọi phiên của tài khoản. Rate limit lưu trong bộ nhớ (1 instance).
+- **Còn lại:** gửi email đặt lại mật khẩu (hiện in link ra log API). Rate limit dùng Redis khi chạy nhiều instance, `trust proxy` cho IP thật sau reverse proxy (bước 10/11). Web và API phải cùng tên miền gốc khi triển khai (bước 11).

@@ -70,8 +70,26 @@ model User {
   agentActions   AgentAction[]
   auditLogs      AuditLog[]
   systemSettings SystemSetting[]
+  refreshTokens  RefreshToken[]
 
   @@map("users")
+}
+
+// Ngoài ERD (thêm ở F10): refresh token đăng nhập, chỉ lưu bản băm SHA-256.
+// Mỗi token dùng một lần: khi refresh thì thu hồi (revoked_at) và cấp token mới.
+model RefreshToken {
+  id        BigInt    @id @default(autoincrement())
+  userId    BigInt    @map("user_id")
+  tokenHash String    @unique @map("token_hash") @db.Char(64)
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz
+  userAgent String?   @map("user_agent") @db.VarChar(255)
+  ip        String?   @db.Inet
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
 }
 
 model UserRole {

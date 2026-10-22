@@ -18,7 +18,7 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 
 - Validate input bằng zod: schema trong `dto/*.dto.ts`, dùng `@Body(new ZodValidationPipe(schema))` (`common/pipes/zod-validation.pipe.ts`).
 - Kiểm tra quyền **trong service**, không trong controller: `assertPermission(user, 'post:create')` / `can(user, ...)` (`common/guards/permission.ts`). Quyền của user lấy từ `users → user_roles → roles → role_permissions` (`UsersService.findAuthUserByEmail`). Route không cần đăng nhập dùng `@Public()`; lấy user bằng `@CurrentUser()`.
-- Xác thực hiện tại là tạm: `DevAuthGuard` chọn tài khoản qua header `x-dev-user-email` (bước 1 thay bằng JWT).
+- Xác thực (F10): `JwtAuthGuard` toàn cục đọc JWT từ cookie `pvh_access`; header `x-dev-user-email` chỉ có tác dụng khi `NODE_ENV=development` và `DEV_AUTH=true`. Web: `src/proxy.ts` chặn `/admin`; Server Component gọi API bằng `serverApi` (`shared/lib/server-api.ts`, chuyển tiếp cookie), Client Component dùng `api` (`credentials: "include"`).
 - Biến môi trường khai báo và kiểm tra bằng zod ở `src/config/env.validation.ts`; thêm biến mới thì cập nhật cả `apps/api/.env.example`.
 - Thao tác quan trọng (tạo/sửa/xóa/duyệt/đăng, phân quyền, đăng nhập…) phải ghi `audit_logs` qua `AuditLogService.record()` (channel `web` | `telegram` | `scheduler`).
 - Giờ hiển thị theo `Asia/Ho_Chi_Minh`; lưu và trả về ISO string (UTC).

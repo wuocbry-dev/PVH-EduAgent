@@ -57,7 +57,7 @@ pnpm --filter api db:migrate
 pnpm --filter api db:seed
 ```
 
-- `db:migrate` áp dụng các migration trong `apps/api/prisma/migrations` (tạo 17 bảng theo ERD) và sinh lại Prisma Client.
+- `db:migrate` áp dụng các migration trong `apps/api/prisma/migrations` (17 bảng theo ERD + bảng bổ sung ở mục 3) và sinh lại Prisma Client.
 - `db:seed` nạp vai trò, quyền, tài khoản mẫu, chuyên mục, bài viết, công việc, số liệu tuyển sinh. Chạy lại nhiều lần vẫn an toàn.
 
 Tài khoản mẫu (mật khẩu chung `Pvh@2026`, đổi qua biến `SEED_PASSWORD`):
@@ -69,7 +69,7 @@ Tài khoản mẫu (mật khẩu chung `Pvh@2026`, đổi qua biến `SEED_PASSW
 | bientap@pvh.edu.vn | EDITOR – Biên tập viên |
 | gv.toan@pvh.edu.vn | TEACHER – Giáo viên |
 
-Trong giai đoạn chưa có đăng nhập JWT, web và API chọn tài khoản qua header `x-dev-user-email`.
+Đăng nhập tại http://localhost:3000/dang-nhap. Khi chạy dev với `DEV_AUTH=true` (apps/api/.env), API vẫn cho chọn tài khoản qua header `x-dev-user-email` để thử nghiệm.
 
 ## 3. Các bảng chính
 
@@ -79,6 +79,9 @@ Trong giai đoạn chưa có đăng nhập JWT, web và API chọn tài khoản 
 | Nội dung | `posts`, `categories`, `media`, `events`, `admission_stats`, `contacts` | `posts.status`: DRAFT → PENDING_REVIEW → SCHEDULED → PUBLISHED (hoặc REJECTED, ARCHIVED) |
 | Công việc | `tasks`, `task_reminders` | `tasks.status`: TODO, IN_PROGRESS, DONE, OVERDUE |
 | Hệ thống | `system_settings`, `notifications`, `agent_actions`, `audit_logs` | Mọi lần AI Agent gọi tool đều ghi vào `audit_logs` |
+| Xác thực *(ngoài ERD)* | `refresh_tokens` | Thêm ở F10 (migration `add_refresh_tokens`): refresh token đăng nhập, chỉ lưu bản băm SHA-256, dùng một lần (`revoked_at`) |
+
+**Lệch so với ERD (hình 17):** bảng `refresh_tokens` (thuộc `users`, xoá theo người dùng) không có trong ERD gốc, được thêm để thu hồi được phiên đăng nhập. Token đặt lại mật khẩu không cần bảng: là JWT 30 phút gắn dấu vân tay của `password_hash`, tự mất hiệu lực khi mật khẩu đã đổi.
 
 Quy ước: khoá chính `bigint` tự tăng; cột thời gian `timestamptz` (lưu UTC, hiển thị theo giờ Việt Nam ở giao diện); tên cột snake_case trong CSDL, camelCase trong code.
 

@@ -11,6 +11,16 @@ const envSchema = z.object({
   API_PORT: z.coerce.number().int().default(4000),
   WEB_ORIGIN: z.url().default('http://localhost:3000'),
 
+  // F10 – xác thực JWT. Bí mật ký access token và token đặt lại mật khẩu.
+  JWT_ACCESS_SECRET: z
+    .string()
+    .min(32, 'Cần ít nhất 32 ký tự (vd. openssl rand -hex 32)'),
+  // Cho phép chọn tài khoản qua header x-dev-user-email (chỉ khi NODE_ENV=development).
+  DEV_AUTH: z.preprocess(
+    (v) => (v === '' ? undefined : v),
+    z.stringbool().default(false),
+  ),
+
   // AI Agent (Claude Agent SDK). Không bắt buộc lúc khởi động để các phân hệ
   // khác vẫn chạy được; endpoint agent sẽ trả 503 nếu thiếu cả key lẫn token.
   // Key Anthropic (gửi qua header x-api-key).
@@ -29,7 +39,10 @@ const envSchema = z.object({
 
   DATABASE_URL: z
     .string()
-    .regex(/^postgres(ql)?:\/\//, 'Phải có dạng postgresql://user:pass@host:5432/db'),
+    .regex(
+      /^postgres(ql)?:\/\//,
+      'Phải có dạng postgresql://user:pass@host:5432/db',
+    ),
   REDIS_URL: optional(z.string()),
   TELEGRAM_BOT_TOKEN: optional(z.string()),
   TELEGRAM_WEBHOOK_SECRET: optional(z.string()),
