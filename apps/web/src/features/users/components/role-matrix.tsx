@@ -90,8 +90,8 @@ export function RoleMatrix() {
                       type="checkbox"
                       aria-label={`${r.name}: ${p.code}`}
                       checked={selected(r.code).includes(p.code)}
-                      // ADMIN luôn giữ user:manage để không tự khóa mình khỏi hệ thống.
-                      disabled={r.code === "ADMIN" && p.code === "user:manage"}
+                      // ADMIN luôn giữ các quyền quản trị để không tự khóa mình khỏi hệ thống.
+                      disabled={r.code === "ADMIN" && (p.code === "user:manage" || p.code === "setting:manage")}
                       onChange={() => toggle(r.code, p.code)}
                     />
                   </td>

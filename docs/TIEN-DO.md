@@ -23,7 +23,7 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 | [x] | 3 | Quy trình bài viết, chuyên mục, media (F12, F13) | 2026-10-25 |
 | [x] | 4 | Website public (F01–F07) | 2026-10-25 |
 | [x] | 5 | Công việc, hạn chót, lịch (F14, F15) | 2026-10-25 |
-| [ ] | 6 | Nhật ký & cấu hình (F16, F17) | |
+| [x] | 6 | Nhật ký & cấu hình (F16, F17) | 2026-10-25 |
 | [ ] | 7 | Bộ lập lịch Redis + BullMQ (A05, A06, A09) | |
 | [ ] | 8 | Bot Telegram & liên kết tài khoản (A01–A04) | |
 | [ ] | 9 | Xác nhận 2 bước cho AI Agent (A07, A08) | |
@@ -79,3 +79,11 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 - **Kiểm tra bằng Chrome headless:** đăng nhập BGH thấy cả 3 việc kèm nút Giao/Sửa/Xóa, giáo viên chỉ thấy 2 việc của mình và không có nút giao/sửa; giao việc và tạo sự kiện trên giao diện thành công, sự kiện hiện ngay ở lịch admin và trang công khai; không trang nào tràn ngang ở 375px.
 - **Lệch thiết kế:** quyền quản lý sự kiện dùng `post:approve` (như chuyên mục/liên hệ), không thêm quyền mới. Danh sách việc giới hạn 200 bản ghi, chưa phân trang. Tool agent `create_task`/`update_task_status` chưa cần xác nhận 2 bước (bước 9 quyết định cho các thao tác nhạy cảm).
 - **Còn lại:** tự cập nhật status `OVERDUE` định kỳ và nhắc hạn (bước 7).
+
+### Bước 6 – Nhật ký hoạt động & cấu hình hệ thống (F16, F17) (2026-10-25)
+
+- **Đã làm:** API `GET /audit-logs` (lọc theo người dùng, kênh web/telegram/scheduler, action chứa chuỗi, khoảng thời gian; phân trang theo con trỏ `nextCursor` theo id giảm dần; kèm tên người dùng, IP, payload JSON) và `GET /audit-logs/filters` — chỉ người có `system:read` (ADMIN, BGH). API `GET/PATCH /settings`: danh sách khóa cho phép và schema zod từng khóa (`SETTING_KEYS`, `SETTING_META` trong `@pvh/shared`; schema ở `features/settings/dto`): tên trường, địa chỉ, điện thoại, email, liên kết bản đồ (https), giờ báo cáo ngày (HH:mm), giờ nhắc trước hạn (1–168). Xem: `system:read`; sửa: quyền mới `setting:manage` chỉ ADMIN. Khóa lạ (kể cả tên giống bí mật như `anthropic.api_key`) bị từ chối cả yêu cầu; chuỗi rỗng xóa khóa optional; ghi audit `setting.update` kèm giá trị cũ/mới và IP; báo web làm mới cache tag `settings`. `GET /system/dashboard`: bài chờ duyệt, bài hẹn giờ, liên hệ mới (cần `post:approve`), việc quá hạn (toàn trường nếu `task:read:all`, của mình nếu `task:read:own`), tình trạng hệ thống (cần `system:read`). Các thao tác qua web đều đã truyền IP vào `audit_logs` (kiểm tra bằng e2e).
+- Web: `/admin/nhat-ky` (bộ lọc, bảng, xem payload JSON, "Tải thêm"), `/admin/cau-hinh` (ADMIN sửa, BGH chỉ xem), `/admin` có thẻ thống kê + tình trạng hệ thống + hạn chót; menu theo quyền; menu admin tự xuống dòng trên điện thoại (trước đó 11 mục làm trang tràn ngang). ADMIN không bỏ được `user:manage` và `setting:manage` khỏi vai trò của mình. e2e mới `test/admin.e2e-spec.ts` (10 test: quyền, lọc, phân trang con trỏ, IP, cấu hình hợp lệ/sai/khóa lạ, dashboard theo quyền và đổi theo dữ liệu); 23 unit + 82 e2e xanh.
+- **Kiểm tra bằng Chrome headless:** ADMIN thấy đủ mục và sửa được cấu hình (sai số điện thoại báo lỗi, đúng thì lưu và hiện ngay ở trang Liên hệ công khai); BGH vào được nhật ký, cấu hình chỉ xem; biên tập viên không thấy mục và gõ thẳng URL thì bị báo thiếu quyền; lọc nhật ký theo action thấy payload và IP, "Tải thêm" 30 → 60 dòng; dashboard khớp số liệu CSDL; mọi trang admin vừa 375px.
+- **Lệch thiết kế:** thêm quyền `setting:manage` (ADMIN; đã đồng bộ vào seed và ma trận vai trò). BGH được xem cấu hình (không sửa). Bộ lọc action là "chứa chuỗi", không phải khớp chính xác. Các khóa `report.daily_time` và `reminder.hours_before` mới chỉ lưu; bước 7 sẽ dùng.
+- **Còn lại:** bước 7 đọc `report.daily_time`/`reminder.hours_before`. Chưa có xuất nhật ký ra file và chưa tự xóa nhật ký cũ.

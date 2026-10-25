@@ -21,4 +21,10 @@ export class SystemController {
   status(@CurrentUser() user: AuthUser) {
     return this.system.getStatus(user);
   }
+
+  // Số liệu trang tổng quan; mỗi nhóm số liệu chỉ có khi người dùng đủ quyền.
+  @Get('dashboard')
+  dashboard(@CurrentUser() user: AuthUser) {
+    return this.system.getDashboard(user);
+  }
 }

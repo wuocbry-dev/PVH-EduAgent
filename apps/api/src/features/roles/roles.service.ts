@@ -10,6 +10,8 @@ import type { AuthUser } from '../../common/types/auth-user.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
 import { AuditLogService } from '../audit-log/audit-log.service.js';
 
+const ADMIN_REQUIRED: Permission[] = ['user:manage', 'setting:manage'];
+
 // F11 – xem vai trò × quyền và sửa quyền của vai trò (role_permissions).
 @Injectable()
 export class RolesService {
@@ -47,11 +49,14 @@ export class RolesService {
     ip?: string,
   ): Promise<RoleDto> {
     assertPermission(actor, 'user:manage');
-    // Nếu ADMIN mất user:manage thì không còn ai quản lý được hệ thống.
-    if (code === 'ADMIN' && !permissions.includes('user:manage')) {
-      throw new BadRequestException(
-        'Vai trò ADMIN phải giữ quyền user:manage',
-      );
+    // Nếu ADMIN mất các quyền quản trị này thì không còn ai quản lý được hệ thống.
+    if (code === 'ADMIN') {
+      const missing = ADMIN_REQUIRED.filter((p) => !permissions.includes(p));
+      if (missing.length > 0) {
+        throw new BadRequestException(
+          `Vai trò ADMIN phải giữ quyền ${missing.join(', ')}`,
+        );
+      }
     }
     const role = await this.prisma.role.findUnique({
       where: { code },

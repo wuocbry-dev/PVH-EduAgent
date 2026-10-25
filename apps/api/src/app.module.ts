@@ -11,6 +11,7 @@ import { MediaModule } from './features/media/media.module.js';
 import { PostsModule } from './features/posts/posts.module.js';
 import { PublicSiteModule } from './features/public-site/public-site.module.js';
 import { RolesModule } from './features/roles/roles.module.js';
+import { SettingsModule } from './features/settings/settings.module.js';
 import { SchedulerModule } from './features/scheduler/scheduler.module.js';
 import { SystemModule } from './features/system/system.module.js';
 import { TasksModule } from './features/tasks/tasks.module.js';
@@ -34,6 +35,7 @@ import { RevalidateModule } from './infrastructure/revalidate/revalidate.module.
     PublicSiteModule,
     ContactsModule,
     EventsModule,
+    SettingsModule,
     TasksModule,
     SystemModule,
     AgentModule,

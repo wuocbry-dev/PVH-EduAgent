@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { assertPermission } from '../../common/guards/permission.js';
+import type { DashboardDto } from '@pvh/shared';
+import { assertPermission, can } from '../../common/guards/permission.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
 import { PostsService } from '../posts/posts.service.js';
@@ -35,5 +36,48 @@ export class SystemService {
       postsPendingReview,
       postsScheduled,
     };
+  }
+
+  // Số liệu cho trang tổng quan /admin: mỗi nhóm chỉ trả khi người dùng có quyền tương ứng.
+  async getDashboard(user: AuthUser): Promise<DashboardDto> {
+    const dashboard: DashboardDto = {};
+
+    if (can(user, 'post:approve')) {
+      const [pending, scheduled, contactsNew] = await Promise.all([
+        this.posts.countByStatus('PENDING_REVIEW'),
+        this.posts.countByStatus('SCHEDULED'),
+        this.prisma.contact.count({ where: { status: 'NEW' } }),
+      ]);
+      dashboard.postsPendingReview = pending;
+      dashboard.postsScheduled = scheduled;
+      dashboard.contactsNew = contactsNew;
+    }
+
+    const scope = can(user, 'task:read:all')
+      ? 'all'
+      : can(user, 'task:read:own')
+        ? 'own'
+        : null;
+    if (scope) {
+      // Việc quá hạn: chưa DONE và đã qua due_at (tính khi truy vấn, như danh sách công việc).
+      dashboard.tasksOverdue = await this.prisma.task.count({
+        where: {
+          status: { not: 'DONE' },
+          dueAt: { lt: new Date() },
+          assigneeId: scope === 'all' ? undefined : BigInt(user.id),
+        },
+      });
+      dashboard.tasksOverdueScope = scope;
+    }
+
+    if (can(user, 'system:read')) {
+      dashboard.system = {
+        uptimeSec: Math.round(process.uptime()),
+        memoryMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
+        node: process.version,
+        database: (await this.isDatabaseUp()) ? 'ok' : 'down',
+      };
+    }
+    return dashboard;
   }
 }

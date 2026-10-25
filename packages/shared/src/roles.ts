@@ -11,15 +11,16 @@ export const PERMISSIONS = [
   'post:schedule',
   'post:unpublish',
   'user:manage',
+  'setting:manage',
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
 // Bảng phân quyền theo mục 5 – tài liệu phân tích đề tài.
 // AI Agent không có quyền riêng: nó kế thừa đúng quyền của người dùng đã liên kết.
-// `user:manage` (F11) chỉ dành cho ADMIN.
+// `user:manage` (F11) và `setting:manage` (F17) chỉ dành cho ADMIN.
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   ADMIN: PERMISSIONS,
-  PRINCIPAL: PERMISSIONS.filter((p) => p !== 'user:manage'),
+  PRINCIPAL: PERMISSIONS.filter((p) => p !== 'user:manage' && p !== 'setting:manage'),
   EDITOR: ['task:read:all', 'post:create', 'post:approve', 'post:schedule', 'post:unpublish'],
   TEACHER: ['task:read:own', 'post:create'],
   STUDENT: [],
