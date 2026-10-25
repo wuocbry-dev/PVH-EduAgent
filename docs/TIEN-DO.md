@@ -22,7 +22,7 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 | [x] | 2 | Người dùng & phân quyền (F11) | 2026-10-25 |
 | [x] | 3 | Quy trình bài viết, chuyên mục, media (F12, F13) | 2026-10-25 |
 | [x] | 4 | Website public (F01–F07) | 2026-10-25 |
-| [ ] | 5 | Công việc, hạn chót, lịch (F14, F15) | |
+| [x] | 5 | Công việc, hạn chót, lịch (F14, F15) | 2026-10-25 |
 | [ ] | 6 | Nhật ký & cấu hình (F16, F17) | |
 | [ ] | 7 | Bộ lập lịch Redis + BullMQ (A05, A06, A09) | |
 | [ ] | 8 | Bot Telegram & liên kết tài khoản (A01–A04) | |
@@ -70,3 +70,12 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 - **Lệch thiết kế:** "Thư viện" chỉ có ảnh (chưa có video, văn bản/biểu mẫu tải về — không có bảng). Tin nổi bật/thông báo mới lấy theo chuyên mục seed `tin-tuc`/`thong-bao`; nội dung Giới thiệu/Tuyển sinh viết tĩnh từ mục 1 tài liệu phân tích, thông tin chưa có hiển thị "Đang cập nhật". Số điện thoại/email/bản đồ lấy từ `system_settings` (khóa `school.phone`, `school.email`, `school.map_url`), chưa có màn hình sửa (thuộc bước 6). Ảnh chèn trong bài lưu URL tuyệt đối theo `NEXT_PUBLIC_API_URL`.
 - **Kiểm tra bằng Chrome headless (375px):** 8 trang (/, /gioi-thieu, /tin-tuc, /thong-bao, /tuyen-sinh, /thu-vien, /lien-he, một bài) không tràn ngang (scrollWidth = 375); bảng tuyển sinh cuộn ngang trong khung riêng. Phát hiện và sửa 2 lỗi tương phản ở chế độ tối (nút Thông tin tuyển sinh, nút Gửi liên hệ). Đã thử đăng/gỡ bài với REVALIDATE_SECRET thật trong .env: trang /tin-tuc cập nhật ngay.
 - **Còn lại:** trang `/tin-tuc/[slug]` của bài không tồn tại/chưa đăng hiện giao diện 404 kèm `noindex` (API trả 404 đúng) nhưng mã HTTP là 200 do nội dung được stream; muốn mã 404 thật phải bỏ prerender một phần của route này. Khung bản đồ nhúng Google chưa xác nhận hiển thị được (không kiểm tra được trong Chrome headless), đã có liên kết mở bản đồ dự phòng. Rate limit vẫn trong bộ nhớ (Redis ở bước 10). `robots.txt` lấy `NEXT_PUBLIC_SITE_URL` lúc build. Cần `REVALIDATE_SECRET` (cùng giá trị) ở `apps/api/.env` và `apps/web/.env.local`; đặt `NEXT_PUBLIC_SITE_URL` khi triển khai (bước 11).
+
+### Bước 5 – Công việc, hạn chót, lịch sự kiện (F14, F15) (2026-10-25)
+
+- **Đã làm:** API `features/tasks`: liệt kê có lọc (người phụ trách, trạng thái, khoảng hạn), xem, tạo/giao, sửa/đổi hạn, xóa (cần `task:assign`), đổi trạng thái (người được giao hoặc người có `task:assign`; DONE ghi `completed_at`, mở lại thì xóa), danh sách nhân sự để giao việc. Người chỉ có `task:read:own` luôn bị ép về việc của mình dù lọc thế nào; việc quá hạn (chưa DONE mà qua `due_at`) tính khi truy vấn, lọc `status=OVERDUE` cũng theo `due_at`. API `features/events`: xem công khai (sắp tới hoặc theo khoảng cho lịch tháng), thêm/sửa/xóa cần `post:approve`, kiểm tra `end_at > start_at` cả khi sửa. Mọi thao tác ghi `audit_logs` (`task.*`, `event.*`); sự kiện đổi thì báo web làm mới cache tag `events`.
+- Tool Agent trong `tasks.agent-tools.ts`: `update_task_status`, `create_task`, thêm `list_assignees` (chỉ đọc, để tìm `assigneeId`); quyền do service kiểm tra. Tách `withAudit` ra `agent/with-audit.ts` để test được.
+- Web: `/admin/cong-viec` (lọc, giao/sửa/xóa, đổi trạng thái tại chỗ), `/admin/lich` (lịch tháng, danh sách trên điện thoại, thêm/sửa/xóa cho người có quyền), trang công khai `/lich-su-kien` (mục mới trong menu và sitemap), menu admin hiện theo quyền. Seed thêm 2 sự kiện mẫu. e2e mới `test/tasks.e2e-spec.ts` (15 test: quyền, lọc, quá hạn, completed_at, sự kiện, 4 tool agent kể cả bị từ chối và audit log); 23 unit + 72 e2e xanh.
+- **Kiểm tra bằng Chrome headless:** đăng nhập BGH thấy cả 3 việc kèm nút Giao/Sửa/Xóa, giáo viên chỉ thấy 2 việc của mình và không có nút giao/sửa; giao việc và tạo sự kiện trên giao diện thành công, sự kiện hiện ngay ở lịch admin và trang công khai; không trang nào tràn ngang ở 375px.
+- **Lệch thiết kế:** quyền quản lý sự kiện dùng `post:approve` (như chuyên mục/liên hệ), không thêm quyền mới. Danh sách việc giới hạn 200 bản ghi, chưa phân trang. Tool agent `create_task`/`update_task_status` chưa cần xác nhận 2 bước (bước 9 quyết định cho các thao tác nhạy cảm).
+- **Còn lại:** tự cập nhật status `OVERDUE` định kỳ và nhắc hạn (bước 7).

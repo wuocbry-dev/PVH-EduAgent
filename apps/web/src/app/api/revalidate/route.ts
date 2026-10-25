@@ -3,7 +3,7 @@ import { revalidateTag } from "next/cache";
 
 // API (NestJS) gọi route này khi đăng/gỡ bài hoặc sửa chuyên mục để trang công khai không phải chờ hết hạn cache.
 // Bảo vệ bằng bí mật dùng chung REVALIDATE_SECRET (phải trùng với apps/api/.env).
-const ALLOWED_TAGS = new Set(["posts", "categories", "admission", "settings"]);
+const ALLOWED_TAGS = new Set(["posts", "categories", "admission", "settings", "events"]);
 
 function secretMatches(received: string | null): boolean {
   const expected = process.env.REVALIDATE_SECRET;

@@ -211,11 +211,41 @@ async function seedTasks(users: Map<Role, bigint>) {
   });
 }
 
+// Sự kiện không có khoá duy nhất nên chỉ tạo khi bảng còn trống.
+async function seedEvents(users: Map<Role, bigint>) {
+  if ((await prisma.event.count()) > 0) return;
+  const principal = users.get('PRINCIPAL')!;
+  const day = (offset: number, hour: number) => {
+    const d = new Date(Date.now() + offset * 24 * HOUR_MS);
+    d.setUTCHours(hour - 7, 0, 0, 0); // giờ Việt Nam (UTC+7)
+    return d;
+  };
+  await prisma.event.createMany({
+    data: [
+      {
+        title: 'Họp phụ huynh học sinh khối 10',
+        location: 'Hội trường trường THPT Phan Văn Hớn',
+        startAt: day(3, 7),
+        endAt: day(3, 11),
+        createdBy: principal,
+      },
+      {
+        title: 'Ngày hội STEM',
+        location: 'Sân trường',
+        startAt: day(14, 8),
+        endAt: day(14, 16),
+        createdBy: principal,
+      },
+    ],
+  });
+}
+
 async function main() {
   await seedRbac();
   const users = await seedUsers();
   await seedContent(users);
   await seedTasks(users);
+  await seedEvents(users);
 
   console.log(
     'Đã seed xong. Tài khoản mẫu (mật khẩu chung %s):',

@@ -12,12 +12,11 @@ import type { Env } from '../../config/env.validation.js';
 import { AuditLogService } from '../audit-log/audit-log.service.js';
 import {
   AGENT_TOOL_PROVIDERS,
-  errorResult,
   type AgentContext,
-  type AgentTool,
   type AgentToolProvider,
 } from './agent-tool.js';
 import { buildSystemPrompt } from './prompts/system-prompt.js';
+import { withAudit } from './with-audit.js';
 
 const MCP_SERVER_NAME = 'eduagent';
 
@@ -38,7 +37,7 @@ export class AgentService {
     // Bộ tool được dựng theo từng người dùng: mỗi tool đã gắn sẵn user để kiểm tra quyền.
     const tools = this.providers
       .flatMap((p) => p.buildTools(ctx))
-      .map((t) => this.withAudit(t, ctx));
+      .map((t) => withAudit(t, ctx, this.audit));
 
     const conversation = query({
       prompt: message,
@@ -119,31 +118,6 @@ export class AgentService {
       // Máy chủ không cần telemetry, kiểm tra cập nhật... của Claude Code.
       CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
       CLAUDE_AGENT_SDK_CLIENT_APP: 'pvh-eduagent/0.1.0',
-    };
-  }
-
-  // Ghi audit log cho mọi lần gọi tool, và trả lỗi (vd. thiếu quyền) về cho model
-  // dưới dạng tool error thay vì làm hỏng cả phiên.
-  private withAudit(t: AgentTool, ctx: AgentContext): AgentTool {
-    return {
-      ...t,
-      handler: async (args, extra) => {
-        const entry = {
-          userId: ctx.user.id,
-          channel: ctx.channel,
-          action: `agent:${t.name}`,
-          params: args,
-        };
-        try {
-          const result = await t.handler(args, extra);
-          await this.audit.record({ ...entry, ok: true });
-          return result;
-        } catch (err) {
-          const error = err instanceof Error ? err.message : String(err);
-          await this.audit.record({ ...entry, ok: false, error });
-          return errorResult(error);
-        }
-      },
     };
   }
 }

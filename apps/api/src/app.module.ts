@@ -5,6 +5,7 @@ import { AgentModule } from './features/agent/agent.module.js';
 import { AuditLogModule } from './features/audit-log/audit-log.module.js';
 import { AuthModule } from './features/auth/auth.module.js';
 import { CategoriesModule } from './features/categories/categories.module.js';
+import { EventsModule } from './features/events/events.module.js';
 import { ContactsModule } from './features/contacts/contacts.module.js';
 import { MediaModule } from './features/media/media.module.js';
 import { PostsModule } from './features/posts/posts.module.js';
@@ -32,6 +33,7 @@ import { RevalidateModule } from './infrastructure/revalidate/revalidate.module.
     MediaModule,
     PublicSiteModule,
     ContactsModule,
+    EventsModule,
     TasksModule,
     SystemModule,
     AgentModule,
