@@ -7,7 +7,7 @@
     "dev": "pnpm --filter @pvh/shared build && pnpm --parallel --filter @pvh/shared --filter api --filter web run dev",
     "build": "pnpm -r run build",
     "lint": "pnpm -r run lint",
-    "test": "pnpm --filter api test:e2e",
+    "test": "pnpm --filter api test && pnpm --filter api test:e2e",
     "db:up": "docker compose up -d",
     "db:migrate": "pnpm --filter api db:migrate",
     "db:seed": "pnpm --filter api db:seed",

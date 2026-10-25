@@ -14,7 +14,8 @@ export function apiFetch(path: string, { headers, ...init }: RequestInit = {}): 
   return fetch(`${env.apiUrl}${path}`, {
     ...init,
     credentials: "include",
-    headers: { "Content-Type": "application/json", ...headers },
+    // FormData (tải ảnh) để trình duyệt tự đặt Content-Type kèm boundary.
+    headers: { ...(init.body instanceof FormData ? {} : { "Content-Type": "application/json" }), ...headers },
   });
 }
 

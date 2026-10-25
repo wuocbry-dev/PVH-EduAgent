@@ -13,3 +13,6 @@ coverage/
 
 # Cấu hình Claude Code trên máy (skill /buoc, launch.json) – không đưa lên git
 .claude/
+
+# Ảnh tải lên (F13)
+uploads/

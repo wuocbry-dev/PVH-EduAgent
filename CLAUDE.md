@@ -42,7 +42,7 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 |---|---|
 | `pnpm build` | Build shared → api → web |
 | `pnpm lint` | oxlint (api) + eslint (web) |
-| `pnpm test` | e2e API (vitest) – cần PostgreSQL đã migrate và seed (`pnpm db:migrate`, `pnpm db:seed`) |
+| `pnpm test` | unit test (`src/**/*.spec.ts`) rồi e2e API (`test/*.e2e-spec.ts`, chạy tuần tự) – e2e cần PostgreSQL đã migrate và seed (`pnpm db:migrate`, `pnpm db:seed`) |
 
 Hạ tầng dev: `pnpm db:up` (docker compose: PostgreSQL + Redis). Test không chạy được vì thiếu hạ tầng thì báo đúng như vậy, không ghi là đã qua.
 

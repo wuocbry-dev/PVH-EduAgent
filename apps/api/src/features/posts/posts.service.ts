@@ -1,49 +1,315 @@
-import { Injectable } from '@nestjs/common';
-import type { PostDto, PostStatus } from '@pvh/shared';
-import { assertPermission } from '../../common/guards/permission.js';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import type { PostAction, PostDto, PostStatus } from '@pvh/shared';
+import { assertPermission, can } from '../../common/guards/permission.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
+import { parseId } from '../../common/utils/parse-id.js';
+import {
+  isBlankContent,
+  sanitizeContent,
+  stripHtml,
+} from '../../common/utils/sanitize-content.js';
 import { slugify } from '../../common/utils/slugify.js';
-import type { Post } from '../../generated/prisma/client.js';
+import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
-import type { CreatePostInput } from './dto/create-post.dto.js';
+import {
+  AuditLogService,
+  type AuditChannel,
+} from '../audit-log/audit-log.service.js';
+import type {
+  CreatePostFormInput,
+  UpdatePostInput,
+} from './dto/create-post.dto.js';
+import {
+  actorMay,
+  allowedActions,
+  nextStatus,
+  PostTransitionError,
+  POST_RULES,
+} from './posts.state-machine.js';
 
+const WITH_RELATIONS = {
+  author: { select: { fullName: true } },
+  category: { select: { name: true } },
+} satisfies Prisma.PostInclude;
+
+type PostRow = Prisma.PostGetPayload<{ include: typeof WITH_RELATIONS }>;
+
+export interface ActionMeta {
+  ip?: string;
+  channel?: AuditChannel;
+}
+
+// Dữ liệu kèm theo các thao tác chuyển trạng thái.
+export interface ActionInput {
+  publishAt?: Date;
+  reason?: string;
+}
+
+const MAX_LIST = 100;
+
+// F12 – vòng đời bài viết. Luật chuyển trạng thái nằm ở posts.state-machine.ts.
 @Injectable()
 export class PostsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditLogService,
+  ) {}
 
   async listPublished(): Promise<PostDto[]> {
     const posts = await this.prisma.post.findMany({
       where: { status: 'PUBLISHED' },
       orderBy: { publishedAt: 'desc' },
       take: 20,
+      include: WITH_RELATIONS,
     });
-    return posts.map(toPostDto);
+    return posts.map((p) => toPostDto(p));
   }
 
-  async list(user: AuthUser, status?: PostStatus): Promise<PostDto[]> {
+  // Người có post:approve thấy mọi bài; người còn lại chỉ thấy bài của mình.
+  async list(
+    user: AuthUser,
+    status?: PostStatus,
+    categoryId?: string,
+  ): Promise<PostDto[]> {
     assertPermission(user, 'post:create');
     const posts = await this.prisma.post.findMany({
-      where: { status },
+      where: {
+        status,
+        categoryId: categoryId ? parseId(categoryId) : undefined,
+        authorId: can(user, 'post:approve') ? undefined : BigInt(user.id),
+      },
       orderBy: { createdAt: 'desc' },
-      take: 50,
+      take: MAX_LIST,
+      include: WITH_RELATIONS,
     });
-    return posts.map(toPostDto);
+    return posts.map((p) => toPostDto(p, user));
+  }
+
+  async get(user: AuthUser, id: string): Promise<PostDto> {
+    assertPermission(user, 'post:create');
+    const post = await this.findOrThrow(id);
+    if (!can(user, 'post:approve') && post.authorId.toString() !== user.id) {
+      throw new ForbiddenException('Bạn không có quyền xem bài viết này');
+    }
+    return toPostDto(post, user);
   }
 
   countByStatus(status: PostStatus): Promise<number> {
     return this.prisma.post.count({ where: { status } });
   }
 
-  async createDraft(user: AuthUser, input: CreatePostInput): Promise<PostDto> {
+  async createDraft(
+    user: AuthUser,
+    input: CreatePostFormInput,
+    meta: ActionMeta = {},
+  ): Promise<PostDto> {
     assertPermission(user, 'post:create');
+    const content = this.cleanContent(input.content);
+    const categoryId = await this.categoryIdOrThrow(input.categoryId);
     const post = await this.prisma.post.create({
       data: {
-        ...input,
+        title: stripHtml(input.title),
+        summary: input.summary ? stripHtml(input.summary) : null,
+        content,
+        thumbnailUrl: input.thumbnailUrl ?? null,
+        categoryId,
         slug: await this.uniqueSlug(input.title),
         authorId: BigInt(user.id),
       },
+      include: WITH_RELATIONS,
     });
-    return toPostDto(post);
+    await this.record(user, 'create', post, meta, { title: post.title });
+    return toPostDto(post, user);
+  }
+
+  // Tác giả sửa bài khi DRAFT hoặc REJECTED (bài bị từ chối sửa xong thì về nháp).
+  async update(
+    user: AuthUser,
+    id: string,
+    input: UpdatePostInput,
+    meta: ActionMeta = {},
+  ): Promise<PostDto> {
+    assertPermission(user, 'post:create');
+    const post = await this.findOrThrow(id);
+    const to = this.authorize(user, post, 'edit');
+
+    const data: Prisma.PostUncheckedUpdateManyInput = { status: to };
+    if (input.title !== undefined) data.title = stripHtml(input.title);
+    if (input.summary !== undefined) {
+      data.summary = input.summary ? stripHtml(input.summary) : null;
+    }
+    if (input.content !== undefined) {
+      data.content = this.cleanContent(input.content);
+    }
+    if (input.thumbnailUrl !== undefined) data.thumbnailUrl = input.thumbnailUrl;
+    if (input.categoryId !== undefined) {
+      data.categoryId = await this.categoryIdOrThrow(input.categoryId);
+    }
+
+    const updated = await this.apply(post, data);
+    await this.record(user, 'update', updated, meta, {
+      fields: Object.keys(input),
+    });
+    return toPostDto(updated, user);
+  }
+
+  // Các thao tác chuyển trạng thái: gửi duyệt, duyệt, từ chối, dời lịch, đăng ngay,
+  // hủy lịch, gỡ, khôi phục.
+  async transition(
+    user: AuthUser,
+    id: string,
+    action: Exclude<PostAction, 'edit' | 'delete'>,
+    input: ActionInput = {},
+    meta: ActionMeta = {},
+  ): Promise<PostDto> {
+    const post = await this.findOrThrow(id);
+    const to = this.authorize(user, post, action, input);
+    const now = new Date();
+    const userId = BigInt(user.id);
+
+    let data: Prisma.PostUncheckedUpdateManyInput;
+    switch (action) {
+      case 'submit':
+        if (isBlankContent(post.content)) {
+          throw new BadRequestException('Nội dung bài viết đang trống');
+        }
+        data = { rejectReason: null };
+        break;
+      case 'approve':
+        data = {
+          reviewerId: userId,
+          rejectReason: null,
+          publishAt: input.publishAt ?? null,
+          publishedAt: to === 'PUBLISHED' ? now : null,
+        };
+        break;
+      case 'reject':
+        data = { reviewerId: userId, rejectReason: input.reason };
+        break;
+      case 'reschedule':
+        data = { publishAt: input.publishAt };
+        break;
+      case 'publish':
+        data = { reviewerId: userId, publishAt: null, publishedAt: now };
+        break;
+      case 'cancel_schedule':
+        data = { publishAt: null };
+        break;
+      case 'unpublish':
+        data = {};
+        break;
+      case 'restore':
+        data = { publishAt: null, publishedAt: null, rejectReason: null };
+        break;
+    }
+
+    const updated = await this.apply(post, { ...data, status: to });
+    await this.record(user, action, updated, meta, {
+      from: post.status,
+      to,
+      publishAt: input.publishAt?.toISOString(),
+      reason: input.reason,
+    });
+    return toPostDto(updated, user);
+  }
+
+  // Xóa nháp (tác giả) hoặc xóa vĩnh viễn bài đã gỡ (ADMIN).
+  async remove(
+    user: AuthUser,
+    id: string,
+    meta: ActionMeta = {},
+  ): Promise<void> {
+    const post = await this.findOrThrow(id);
+    this.authorize(user, post, 'delete');
+    const { count } = await this.prisma.post.deleteMany({
+      where: { id: post.id, status: post.status },
+    });
+    if (count === 0) throw staleError();
+    await this.record(user, 'delete', post, meta, {
+      title: post.title,
+      status: post.status,
+    });
+  }
+
+  // Kiểm tra quyền rồi luật chuyển trạng thái; trả về trạng thái mới.
+  private authorize(
+    user: AuthUser,
+    post: PostRow,
+    action: PostAction,
+    input: ActionInput = {},
+  ): PostStatus {
+    const rule = POST_RULES[action];
+    for (const permission of rule.permissions) {
+      assertPermission(user, permission);
+    }
+    const ref = { status: post.status, authorId: post.authorId.toString() };
+    // Sai trạng thái thì để nextStatus báo lỗi cụ thể bên dưới (400), không trả 403 gây hiểu nhầm.
+    if (rule.from.includes(post.status) && !actorMay(action, ref, user)) {
+      throw new ForbiddenException(
+        action === 'delete' && post.status !== 'DRAFT'
+          ? 'Chỉ quản trị viên được xóa vĩnh viễn bài viết'
+          : 'Bạn không có quyền thao tác với bài viết này (chỉ tác giả được sửa/gửi duyệt/xóa nháp)',
+      );
+    }
+    try {
+      return nextStatus(action, post.status, input);
+    } catch (err) {
+      if (err instanceof PostTransitionError) {
+        throw new BadRequestException(err.message);
+      }
+      throw err;
+    }
+  }
+
+  // Cập nhật có điều kiện theo trạng thái đã đọc: hai người thao tác cùng lúc thì chỉ một người thành công.
+  private async apply(
+    post: PostRow,
+    data: Prisma.PostUncheckedUpdateManyInput,
+  ): Promise<PostRow> {
+    const { count } = await this.prisma.post.updateMany({
+      where: { id: post.id, status: post.status },
+      data,
+    });
+    if (count === 0) throw staleError();
+    return this.prisma.post.findUniqueOrThrow({
+      where: { id: post.id },
+      include: WITH_RELATIONS,
+    });
+  }
+
+  private async findOrThrow(id: string): Promise<PostRow> {
+    const post = await this.prisma.post.findUnique({
+      where: { id: parseId(id) },
+      include: WITH_RELATIONS,
+    });
+    if (!post) throw new NotFoundException('Không tìm thấy bài viết');
+    return post;
+  }
+
+  // HTML từ trình soạn thảo: lọc XSS ở server trước khi lưu.
+  private cleanContent(html: string): string {
+    const content = sanitizeContent(html);
+    if (isBlankContent(content)) {
+      throw new BadRequestException('Nội dung bài viết đang trống');
+    }
+    return content;
+  }
+
+  private async categoryIdOrThrow(
+    categoryId: string | null | undefined,
+  ): Promise<bigint | null> {
+    if (!categoryId) return null;
+    const category = await this.prisma.category.findUnique({
+      where: { id: parseId(categoryId) },
+    });
+    if (!category) throw new BadRequestException('Chuyên mục không tồn tại');
+    return category.id;
   }
 
   // posts.slug là UNIQUE: trùng tiêu đề thì thêm hậu tố -2, -3...
@@ -55,9 +321,35 @@ export class PostsService {
     }
     return slug;
   }
+
+  private record(
+    user: AuthUser,
+    action: string,
+    post: { id: bigint },
+    meta: ActionMeta,
+    params: Record<string, unknown>,
+  ): Promise<void> {
+    return this.audit.record({
+      userId: user.id,
+      channel: meta.channel ?? 'web',
+      action: `post.${action}`,
+      targetType: 'post',
+      targetId: post.id.toString(),
+      params,
+      ok: true,
+      ip: meta.ip,
+    });
+  }
 }
 
-function toPostDto(post: Post): PostDto {
+const staleError = () =>
+  new ConflictException(
+    'Bài viết vừa được người khác thay đổi, hãy tải lại trang',
+  );
+
+// `viewer` có mặt thì tính sẵn các thao tác được phép; trang công khai không có.
+function toPostDto(post: PostRow, viewer?: AuthUser): PostDto {
+  const authorId = post.authorId.toString();
   return {
     id: post.id.toString(),
     title: post.title,
@@ -65,9 +357,16 @@ function toPostDto(post: Post): PostDto {
     summary: post.summary,
     content: post.content,
     status: post.status,
-    authorId: post.authorId.toString(),
+    authorId,
+    authorName: post.author.fullName,
+    reviewerId: viewer ? (post.reviewerId?.toString() ?? null) : null,
+    categoryId: post.categoryId?.toString() ?? null,
+    categoryName: post.category?.name ?? null,
+    thumbnailUrl: post.thumbnailUrl,
+    rejectReason: viewer ? post.rejectReason : null,
     publishAt: post.publishAt?.toISOString() ?? null,
     publishedAt: post.publishedAt?.toISOString() ?? null,
     createdAt: post.createdAt.toISOString(),
+    actions: viewer ? allowedActions({ status: post.status, authorId }, viewer) : [],
   };
 }

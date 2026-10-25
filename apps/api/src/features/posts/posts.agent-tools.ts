@@ -16,7 +16,7 @@ import { PostsService } from './posts.service.js';
 export class PostsAgentTools implements AgentToolProvider {
   constructor(private readonly posts: PostsService) {}
 
-  buildTools({ user }: AgentContext) {
+  buildTools({ user, channel }: AgentContext) {
     return [
       tool(
         'list_posts',
@@ -39,7 +39,8 @@ export class PostsAgentTools implements AgentToolProvider {
         'create_post_draft',
         'Tạo một bài viết mới ở trạng thái nháp (DRAFT). Bài nháp chưa hiển thị công khai.',
         createPostSchema.shape,
-        async (input) => jsonResult(await this.posts.createDraft(user, input)),
+        async (input) =>
+          jsonResult(await this.posts.createDraft(user, input, { channel })),
       ),
     ];
   }

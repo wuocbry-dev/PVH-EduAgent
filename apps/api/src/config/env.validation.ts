@@ -37,6 +37,9 @@ const envSchema = z.object({
   AGENT_MAX_TURNS: z.coerce.number().int().positive().default(8),
   AGENT_MAX_BUDGET_USD: z.coerce.number().positive().default(0.5),
 
+  // F13 – thư mục lưu ảnh tải lên (tương đối so với thư mục chạy API, hoặc đường dẫn tuyệt đối).
+  UPLOAD_DIR: z.string().trim().min(1).default('uploads'),
+
   DATABASE_URL: z
     .string()
     .regex(
