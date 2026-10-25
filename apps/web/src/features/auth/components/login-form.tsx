@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { login } from "../api/auth-api";
 import { safeNext } from "../config";
-import { buttonClass, errorClass, inputClass } from "./form-styles";
+import { buttonClass, errorClass, inputClass } from "@/shared/ui/form-styles";
 
 export function LoginForm() {
   const router = useRouter();

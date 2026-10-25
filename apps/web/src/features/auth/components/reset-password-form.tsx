@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { resetPassword } from "../api/auth-api";
 import { LOGIN_PATH } from "../config";
-import { buttonClass, errorClass } from "./form-styles";
+import { buttonClass, errorClass } from "@/shared/ui/form-styles";
 import { NewPasswordFields, readNewPassword } from "./password-fields";
 
 export function ResetPasswordForm() {

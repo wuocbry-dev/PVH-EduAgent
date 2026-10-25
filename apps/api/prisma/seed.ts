@@ -26,6 +26,7 @@ const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   'post:approve': 'Duyệt bài viết',
   'post:schedule': 'Hẹn giờ / đăng bài',
   'post:unpublish': 'Gỡ / ẩn bài',
+  'user:manage': 'Quản lý người dùng và phân quyền',
 };
 
 // Mật khẩu chung cho tài khoản mẫu, chỉ dùng trên máy phát triển.

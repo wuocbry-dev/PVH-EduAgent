@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { forgotPassword } from "../api/auth-api";
 import { LOGIN_PATH } from "../config";
-import { buttonClass, errorClass, inputClass } from "./form-styles";
+import { buttonClass, errorClass, inputClass } from "@/shared/ui/form-styles";
 
 export function ForgotPasswordForm() {
   const [message, setMessage] = useState<string | null>(null);

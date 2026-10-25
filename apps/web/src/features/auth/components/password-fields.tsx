@@ -1,5 +1,5 @@
 import { PASSWORD_MIN_LENGTH } from "@pvh/shared";
-import { inputClass } from "./form-styles";
+import { inputClass } from "@/shared/ui/form-styles";
 
 // Mật khẩu mới + nhập lại; kiểm tra khớp bằng readNewPassword().
 export function NewPasswordFields() {

@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { changePassword } from "../api/auth-api";
-import { buttonClass, errorClass, inputClass } from "./form-styles";
+import { buttonClass, errorClass, inputClass } from "@/shared/ui/form-styles";
 import { NewPasswordFields, readNewPassword } from "./password-fields";
 
 export function ChangePasswordForm() {

@@ -1,3 +1,4 @@
+export { AdminNav } from "./components/admin-nav";
 export { ChangePasswordForm } from "./components/change-password-form";
 export { ForgotPasswordForm } from "./components/forgot-password-form";
 export { LoginForm } from "./components/login-form";
