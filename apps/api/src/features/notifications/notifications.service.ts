@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
 
 export interface NotificationInput {
@@ -7,11 +7,19 @@ export interface NotificationInput {
   body: string;
 }
 
-// Hộp thông báo (bảng notifications). Bộ lập lịch ghi vào đây với sent_at = null,
-// bot Telegram (bước 8) lấy các dòng chưa gửi để gửi đi rồi đặt sent_at.
+// Hộp thông báo (bảng notifications). Bộ lập lịch và quy trình bài viết ghi vào đây với sent_at = null;
+// bot Telegram (features/telegram) đăng ký `onCreated` để gửi ngay cho người đã liên kết rồi đặt sent_at.
 @Injectable()
 export class NotificationsService {
+  private readonly logger = new Logger(NotificationsService.name);
+  private readonly listeners: (() => Promise<unknown>)[] = [];
+
   constructor(private readonly prisma: PrismaService) {}
+
+  // Gọi sau mỗi lần có thông báo mới; lỗi của listener không ảnh hưởng thao tác đã ghi.
+  onCreated(listener: () => Promise<unknown>): void {
+    this.listeners.push(listener);
+  }
 
   async notify(entries: NotificationInput[], channel = 'telegram'): Promise<void> {
     if (entries.length === 0) return;
@@ -23,6 +31,11 @@ export class NotificationsService {
         body: e.body,
       })),
     });
+    for (const listener of this.listeners) {
+      listener().catch((err) =>
+        this.logger.error(`Không gửi được thông báo: ${String(err)}`),
+      );
+    }
   }
 
   // Chỉ tạo nếu người dùng chưa có thông báo cùng tiêu đề (dùng cho báo cáo ngày: chạy lại không gửi trùng).

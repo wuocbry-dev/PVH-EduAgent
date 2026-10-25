@@ -215,7 +215,8 @@ describe('Bộ lập lịch BullMQ (A05, A06, A09, e2e)', () => {
       const lag = published.publishedAt!.getTime() - publishAt.getTime();
       expect(lag).toBeGreaterThanOrEqual(-1000);
       expect(lag).toBeLessThan(60_000);
-      expect(await publishJob(post.id)).toBeFalsy(); // job đã xong và được dọn
+      // Bài chuyển PUBLISHED ngay trong processor; job chỉ được dọn sau khi processor ghi xong thông báo/audit.
+      await vi.waitFor(async () => expect(await publishJob(post.id)).toBeFalsy(), { timeout: 5000, interval: 200 });
       // Trang công khai thấy bài.
       await request(app.getHttpServer()).get(`/public/posts/${post.slug}`).expect(200);
     }, 30_000);

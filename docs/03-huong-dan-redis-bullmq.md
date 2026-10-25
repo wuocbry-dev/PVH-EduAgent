@@ -8,8 +8,11 @@ Bộ lập lịch (`apps/api/src/features/scheduler`) dùng **Redis + BullMQ** c
 | A06 | Nhắc hạn chót, đánh dấu `OVERDUE` | Job lặp mỗi 5 phút. Nhắc trước X giờ (`reminder.hours_before`, mặc định 24) và khi quá hạn; mỗi mốc chỉ nhắc một lần (`task_reminders`, unique `task_id + remind_type`). |
 | A09 | Báo cáo hằng ngày cho ADMIN/BGH | Job lặp theo `report.daily_time` (mặc định `07:00`, giờ `Asia/Ho_Chi_Minh`). Đổi giờ ở `/admin/cau-hinh` thì đăng ký lại ngay. |
 
-Kết quả được ghi vào bảng `notifications` (chưa gửi, `sent_at` rỗng) và `audit_logs` với `channel = scheduler`.
-Việc gửi qua Telegram thuộc bước 8.
+Kết quả được ghi vào bảng `notifications` và `audit_logs` với `channel = scheduler`. Bot Telegram
+(`features/telegram/telegram-notifier.service.ts`) gửi ngay thông báo mới cho người đã liên kết Telegram rồi ghi
+`sent_at`, và quét lại mỗi phút để gửi tin còn sót; người chưa liên kết thì thông báo vẫn nằm trong CMS (`sent_at` rỗng).
+
+Redis còn được dùng cho OTP liên kết Telegram và bộ đếm tần suất của bot (khóa `<BULLMQ_PREFIX>:tg:*`).
 
 ## Bật Redis
 

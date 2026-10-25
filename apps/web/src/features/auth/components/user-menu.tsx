@@ -12,8 +12,8 @@ export async function UserMenu() {
       <p className="text-sm font-medium">{user.fullName}</p>
       <p className="text-xs opacity-60">{user.roles.map((r) => ROLE_NAMES[r]).join(", ")}</p>
       <div className="flex gap-4 pt-1 md:flex-col md:gap-1">
-        <Link href="/admin/doi-mat-khau" className="text-sm underline opacity-70">
-          Đổi mật khẩu
+        <Link href="/admin/tai-khoan" className="text-sm underline opacity-70">
+          Tài khoản
         </Link>
         <LogoutButton />
       </div>

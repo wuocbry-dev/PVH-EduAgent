@@ -40,6 +40,7 @@
     "@pvh/shared": "workspace:*",
     "bullmq": "^6.4.1",
     "cookie-parser": "^1.4.7",
+    "grammy": "^1.46.0",
     "ioredis": "^6.0.0",
     "jose": "^6.2.13",
     "pg": "^8.23.1",

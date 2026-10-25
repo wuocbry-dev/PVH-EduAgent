@@ -54,8 +54,19 @@ const envSchema = z.object({
   REDIS_URL: optional(z.string()),
   // Tiền tố khóa BullMQ trong Redis; test dùng tiền tố riêng để không đụng hàng đợi của máy dev.
   BULLMQ_PREFIX: z.string().trim().min(1).default('pvh'),
-  TELEGRAM_BOT_TOKEN: optional(z.string()),
-  TELEGRAM_WEBHOOK_SECRET: optional(z.string()),
+  // A01–A04 – bot Telegram. Bỏ trống token = tắt bot.
+  TELEGRAM_BOT_TOKEN: optional(z.string().trim()),
+  // polling: dev, không cần URL public; webhook: production, Telegram gọi POST /api/telegram/webhook;
+  // off: không nhận tin (vẫn gửi được thông báo).
+  TELEGRAM_MODE: z.enum(['polling', 'webhook', 'off']).default('polling'),
+  // Bắt buộc ở chế độ webhook: Telegram gửi lại trong header X-Telegram-Bot-Api-Secret-Token.
+  TELEGRAM_WEBHOOK_SECRET: optional(
+    z
+      .string()
+      .regex(/^[A-Za-z0-9_-]{16,256}$/, '16–256 ký tự A-Z, a-z, 0-9, _ hoặc -'),
+  ),
+  // URL public của webhook (vd. https://pvh.edu.vn/api/telegram/webhook); có thì API tự gọi setWebhook.
+  TELEGRAM_WEBHOOK_URL: optional(z.url()),
 });
 
 export type Env = z.infer<typeof envSchema>;

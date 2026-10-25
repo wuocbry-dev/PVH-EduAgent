@@ -121,6 +121,45 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
 
 Thao tác ảnh hưởng công khai (duyệt, hẹn giờ, gỡ bài) cần xác nhận 2 bước qua Telegram (A08) trước khi đưa thành tool.
 
+## Bot Telegram (A01–A04)
+
+### Tạo bot bằng BotFather
+
+1. Trong Telegram, mở [@BotFather](https://t.me/BotFather), gửi `/newbot`.
+2. Đặt tên hiển thị (vd. `Trợ lý THPT Phan Văn Hớn`) và username kết thúc bằng `bot` (vd. `pvh_eduagent_bot`).
+3. BotFather trả về token dạng `123456789:AA...`. Đây là bí mật: chỉ dán vào `apps/api/.env`, không commit, không gửi cho ai.
+4. Tuỳ chọn: `/setdescription`, `/setuserpic`; `/setcommands` rồi dán:
+   ```
+   start - Bắt đầu / hướng dẫn liên kết
+   status - Tình trạng hệ thống
+   deadline - Công việc sắp đến hạn và quá hạn
+   unlink - Huỷ liên kết tài khoản
+   help - Hướng dẫn
+   ```
+5. Lộ token: `/revoke` trong BotFather để lấy token mới.
+
+### Cấu hình `apps/api/.env`
+
+```env
+TELEGRAM_BOT_TOKEN=123456789:AA...      # bỏ trống = tắt bot
+TELEGRAM_MODE=polling                   # polling (dev) | webhook (production) | off
+TELEGRAM_WEBHOOK_SECRET=                # bắt buộc với webhook: openssl rand -hex 32
+TELEGRAM_WEBHOOK_URL=                   # vd. https://pvh.edu.vn/api/telegram/webhook
+```
+
+- **Dev (`polling`)**: không cần URL public, chạy `pnpm dev` là bot nhận tin. Mỗi token chỉ một tiến trình polling được (tiến trình thứ hai báo lỗi 409), nên đừng chạy hai API cùng token.
+- **Production (`webhook`)**: Telegram gọi `POST /api/telegram/webhook` (HTTPS) kèm header `X-Telegram-Bot-Api-Secret-Token`; sai secret → 401. Có `TELEGRAM_WEBHOOK_URL` thì API tự gọi `setWebhook` lúc khởi động.
+- Liên kết tài khoản cần Redis (`REDIS_URL`): OTP lưu trong Redis dạng băm, hạn 5 phút, dùng một lần.
+
+### Sử dụng
+
+1. Đăng nhập trang quản trị → **Tài khoản** (`/admin/tai-khoan`) → **Liên kết Telegram** → nhận mã 6 số.
+2. Gửi cho bot `/link <mã>` (hoặc bấm **Mở bot trên Telegram**). Sai/hết hạn bị từ chối; sai 5 lần thì khoá 10 phút.
+3. Lệnh: `/status` (A03), `/deadline` (A04), `/unlink`, `/help`. Nhắn tự do thì trợ lý AI trả lời và thao tác **đúng quyền** của tài khoản đã liên kết.
+4. Thông báo của bộ lập lịch (nhắc hạn, báo cáo ngày, kết quả đăng bài) được gửi qua bot cho người đã liên kết.
+
+Chat chưa liên kết chỉ nhận hướng dẫn liên kết; tin trong nhóm bị bỏ qua; mỗi chat tối đa 20 tin/phút. Liên kết, huỷ liên kết, lệnh và chat đều ghi `audit_logs` (kênh `telegram`).
+
 ## Lệnh khác
 
 | Lệnh | Việc |

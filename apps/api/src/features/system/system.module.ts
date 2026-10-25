@@ -8,6 +8,6 @@ import { SystemService } from './system.service.js';
   imports: [PostsModule],
   controllers: [SystemController],
   providers: [SystemService, SystemAgentTools],
-  exports: [SystemAgentTools],
+  exports: [SystemService, SystemAgentTools],
 })
 export class SystemModule {}

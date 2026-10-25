@@ -255,7 +255,7 @@ export class PostsService {
       params: { auto: true, scheduledFor: post.publishAt?.toISOString() },
       ok: true,
     });
-    // Báo tác giả và người duyệt (Telegram gửi ở bước 8, hiện ghi vào hộp thông báo).
+    // Báo tác giả và người duyệt (ghi hộp thông báo; bot Telegram gửi cho người đã liên kết).
     const recipients = new Set([post.authorId, post.reviewerId].filter((id): id is bigint => id !== null));
     await this.notifications.notify(
       [...recipients].map((userId) => ({
