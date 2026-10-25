@@ -24,7 +24,7 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 | [x] | 4 | Website public (F01–F07) | 2026-10-25 |
 | [x] | 5 | Công việc, hạn chót, lịch (F14, F15) | 2026-10-25 |
 | [x] | 6 | Nhật ký & cấu hình (F16, F17) | 2026-10-25 |
-| [ ] | 7 | Bộ lập lịch Redis + BullMQ (A05, A06, A09) | |
+| [x] | 7 | Bộ lập lịch Redis + BullMQ (A05, A06, A09) | 2026-10-25 |
 | [ ] | 8 | Bot Telegram & liên kết tài khoản (A01–A04) | |
 | [ ] | 9 | Xác nhận 2 bước cho AI Agent (A07, A08) | |
 | [ ] | 10 | Bảo mật & chất lượng | |
@@ -87,3 +87,11 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 - **Kiểm tra bằng Chrome headless:** ADMIN thấy đủ mục và sửa được cấu hình (sai số điện thoại báo lỗi, đúng thì lưu và hiện ngay ở trang Liên hệ công khai); BGH vào được nhật ký, cấu hình chỉ xem; biên tập viên không thấy mục và gõ thẳng URL thì bị báo thiếu quyền; lọc nhật ký theo action thấy payload và IP, "Tải thêm" 30 → 60 dòng; dashboard khớp số liệu CSDL; mọi trang admin vừa 375px.
 - **Lệch thiết kế:** thêm quyền `setting:manage` (ADMIN; đã đồng bộ vào seed và ma trận vai trò). BGH được xem cấu hình (không sửa). Bộ lọc action là "chứa chuỗi", không phải khớp chính xác. Các khóa `report.daily_time` và `reminder.hours_before` mới chỉ lưu; bước 7 sẽ dùng.
 - **Còn lại:** bước 7 đọc `report.daily_time`/`reminder.hours_before`. Chưa có xuất nhật ký ra file và chưa tự xóa nhật ký cũ.
+
+### Bước 7 – Bộ lập lịch Redis + BullMQ (A05, A06, A09) (2026-10-25)
+
+- **Đã làm:** `infrastructure/queue` (`QueueService`: kết nối Redis, 3 hàng đợi `publish-post`/`deadline-reminder`/`daily-report`, tạo/thay/hủy job đăng bài, đăng ký báo cáo ngày, đọc tình trạng hàng đợi; `REDIS_URL` trống thì tắt, không làm gì) và `features/scheduler`. **A05:** bài sang `SCHEDULED` (duyệt kèm hẹn giờ, dời lịch) tạo job trễ đến `publish_at` (`jobId = post-<id>`, retry 3 lần, backoff mũ); hủy lịch/đăng ngay gỡ job; `PostsService.publishScheduled` kiểm tra lại bài còn `SCHEDULED` và đã tới giờ rồi chuyển `PUBLISHED` bằng cập nhật có điều kiện (gọi lại vẫn an toàn), ghi `audit_logs` (`channel=scheduler`), thông báo tác giả/người duyệt, báo web làm mới cache; hết 3 lần thử thì ghi audit lỗi và cảnh báo ADMIN. Quét bù khi khởi động (đăng các bài đã quá giờ, dựng lại job còn thiếu) và job quét mỗi phút. **A06:** job mỗi 5 phút đánh `OVERDUE` và nhắc trước X giờ (`reminder.hours_before`) + nhắc khi quá hạn; mốc nhắc ghi `task_reminders` với unique `(task_id, remind_type)` (migration `task_reminders_unique`) nên không nhắc trùng kể cả khi quét song song; đổi hạn sang tương lai thì mở lại việc `OVERDUE` và xóa mốc nhắc cũ. **A09:** báo cáo ngày theo `report.daily_time` (đổi mặc định thành 07:00, giờ Việt Nam; đổi ở cấu hình thì đăng ký lại ngay) gửi cho ADMIN/BGH: việc trong ngày, bài sẽ đăng, cảnh báo hệ thống; không gửi trùng. Kết quả ghi `notifications` (chưa gửi) + `audit_logs`. `get_system_status` và dashboard có tình trạng hàng đợi. Thêm docs `docs/03-huong-dan-redis-bullmq.md`.
+- **Test:** `scheduler.e2e-spec.ts` (13 test, Redis thật: job/jobId/retry, đổi–hủy lịch gỡ job, processor với thời gian giả lập, worker thật đăng đúng giờ, quét bù và dựng lại job, cảnh báo hết lượt thử, nhắc hạn không trùng kể cả song song, báo cáo ngày đúng múi giờ và không trùng, đăng ký lại lịch khi đổi giờ, tình trạng hàng đợi) + unit `queue.service.spec.ts`. e2e dùng tiền tố hàng đợi riêng `pvh-test-<thời điểm>` và dọn sạch Redis khi xong. 26 unit + 95 e2e xanh.
+- **Kiểm tra thủ công (API thật + Redis thật):** hẹn giờ ~70 giây, tắt rồi bật API trước giờ đăng → vẫn đăng đúng giờ (lệch 0 giây); hẹn ~45 giây, tắt API qua giờ đăng rồi bật lại → đăng bù sau 2 giây.
+- **Lệch thiết kế:** dùng `bullmq` + `ioredis` trực tiếp thay vì `@nestjs/bullmq` để thực hiện đúng việc "thiếu Redis thì tắt scheduler" (module Nest của bullmq không bật/tắt theo cấu hình được). Nhắc hạn có hai mốc (`BEFORE_DUE` theo X giờ và `OVERDUE`), chưa có mốc 1 giờ như sơ đồ. Job quét hạn chạy mỗi 5 phút (sơ đồ ghi 15 phút).
+- **Còn lại:** gửi thông báo qua Telegram (`notifications.sent_at` đang rỗng) và liên kết chat id ở bước 8.

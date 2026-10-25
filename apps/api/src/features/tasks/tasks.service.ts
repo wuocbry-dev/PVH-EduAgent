@@ -168,14 +168,27 @@ export class TasksService {
       data.description = input.description ? stripHtml(input.description) : null;
     }
     if (input.priority !== undefined) data.priority = input.priority;
-    if (input.dueAt !== undefined) data.dueAt = input.dueAt;
+    if (input.dueAt !== undefined) {
+      data.dueAt = input.dueAt;
+      // Đổi hạn: việc đã bị đánh OVERDUE mà hạn mới còn ở tương lai thì mở lại, và bộ lập lịch
+      // (A06) được nhắc lại cho hạn mới nên xóa các mốc nhắc cũ.
+      if (existing.status === 'OVERDUE' && input.dueAt.getTime() > Date.now()) {
+        data.status = 'TODO';
+      }
+    }
     if (input.assigneeId !== undefined) {
       data.assigneeId = await this.activeAssigneeOrThrow(input.assigneeId);
     }
-    const task = await this.prisma.task.update({
-      where: { id: existing.id },
-      data,
-      include: WITH_USERS,
+    const task = await this.prisma.$transaction(async (tx) => {
+      // Chỉ xóa mốc nhắc của đúng công việc này, và chỉ khi hạn chót thật sự đổi.
+      if (input.dueAt !== undefined && input.dueAt.getTime() !== existing.dueAt.getTime()) {
+        await tx.taskReminder.deleteMany({ where: { taskId: existing.id } });
+      }
+      return tx.task.update({
+        where: { id: existing.id },
+        data,
+        include: WITH_USERS,
+      });
     });
     await this.record(user, 'update', task, meta, {
       fields: Object.keys(input),

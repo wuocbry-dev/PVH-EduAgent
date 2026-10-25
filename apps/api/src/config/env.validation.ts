@@ -50,7 +50,10 @@ const envSchema = z.object({
       /^postgres(ql)?:\/\//,
       'Phải có dạng postgresql://user:pass@host:5432/db',
     ),
+  // Redis cho bộ lập lịch BullMQ (A05, A06, A09). Bỏ trống = tắt bộ lập lịch.
   REDIS_URL: optional(z.string()),
+  // Tiền tố khóa BullMQ trong Redis; test dùng tiền tố riêng để không đụng hàng đợi của máy dev.
+  BULLMQ_PREFIX: z.string().trim().min(1).default('pvh'),
   TELEGRAM_BOT_TOKEN: optional(z.string()),
   TELEGRAM_WEBHOOK_SECRET: optional(z.string()),
 });

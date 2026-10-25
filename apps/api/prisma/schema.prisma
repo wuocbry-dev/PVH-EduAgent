@@ -246,6 +246,8 @@ model TaskReminder {
   sentAt     DateTime @default(now()) @map("sent_at") @db.Timestamptz
   task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
+  // Mỗi mốc nhắc (BEFORE_DUE, OVERDUE) chỉ gửi một lần cho mỗi công việc (A06).
+  @@unique([taskId, remindType])
   @@map("task_reminders")
 }
 

@@ -1,3 +1,4 @@
+import type { QueueStatusDto } from "@pvh/shared";
 import Link from "next/link";
 import { getDashboard } from "../api/get-dashboard";
 
@@ -5,6 +6,21 @@ function formatUptime(seconds: number) {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   return h > 0 ? `${h} giờ ${m} phút` : `${m} phút`;
+}
+
+function QueueSummary({ queue }: { queue: QueueStatusDto }) {
+  if (!queue.enabled) {
+    return <span className="text-amber-700">Đang tắt (chưa cấu hình Redis): bài hẹn giờ chưa tự đăng</span>;
+  }
+  if (queue.error) return <span className="text-red-600">{queue.error}</span>;
+  const total = (key: "waiting" | "delayed" | "active" | "failed") => queue.queues.reduce((sum, q) => sum + q[key], 0);
+  const failed = total("failed");
+  return (
+    <span>
+      <span className="font-medium text-green-700">Hoạt động</span> · {total("delayed")} đã hẹn giờ · {total("waiting") + total("active")} đang chờ/chạy ·{" "}
+      <span className={failed > 0 ? "font-semibold text-red-600" : ""}>{failed} lỗi</span>
+    </span>
+  );
 }
 
 function Card({ label, value, href, alert }: { label: string; value: number; href: string; alert?: boolean }) {
@@ -82,6 +98,12 @@ export async function DashboardCards() {
             <div>
               <dt className="opacity-70">Node.js</dt>
               <dd>{d.system.node}</dd>
+            </div>
+            <div className="sm:col-span-2 lg:col-span-4">
+              <dt className="opacity-70">Bộ lập lịch (hàng đợi)</dt>
+              <dd>
+                <QueueSummary queue={d.system.queue} />
+              </dd>
             </div>
           </dl>
         </section>

@@ -101,7 +101,7 @@ export const SETTING_META: Record<SettingKey, SettingMeta> = {
   'report.daily_time': {
     label: 'Giờ gửi báo cáo ngày',
     description: 'Giờ Việt Nam (HH:mm) bộ lập lịch gửi báo cáo tóm tắt hằng ngày qua Telegram.',
-    defaultValue: '17:00',
+    defaultValue: '07:00',
     optional: false,
     input: 'time',
   },
@@ -131,6 +131,13 @@ export interface SettingDto {
 // PATCH /api/settings: chỉ gồm các khóa cần đổi; chuỗi rỗng = xóa (khóa optional)
 export type UpdateSettingsRequest = Partial<Record<SettingKey, string>>;
 
+// Tình trạng hàng đợi BullMQ (bộ lập lịch). enabled = false khi chưa cấu hình REDIS_URL.
+export interface QueueStatusDto {
+  enabled: boolean;
+  queues: { name: string; waiting: number; delayed: number; active: number; failed: number }[];
+  error?: string;
+}
+
 // ───────────────────────────── Dashboard ─────────────────────────────
 
 // GET /api/system/dashboard: mỗi số chỉ có khi người dùng có quyền xem.
@@ -146,5 +153,6 @@ export interface DashboardDto {
     memoryMb: number;
     node: string;
     database: 'ok' | 'down';
+    queue: QueueStatusDto;
   };
 }

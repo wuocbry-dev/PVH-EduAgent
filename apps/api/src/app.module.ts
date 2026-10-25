@@ -18,6 +18,8 @@ import { TasksModule } from './features/tasks/tasks.module.js';
 import { TelegramModule } from './features/telegram/telegram.module.js';
 import { UsersModule } from './features/users/users.module.js';
 import { DatabaseModule } from './infrastructure/database/database.module.js';
+import { NotificationsModule } from './features/notifications/notifications.module.js';
+import { QueueModule } from './infrastructure/queue/queue.module.js';
 import { RevalidateModule } from './infrastructure/revalidate/revalidate.module.js';
 
 @Module({
@@ -25,6 +27,8 @@ import { RevalidateModule } from './infrastructure/revalidate/revalidate.module.
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     DatabaseModule,
     RevalidateModule,
+    QueueModule,
+    NotificationsModule,
     AuditLogModule,
     AuthModule,
     UsersModule,

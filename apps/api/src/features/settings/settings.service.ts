@@ -8,6 +8,7 @@ import {
 import { assertPermission } from '../../common/guards/permission.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
+import { QueueService } from '../../infrastructure/queue/queue.service.js';
 import { RevalidateService } from '../../infrastructure/revalidate/revalidate.service.js';
 import { AuditLogService } from '../audit-log/audit-log.service.js';
 import type { UpdateSettingsInput } from './dto/settings.dto.js';
@@ -20,6 +21,7 @@ export class SettingsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService,
     private readonly revalidate: RevalidateService,
+    private readonly queue: QueueService,
   ) {}
 
   async list(user: AuthUser): Promise<SettingDto[]> {
@@ -73,8 +75,18 @@ export class SettingsService {
       });
       // Tên trường, địa chỉ, điện thoại... hiển thị trên website công khai (cache tag "settings").
       await this.revalidate.revalidate('settings');
+      // A09: đổi giờ gửi báo cáo ngày thì đăng ký lại lịch ngay, không cần khởi động lại máy chủ.
+      if (changes['report.daily_time']) {
+        await this.queue.scheduleDailyReport(await this.effective('report.daily_time'));
+      }
     }
     return this.read();
+  }
+
+  // Giá trị đang có hiệu lực của một khóa: giá trị đã lưu, chưa lưu thì dùng mặc định.
+  async effective(key: SettingKey): Promise<string> {
+    const row = await this.prisma.systemSetting.findUnique({ where: { key } });
+    return row?.value ?? SETTING_META[key].defaultValue;
   }
 
   private async read(): Promise<SettingDto[]> {

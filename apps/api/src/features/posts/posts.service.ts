@@ -17,11 +17,13 @@ import {
 import { slugify } from '../../common/utils/slugify.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
+import { QueueService } from '../../infrastructure/queue/queue.service.js';
 import { RevalidateService } from '../../infrastructure/revalidate/revalidate.service.js';
 import {
   AuditLogService,
   type AuditChannel,
 } from '../audit-log/audit-log.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import type {
   CreatePostFormInput,
   UpdatePostInput,
@@ -61,6 +63,8 @@ export class PostsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService,
     private readonly revalidate: RevalidateService,
+    private readonly queue: QueueService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // Người có post:approve thấy mọi bài; người còn lại chỉ thấy bài của mình.
@@ -208,11 +212,81 @@ export class PostsService {
       publishAt: input.publishAt?.toISOString(),
       reason: input.reason,
     });
+    // A05: job đăng bài theo lịch. Hẹn giờ/dời lịch thì tạo (hoặc thay) job; hủy lịch hoặc đăng ngay thì gỡ job cũ.
+    if (to === 'SCHEDULED' && updated.publishAt) {
+      await this.queue.schedulePublish(updated.id.toString(), updated.publishAt);
+    } else if (post.status === 'SCHEDULED') {
+      await this.queue.cancelPublish(updated.id.toString());
+    }
     // Bài vừa hiện hoặc biến mất khỏi trang công khai: báo web làm mới cache.
     if (to === 'PUBLISHED' || post.status === 'PUBLISHED') {
       await this.revalidate.revalidate('posts');
     }
     return toPostDto(updated, user);
+  }
+
+  // A05: đăng bài hẹn giờ khi đến hạn (do bộ lập lịch gọi). An toàn khi gọi lại: chỉ đăng nếu bài vẫn
+  // SCHEDULED và đã đến giờ, nhờ cập nhật có điều kiện theo trạng thái.
+  //   skipped = bài đã hủy/dời lịch/đã đăng; early = chưa đến giờ (lịch đã dời, job cũ thừa).
+  async publishScheduled(
+    postId: string,
+    now = new Date(),
+  ): Promise<'published' | 'skipped' | 'early'> {
+    const post = await this.prisma.post.findUnique({
+      where: { id: parseId(postId) },
+    });
+    if (post?.status !== 'SCHEDULED') return 'skipped';
+    // Cho phép lệch 1 giây của đồng hồ giữa Redis và máy chủ.
+    if (post.publishAt && post.publishAt.getTime() > now.getTime() + 1000) {
+      return 'early';
+    }
+    const { count } = await this.prisma.post.updateMany({
+      where: { id: post.id, status: 'SCHEDULED' },
+      data: { status: 'PUBLISHED', publishedAt: now, publishAt: null },
+    });
+    if (count === 0) return 'skipped';
+
+    await this.audit.record({
+      userId: null,
+      channel: 'scheduler',
+      action: 'post.publish',
+      targetType: 'post',
+      targetId: post.id.toString(),
+      params: { auto: true, scheduledFor: post.publishAt?.toISOString() },
+      ok: true,
+    });
+    // Báo tác giả và người duyệt (Telegram gửi ở bước 8, hiện ghi vào hộp thông báo).
+    const recipients = new Set([post.authorId, post.reviewerId].filter((id): id is bigint => id !== null));
+    await this.notifications.notify(
+      [...recipients].map((userId) => ({
+        userId,
+        title: 'Đã đăng bài',
+        body: `Bài "${post.title}" đã được tự động đăng theo lịch.`,
+      })),
+    );
+    await this.revalidate.revalidate('posts');
+    return 'published';
+  }
+
+  // Id các bài SCHEDULED đã quá giờ đăng mà chưa đăng (quét bù khi khởi động và mỗi phút).
+  async findDueScheduledIds(now = new Date()): Promise<string[]> {
+    const posts = await this.prisma.post.findMany({
+      where: { status: 'SCHEDULED', publishAt: { lte: now } },
+      select: { id: true },
+      orderBy: { publishAt: 'asc' },
+      take: 200,
+    });
+    return posts.map((p) => p.id.toString());
+  }
+
+  // Các bài SCHEDULED còn ở tương lai kèm giờ đăng, để dựng lại job nếu Redis bị mất dữ liệu.
+  async findUpcomingScheduled(now = new Date()): Promise<{ id: string; publishAt: Date }[]> {
+    const posts = await this.prisma.post.findMany({
+      where: { status: 'SCHEDULED', publishAt: { gt: now } },
+      select: { id: true, publishAt: true },
+      take: 1000,
+    });
+    return posts.map((p) => ({ id: p.id.toString(), publishAt: p.publishAt! }));
   }
 
   // Xóa nháp (tác giả) hoặc xóa vĩnh viễn bài đã gỡ (ADMIN).

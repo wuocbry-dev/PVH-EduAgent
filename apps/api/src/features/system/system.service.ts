@@ -3,6 +3,7 @@ import type { DashboardDto } from '@pvh/shared';
 import { assertPermission, can } from '../../common/guards/permission.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
+import { QueueService } from '../../infrastructure/queue/queue.service.js';
 import { PostsService } from '../posts/posts.service.js';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class SystemService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly posts: PostsService,
+    private readonly queue: QueueService,
   ) {}
 
   async isDatabaseUp(): Promise<boolean> {
@@ -33,6 +35,8 @@ export class SystemService {
       memoryMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
       node: process.version,
       database: (await this.isDatabaseUp()) ? 'ok' : 'down',
+      // Hàng đợi bộ lập lịch (A05, A06, A09): số job chờ, hẹn giờ, đang chạy và lỗi.
+      queue: await this.queue.status(),
       postsPendingReview,
       postsScheduled,
     };
@@ -76,6 +80,7 @@ export class SystemService {
         memoryMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
         node: process.version,
         database: (await this.isDatabaseUp()) ? 'ok' : 'down',
+        queue: await this.queue.status(),
       };
     }
     return dashboard;

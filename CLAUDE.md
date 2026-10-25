@@ -43,9 +43,9 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 |---|---|
 | `pnpm build` | Build shared → api → web |
 | `pnpm lint` | oxlint (api) + eslint (web) |
-| `pnpm test` | unit test (`src/**/*.spec.ts`) rồi e2e API (`test/*.e2e-spec.ts`, chạy tuần tự) – e2e cần PostgreSQL đã migrate và seed (`pnpm db:migrate`, `pnpm db:seed`) |
+| `pnpm test` | unit test (`src/**/*.spec.ts`) rồi e2e API (`test/*.e2e-spec.ts`, chạy tuần tự) – e2e cần PostgreSQL đã migrate và seed (`pnpm db:migrate`, `pnpm db:seed`) và Redis đang chạy (`REDIS_URL`) |
 
-Hạ tầng dev: `pnpm db:up` (docker compose: PostgreSQL + Redis). Test không chạy được vì thiếu hạ tầng thì báo đúng như vậy, không ghi là đã qua.
+Hạ tầng dev: `pnpm db:up` (docker compose: PostgreSQL + Redis); hướng dẫn Redis/bộ lập lịch: `docs/03-huong-dan-redis-bullmq.md`. Bộ lập lịch dùng `bullmq` trực tiếp (hạ tầng ở `src/infrastructure/queue`, processor ở `features/scheduler`), tắt khi thiếu `REDIS_URL`; e2e dùng tiền tố hàng đợi riêng (`BULLMQ_PREFIX`). Test không chạy được vì thiếu hạ tầng thì báo đúng như vậy, không ghi là đã qua.
 
 ## Lộ trình làm việc
 
