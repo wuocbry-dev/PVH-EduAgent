@@ -1,48 +1,30 @@
 import { Injectable } from '@nestjs/common';
+import { RateLimitService } from '../../infrastructure/rate-limit/rate-limit.service.js';
 
-const WINDOW_MS = 60_000;
+const WINDOW_SEC = 60;
 const MAX_FAILURES = 5;
+const NAME = 'login';
 
-interface Bucket {
-  failures: number;
-  resetAt: number;
-}
-
-// Chặn tạm thời khi đăng nhập sai quá 5 lần/phút theo cặp IP + email.
-// Lưu trong bộ nhớ: đủ cho một tiến trình API; chạy nhiều instance thì chuyển sang Redis.
+// Chặn tạm thời khi đăng nhập sai quá 5 lần/phút theo cặp IP + email (đếm trong Redis, dự phòng bộ nhớ).
 @Injectable()
 export class LoginRateLimiter {
-  private readonly buckets = new Map<string, Bucket>();
+  constructor(private readonly limits: RateLimitService) {}
 
   // Số giây phải chờ nếu đang bị chặn, ngược lại 0.
-  retryAfterSeconds(ip: string, email: string): number {
-    const bucket = this.active(this.key(ip, email));
-    if (!bucket || bucket.failures < MAX_FAILURES) return 0;
-    return Math.ceil((bucket.resetAt - Date.now()) / 1000);
+  async retryAfterSeconds(ip: string, email: string): Promise<number> {
+    const { count, retryAfterSec } = await this.limits.peek(NAME, this.key(ip, email));
+    return count >= MAX_FAILURES ? Math.max(1, retryAfterSec) : 0;
   }
 
-  recordFailure(ip: string, email: string): void {
-    const key = this.key(ip, email);
-    const bucket = this.active(key);
-    if (bucket) bucket.failures++;
-    else
-      this.buckets.set(key, { failures: 1, resetAt: Date.now() + WINDOW_MS });
+  async recordFailure(ip: string, email: string): Promise<void> {
+    await this.limits.increment(NAME, this.key(ip, email), WINDOW_SEC);
   }
 
-  reset(ip: string, email: string): void {
-    this.buckets.delete(this.key(ip, email));
+  async reset(ip: string, email: string): Promise<void> {
+    await this.limits.reset(NAME, this.key(ip, email));
   }
 
   private key(ip: string, email: string): string {
-    return `${ip}|${email}`;
-  }
-
-  private active(key: string): Bucket | undefined {
-    const bucket = this.buckets.get(key);
-    if (bucket && bucket.resetAt <= Date.now()) {
-      this.buckets.delete(key);
-      return undefined;
-    }
-    return bucket;
+    return `${ip}|${email.toLowerCase()}`;
   }
 }

@@ -1,5 +1,6 @@
 import { Controller, Get, Ip, Param, Post } from '@nestjs/common';
 import type { AgentActionDto } from '@pvh/shared';
+import { Throttle } from '@nestjs/throttler';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { AgentActionsService } from './agent-actions.service.js';
@@ -14,11 +15,13 @@ export class AgentActionsController {
     return this.actions.listPending(user);
   }
 
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @Post(':id/confirm')
   confirm(@CurrentUser() user: AuthUser, @Param('id') id: string, @Ip() ip: string): Promise<AgentActionDto> {
     return this.actions.confirm(user, id, 'web', ip);
   }
 
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @Post(':id/cancel')
   cancel(@CurrentUser() user: AuthUser, @Param('id') id: string): Promise<AgentActionDto> {
     return this.actions.cancel(user, id, 'web');

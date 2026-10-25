@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_FILTER } from '@nestjs/core';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { validateEnv } from './config/env.validation.js';
 import { AgentActionsModule } from './features/agent-actions/agent-actions.module.js';
 import { AgentModule } from './features/agent/agent.module.js';
@@ -21,6 +23,7 @@ import { UsersModule } from './features/users/users.module.js';
 import { DatabaseModule } from './infrastructure/database/database.module.js';
 import { NotificationsModule } from './features/notifications/notifications.module.js';
 import { QueueModule } from './infrastructure/queue/queue.module.js';
+import { RateLimitModule } from './infrastructure/rate-limit/rate-limit.module.js';
 import { RevalidateModule } from './infrastructure/revalidate/revalidate.module.js';
 
 @Module({
@@ -32,6 +35,8 @@ import { RevalidateModule } from './infrastructure/revalidate/revalidate.module.
     NotificationsModule,
     AuditLogModule,
     AuthModule,
+    // Sau AuthModule để JwtAuthGuard chạy trước và hạn mức tính theo tài khoản đã đăng nhập.
+    RateLimitModule,
     UsersModule,
     RolesModule,
     PostsModule,
@@ -48,5 +53,6 @@ import { RevalidateModule } from './infrastructure/revalidate/revalidate.module.
     TelegramModule,
     SchedulerModule,
   ],
+  providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],
 })
 export class AppModule {}

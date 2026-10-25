@@ -8,7 +8,7 @@ import {
   type PublicPostSummaryDto,
   type PublicSettingsDto,
 } from '@pvh/shared';
-import { HitLimiter } from '../../common/utils/hit-limiter.js';
+import { RateLimitService } from '../../infrastructure/rate-limit/rate-limit.service.js';
 import { stripHtml } from '../../common/utils/sanitize-content.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
@@ -30,9 +30,10 @@ const MEDIA_PATH = /\/media\/files\/[0-9a-f-]{36}\.(?:jpg|png|webp|gif)/g;
 @Injectable()
 export class PublicSiteService {
   // Mỗi IP chỉ tính một lượt xem cho một bài trong 30 phút.
-  private readonly viewLimiter = new HitLimiter(1, 30 * 60_000);
-
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly limits: RateLimitService,
+  ) {}
 
   async listPosts(query: ListPublicPostsQuery): Promise<PublicPostListDto> {
     const categoryIds = query.category
@@ -82,7 +83,8 @@ export class PublicSiteService {
   }
 
   async recordView(slug: string, ip: string): Promise<void> {
-    if (this.viewLimiter.hit(`${ip}|${slug}`) > 0) return;
+    const { count } = await this.limits.increment('view', `${ip}|${slug}`, 30 * 60);
+    if (count > 1) return;
     await this.prisma.post.updateMany({
       where: { slug, status: 'PUBLISHED' },
       data: { viewCount: { increment: 1 } },

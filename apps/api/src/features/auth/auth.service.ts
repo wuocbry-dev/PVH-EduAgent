@@ -47,7 +47,7 @@ export class AuthService {
 
   async login(input: LoginInput, meta: ClientMeta): Promise<AuthResult> {
     const ip = meta.ip ?? 'unknown';
-    const retryAfter = this.limiter.retryAfterSeconds(ip, input.email);
+    const retryAfter = await this.limiter.retryAfterSeconds(ip, input.email);
     if (retryAfter > 0) {
       await this.recordLogin(null, input.email, meta, 'Bị chặn tạm thời');
       throw new HttpException(
@@ -62,7 +62,7 @@ export class AuthService {
     const user =
       valid && cred.active ? await this.users.findAuthUserById(cred.id) : null;
     if (!user) {
-      this.limiter.recordFailure(ip, input.email);
+      await this.limiter.recordFailure(ip, input.email);
       await this.recordLogin(
         cred?.id ?? null,
         input.email,
@@ -74,7 +74,7 @@ export class AuthService {
       );
     }
 
-    this.limiter.reset(ip, input.email);
+    await this.limiter.reset(ip, input.email);
     await this.recordLogin(user.id, input.email, meta);
     return {
       user: toAuthMeDto(user),

@@ -10,6 +10,7 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { PrismaService } from './../src/infrastructure/database/prisma.service.js';
+import { resetLimits } from './reset-limits.js';
 
 const PASSWORD = 'Pvh@2026';
 const EDITOR = 'bientap@pvh.edu.vn';
@@ -84,6 +85,7 @@ describe('Website công khai & liên hệ (F01–F07, e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.use(cookieParser());
     await app.init();
+    await resetLimits(app);
     prisma = app.get(PrismaService);
   });
 

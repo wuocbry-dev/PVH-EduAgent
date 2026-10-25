@@ -127,6 +127,12 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
 - Thêm tool nhạy cảm mới: đặt vào `features/agent-actions` (gọi `AgentActionsService.propose`, thêm nhánh thực thi trong `execute`), không gọi thẳng service ghi.
 - Tool không nhạy cảm: `summarize_day` (việc và bài hẹn trong ngày), `create_announcement` (bài nháp ở chuyên mục Thông báo).
 
+## Bảo mật (bước 10)
+
+- Bảng endpoint → quyền: [docs/04-bang-endpoint-quyen.md](docs/04-bang-endpoint-quyen.md) (có test tự động đối chiếu với route thật).
+- Cấu hình `apps/api/.env`: `TRUST_PROXY` (số lớp reverse proxy, để lấy IP thật), `BODY_LIMIT`, `THROTTLE_LIMIT`/`THROTTLE_TTL_SEC`. Production từ chối khởi động nếu `DEV_AUTH=true`, `WEB_ORIGIN` không phải `https://` hoặc thiếu `REDIS_URL`.
+- Cookie đăng nhập `HttpOnly` + `SameSite=Lax` (+ `Secure` ở production); request ghi mang `Origin` lạ bị từ chối (chống CSRF). Nội dung bài viết được lọc bằng `sanitize-html` trước khi lưu.
+
 ## Bot Telegram (A01–A04)
 
 ### Tạo bot bằng BotFather

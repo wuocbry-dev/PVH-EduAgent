@@ -7,7 +7,7 @@ import {
 import type { ContactDto, ContactStatus } from '@pvh/shared';
 import { assertPermission } from '../../common/guards/permission.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
-import { HitLimiter } from '../../common/utils/hit-limiter.js';
+import { RateLimitService } from '../../infrastructure/rate-limit/rate-limit.service.js';
 import { parseId } from '../../common/utils/parse-id.js';
 import { stripHtml } from '../../common/utils/sanitize-content.js';
 import type { Contact } from '../../generated/prisma/client.js';
@@ -32,19 +32,18 @@ export interface ContactList {
 // Xem/đổi trạng thái: cần post:approve (biên tập). Email/số điện thoại chỉ hiện cho quản trị.
 @Injectable()
 export class ContactsService {
-  private readonly limiter = new HitLimiter(MAX_PER_WINDOW, WINDOW_MS);
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService,
+    private readonly limits: RateLimitService,
   ) {}
 
   async create(input: CreateContactInput, ip: string): Promise<void> {
     // Bot điền ô ẩn: giả vờ thành công để không lộ cơ chế, nhưng không lưu.
     if (input.website) return;
 
-    const retryAfter = this.limiter.hit(ip);
-    if (retryAfter > 0) {
+    const { count, retryAfterSec: retryAfter } = await this.limits.increment('contact', ip, WINDOW_MS / 1000);
+    if (count > MAX_PER_WINDOW) {
       throw new HttpException(
         `Bạn gửi quá nhiều liên hệ, vui lòng thử lại sau ${Math.ceil(retryAfter / 60)} phút`,
         HttpStatus.TOO_MANY_REQUESTS,

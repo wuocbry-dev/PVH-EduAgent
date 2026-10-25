@@ -20,6 +20,8 @@ export default defineConfig({
       TELEGRAM_WEBHOOK_SECRET: 'pvh-e2e-webhook-secret',
       TELEGRAM_WEBHOOK_URL: '',
       TELEGRAM_AUTO_NOTIFY: 'false',
+      // Test đăng nhập dồn dập từ một IP; throttle.e2e-spec.ts bật lại để kiểm tra riêng.
+      THROTTLE_DISABLED: 'true',
     },
     globalSetup: ['./test/global-setup.ts'],
     // Các file dùng chung một CSDL và tài khoản seed (có test tạm đổi mật khẩu, quyền vai trò) nên chạy tuần tự.

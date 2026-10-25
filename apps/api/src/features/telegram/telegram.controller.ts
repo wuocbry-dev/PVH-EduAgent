@@ -13,6 +13,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import type { TelegramLinkCodeDto, TelegramLinkStatusDto } from '@pvh/shared';
 import type { Update } from 'grammy/types';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
@@ -33,6 +34,8 @@ export class TelegramController {
   ) {}
 
   // Telegram gọi khi TELEGRAM_MODE=webhook. Chỉ nhận request có header secret đúng.
+  // Telegram gọi từ nhiều IP; đã có secret token nên không áp hạn mức chung.
+  @SkipThrottle()
   @Public()
   @Post('webhook')
   @HttpCode(200)
@@ -63,6 +66,7 @@ export class TelegramController {
     };
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('link-code')
   async createCode(@CurrentUser() user: AuthUser, @Ip() ip: string): Promise<TelegramLinkCodeDto> {
     if (!this.bot.enabled) {

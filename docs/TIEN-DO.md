@@ -27,9 +27,9 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 | [x] | 7 | Bộ lập lịch Redis + BullMQ (A05, A06, A09) | 2026-10-25 |
 | [x] | 8 | Bot Telegram & liên kết tài khoản (A01–A04) | 2026-10-25 |
 | [x] | 9 | Xác nhận 2 bước cho AI Agent (A07, A08) | 2026-10-25 |
-| [ ] | 10 | Bảo mật & chất lượng | |
-| [ ] | 11 | Đóng gói & triển khai | |
-| [ ] | 12 | Đối chiếu tài liệu đồ án | |
+| [x] | 10 | Bảo mật & chất lượng | 2026-10-25 |
+| [-] | 11 | Đóng gói & triển khai | |
+| [-] | 12 | Đối chiếu tài liệu đồ án | |
 
 ## Nhật ký từng bước
 
@@ -116,3 +116,28 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 - **Chưa thử với thiết bị thật:** luồng "dời bài X sang 8h" bằng tin nhắn thật trên điện thoại với mô hình thật (cần `ANTHROPIC_API_KEY` và người dùng nhắn bot); đã kiểm chứng bằng e2e với Bot API được giả lập và agent giả lập gọi đúng các tool thật.
 - **Lệch thiết kế:** người ra lệnh bấm xác nhận được trên kênh nào cũng được (ra lệnh Telegram, bấm trên web và ngược lại), vì service luôn kiểm tra đúng người tạo. Các tool nhạy cảm đặt ở `features/agent-actions` thay vì `posts.agent-tools.ts` để tránh phụ thuộc vòng giữa module bài viết và xác nhận. Tin nhắn nút trên Telegram không tự sửa khi job chuyển `EXPIRED` (chỉ báo "hết hạn" khi bấm).
 - **Còn lại:** giới hạn tần suất HTTP chung bằng Redis và các việc bảo mật ở bước 10.
+
+### Bước 10 – Bảo mật & chất lượng (2026-10-25)
+
+- **Đã sửa / thêm:**
+  - **HTTP:** `helmet` (CSP chặn mọi nguồn cho API, `frame-ancestors none`, nosniff, no-referrer, CORP same-site; ảnh công khai tự đặt cross-origin); CORS chỉ cho `WEB_ORIGIN` kèm cookie; giới hạn body JSON/form (`BODY_LIMIT`, 1 MB) → 413; `TRUST_PROXY` để lấy IP thật sau proxy; log JSON ở production và nhật ký truy cập mỗi request (không ghi query/cookie/body). Gom vào `bootstrap/configure-app.ts` (dùng chung cho `main.ts` và test).
+  - **Chống CSRF với cookie đăng nhập:** ngoài `HttpOnly` + `SameSite=Lax`, request ghi mang `Origin` khác `WEB_ORIGIN` bị 403 (trước đó chỉ dựa vào SameSite).
+  - **Giới hạn tần suất:** `@nestjs/throttler` toàn cục với kho đếm trong Redis (mặc định 300 lượt/phút theo tài khoản hoặc IP), hạn mức riêng cho đăng nhập (20), quên/đặt lại mật khẩu (5/10), agent chat (10/tài khoản), xác nhận hành động (30), liên hệ, lượt xem, tải ảnh, sinh OTP Telegram; webhook Telegram được bỏ qua (đã có secret). Chuyển các bộ đếm trong bộ nhớ (đăng nhập sai, liên hệ, lượt xem, bot Telegram) sang `RateLimitService` dùng Redis, dự phòng bộ nhớ khi Redis lỗi; xoá `HitLimiter`.
+  - **Lỗi thống nhất:** `AllExceptionsFilter` trả `{ statusCode, message }` tiếng Việt cho mọi lỗi (kể cả 404 mặc định, JSON hỏng, body quá lớn, 429); lỗi kiểm tra dữ liệu giữ `fieldErrors`; lỗi không lường trước luôn trả "Lỗi hệ thống…" không lộ chi tiết hay stack (chỉ ghi log máy chủ).
+  - **Cấu hình:** production từ chối khởi động nếu `DEV_AUTH=true`, `THROTTLE_DISABLED=true`, `WEB_ORIGIN` không phải https, thiếu `REDIS_URL`; webhook Telegram thiếu secret bị từ chối ở mọi môi trường.
+  - **Web:** header bảo mật cho mọi trang (nosniff, `X-Frame-Options`, `frame-ancestors none`, Referrer-Policy, Permissions-Policy, HSTS ở production), tắt `X-Powered-By`.
+  - **Dữ liệu học sinh:** system prompt cấm xử lý dữ liệu cá nhân học sinh và nội dung liên hệ của người ngoài; test khoá danh sách tool của agent (không có tool xem người dùng/học sinh/liên hệ), danh sách người được giao việc không có học sinh.
+- **Rà soát endpoint / IDOR:** lập [bảng endpoint → quyền](04-bang-endpoint-quyen.md) cho cả 70 route; `security.e2e-spec.ts` đọc route thật từ metadata controller và so với bảng (thêm endpoint mà quên cập nhật thì đỏ), kiểm tra chưa đăng nhập → 401 cho mọi route không công khai, tài khoản không có quyền nào không bao giờ nhận 2xx ở route cần quyền. Đã đọc lại mọi service ghi: đều có `assertPermission`/`can` hoặc kiểm tra quyền sở hữu (bài viết theo tác giả, công việc theo người được giao, ảnh theo người tải, hành động agent theo người tạo, liên kết Telegram theo chính mình); không tìm thấy lỗ hổng IDOR mới.
+- **XSS:** `sanitize-content.spec.ts` (25 test: script lồng/viết hoa, `on*`, `javascript:`/`vbscript:`/`data:` kể cả mã hoá và ký tự ẩn, iframe/object/svg/style/form/meta/base/link, mXSS, URL `//`) đều bị loại; chỉ có hai chỗ `dangerouslySetInnerHTML` ở web và cả hai chỉ nhận nội dung đã lọc.
+- **Review:** chạy `/security-review` trên toàn bộ thay đổi của bước (không có phát hiện mức cao/trung bình mới). Tôi không chạy `/code-review`; đã tự rà soát lại diff.
+- **Test:** `security.e2e-spec.ts` (13 test), `throttle.e2e-spec.ts` (3 test: 429 tiếng Việt + Retry-After, đếm trong Redis, hạn mức agent theo tài khoản, webhook không bị giới hạn), unit `sanitize-content.spec.ts`, `env.validation.spec.ts`. Bộ đếm nay nằm trong Redis nên test dùng `test/reset-limits.ts`; e2e đặt `THROTTLE_DISABLED=true` (throttle.e2e-spec bật lại và khôi phục biến môi trường). 60 unit + 141 e2e xanh.
+- **Rủi ro còn lại (cần biết khi triển khai):**
+  - Chưa có CSP đầy đủ cho trang web (script/style): với `cacheComponents` trang được dựng sẵn nên không dùng được nonce theo request; chỉ có `frame-ancestors`. XSS vẫn dựa vào lọc nội dung phía API và React tự escape.
+  - Chống CSRF dựa vào `SameSite=Lax` + kiểm tra `Origin`: request ghi không có header `Origin` (công cụ ngoài trình duyệt) vẫn được nhận, vì chúng không mang cookie của nạn nhân.
+  - Hạn mức tính theo IP: nếu web (Next.js) gọi API từ một IP và `TRUST_PROXY` đặt sai thì mọi người dùng chưa đăng nhập dùng chung một bộ đếm; cần đặt `TRUST_PROXY` đúng số lớp proxy ở bước triển khai.
+  - Khoá tạm đăng nhập theo IP + email (5 lần/phút) không chống dò mật khẩu phân tán nhiều IP; chưa có khoá tài khoản lâu dài hay CAPTCHA.
+  - Nội dung liên hệ (có email/số điện thoại người ngoài) chỉ người có `post:approve` xem được trên web; agent không có tool đọc, nhưng người dùng vẫn có thể tự dán dữ liệu nhạy cảm vào khung chat.
+  - Access token JWT (15 phút) vẫn hợp lệ cho tới khi hết hạn nếu bị lộ; tài khoản bị khoá hay đổi quyền có hiệu lực ngay vì quyền đọc lại từ CSDL mỗi request.
+  - Ảnh tải lên lưu trên đĩa của máy chủ API, chưa quét mã độc; chỉ kiểm tra loại theo nội dung file và giới hạn 5 MB.
+- **Lệch thiết kế:** không dùng `@nestjs/throttler` cho các giới hạn nghiệp vụ (đăng nhập sai, liên hệ, lượt xem, bot) vì cần đếm theo sự kiện thất bại chứ không theo request; chúng dùng `RateLimitService` chung. Chưa làm CSP đầy đủ cho web (lý do ở trên).
+- **Còn lại:** đóng gói Docker, HTTPS, cấu hình `TRUST_PROXY` và biến môi trường production ở bước 11.

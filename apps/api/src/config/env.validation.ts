@@ -10,6 +10,22 @@ const envSchema = z.object({
     .default('development'),
   API_PORT: z.coerce.number().int().default(4000),
   WEB_ORIGIN: z.url().default('http://localhost:3000'),
+  // Bước 10 – bảo mật HTTP. TRUST_PROXY: số lớp reverse proxy đứng trước API (vd. 1 khi sau nginx) để req.ip
+  // là IP thật của client; false = không tin header X-Forwarded-For.
+  TRUST_PROXY: z.preprocess(
+    (v) => (v === '' || v === undefined ? 'false' : v),
+    z
+      .string()
+      .regex(/^(true|false|\d+)$/, 'Phải là true, false hoặc số lớp proxy')
+      .transform((v) => (v === 'true' ? true : v === 'false' ? false : Number(v))),
+  ),
+  // Kích thước tối đa của body JSON/form (ảnh tải lên có giới hạn riêng 5 MB).
+  BODY_LIMIT: z.string().trim().regex(/^\d+(kb|mb)$/i, 'Dạng 1mb hoặc 512kb').default('1mb'),
+  // Hạn mức mặc định cho mọi route: THROTTLE_LIMIT lượt / THROTTLE_TTL_SEC giây mỗi tài khoản (hoặc IP nếu chưa đăng nhập).
+  THROTTLE_LIMIT: z.coerce.number().int().positive().default(300),
+  THROTTLE_TTL_SEC: z.coerce.number().int().positive().default(60),
+  // Tắt hẳn @nestjs/throttler (chỉ dùng cho e2e, vì test đăng nhập dồn dập từ một IP). Production phải để false.
+  THROTTLE_DISABLED: z.preprocess((v) => (v === '' ? undefined : v), z.stringbool().default(false)),
 
   // F10 – xác thực JWT. Bí mật ký access token và token đặt lại mật khẩu.
   JWT_ACCESS_SECRET: z
@@ -81,5 +97,23 @@ export function validateEnv(config: Record<string, unknown>): Env {
       `File .env không hợp lệ:\n${z.prettifyError(parsed.error)}`,
     );
   }
+  const problems = productionProblems(parsed.data);
+  if (problems.length > 0) {
+    throw new Error(`Cấu hình không an toàn:\n- ${problems.join('\n- ')}`);
+  }
   return parsed.data;
+}
+
+// Các cấu hình chỉ chấp nhận khi phát triển; production gặp chúng thì từ chối khởi động thay vì chạy thiếu an toàn.
+export function productionProblems(env: Env): string[] {
+  const problems: string[] = [];
+  if (env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_MODE === 'webhook' && !env.TELEGRAM_WEBHOOK_SECRET) {
+    problems.push('TELEGRAM_MODE=webhook cần TELEGRAM_WEBHOOK_SECRET (webhook không có secret sẽ từ chối mọi request)');
+  }
+  if (env.NODE_ENV !== 'production') return problems;
+  if (env.DEV_AUTH) problems.push('DEV_AUTH phải là false (cho phép chọn tài khoản qua header)');
+  if (env.THROTTLE_DISABLED) problems.push('THROTTLE_DISABLED phải là false (đang tắt giới hạn tần suất)');
+  if (!env.WEB_ORIGIN.startsWith('https://')) problems.push('WEB_ORIGIN phải là địa chỉ https:// (cookie đăng nhập đặt cờ Secure)');
+  if (!env.REDIS_URL) problems.push('REDIS_URL cần có: giới hạn tần suất, OTP Telegram và bộ lập lịch dùng Redis');
+  return problems;
 }

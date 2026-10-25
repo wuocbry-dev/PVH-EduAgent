@@ -84,7 +84,7 @@ export class TelegramLinkService {
 
   // Bot nhận `/link <OTP>` (hoặc `/start <OTP>` từ deep-link) từ chatId.
   async verifyAndLink(rawCode: string, chatId: string): Promise<LinkResult> {
-    if (await this.limiter.exceeded('otp-fail', chatId, OTP_FAIL_LIMIT, LIMIT_WINDOW_SEC)) {
+    if (await this.limiter.exceeded('otp-fail', chatId, OTP_FAIL_LIMIT)) {
       return { ok: false, reason: 'locked' };
     }
     const code = rawCode.trim();

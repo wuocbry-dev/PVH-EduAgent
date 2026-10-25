@@ -10,6 +10,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { Throttle } from '@nestjs/throttler';
 import { MEDIA_MAX_BYTES } from '@pvh/shared';
 import type { Request, Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
@@ -22,6 +23,7 @@ export class MediaController {
   constructor(private readonly media: MediaService) {}
 
   // multipart/form-data, trường `file`. Bộ nhớ đệm bị chặn ở MEDIA_MAX_BYTES (vượt quá → 413).
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @Post()
   @UseInterceptors(
     FileInterceptor('file', { limits: { fileSize: MEDIA_MAX_BYTES, files: 1 } }),

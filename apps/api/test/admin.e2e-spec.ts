@@ -7,6 +7,7 @@ import { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
 import { AuditLogService } from './../src/features/audit-log/audit-log.service.js';
 import { PrismaService } from './../src/infrastructure/database/prisma.service.js';
+import { resetLimits } from './reset-limits.js';
 
 const PASSWORD = 'Pvh@2026';
 const ADMIN = 'admin@pvh.edu.vn';
@@ -27,6 +28,7 @@ describe('Nhật ký, cấu hình, dashboard (F16, F17, e2e)', () => {
     app = moduleFixture.createNestApplication();
     app.use(cookieParser());
     await app.init();
+    await resetLimits(app);
     prisma = app.get(PrismaService);
   });
 
