@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro } from "next/font/google";
+import { env } from "@/shared/config/env";
 import "./globals.css";
 
 const beVietnamPro = Be_Vietnam_Pro({
@@ -9,11 +10,17 @@ const beVietnamPro = Be_Vietnam_Pro({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(env.siteUrl),
   title: {
     default: "Trường THPT Phan Văn Hớn",
     template: "%s | THPT Phan Văn Hớn",
   },
   description: "Cổng thông tin điện tử Trường THPT Phan Văn Hớn, phường Đông Hưng Thuận, TP.HCM",
+  openGraph: {
+    type: "website",
+    locale: "vi_VN",
+    siteName: "Trường THPT Phan Văn Hớn",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

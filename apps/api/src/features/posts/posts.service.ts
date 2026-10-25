@@ -17,6 +17,7 @@ import {
 import { slugify } from '../../common/utils/slugify.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
+import { RevalidateService } from '../../infrastructure/revalidate/revalidate.service.js';
 import {
   AuditLogService,
   type AuditChannel,
@@ -59,17 +60,8 @@ export class PostsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService,
+    private readonly revalidate: RevalidateService,
   ) {}
-
-  async listPublished(): Promise<PostDto[]> {
-    const posts = await this.prisma.post.findMany({
-      where: { status: 'PUBLISHED' },
-      orderBy: { publishedAt: 'desc' },
-      take: 20,
-      include: WITH_RELATIONS,
-    });
-    return posts.map((p) => toPostDto(p));
-  }
 
   // Người có post:approve thấy mọi bài; người còn lại chỉ thấy bài của mình.
   async list(
@@ -216,6 +208,10 @@ export class PostsService {
       publishAt: input.publishAt?.toISOString(),
       reason: input.reason,
     });
+    // Bài vừa hiện hoặc biến mất khỏi trang công khai: báo web làm mới cache.
+    if (to === 'PUBLISHED' || post.status === 'PUBLISHED') {
+      await this.revalidate.revalidate('posts');
+    }
     return toPostDto(updated, user);
   }
 

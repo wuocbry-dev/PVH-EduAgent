@@ -7,7 +7,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
-import { AppModule } from './../src/app.module.js';
 import { PrismaService } from './../src/infrastructure/database/prisma.service.js';
 
 const PASSWORD = 'Pvh@2026';
@@ -33,6 +32,8 @@ describe('Bài viết, chuyên mục, media (F12, F13, e2e)', () => {
   let prisma: PrismaService;
 
   beforeEach(async () => {
+    // Import sau khi đặt UPLOAD_DIR: ConfigModule đọc biến môi trường ngay khi AppModule được nạp.
+    const { AppModule } = await import('./../src/app.module.js');
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -63,7 +64,7 @@ describe('Bài viết, chuyên mục, media (F12, F13, e2e)', () => {
       .post('/posts')
       .send({ title: `${TAG} ${name}`, content: '<p>Nội dung bài viết</p>', ...extra })
       .expect(201);
-    return res.body as { id: string; status: string; actions: string[] };
+    return res.body as { id: string; slug: string; status: string; actions: string[] };
   };
 
   // Đưa bài tới PENDING_REVIEW.
@@ -126,19 +127,11 @@ describe('Bài viết, chuyên mục, media (F12, F13, e2e)', () => {
       expect(published.body.status).toBe('PUBLISHED');
       expect(published.body.publishedAt).not.toBeNull();
       expect(published.body.publishAt).toBeNull();
-      expect(
-        (await request(app.getHttpServer()).get('/posts').expect(200)).body.some(
-          (p: { id: string }) => p.id === post.id,
-        ),
-      ).toBe(true);
+      await request(app.getHttpServer()).get(`/public/posts/${post.slug}`).expect(200);
 
       const archived = await editor.post(`/posts/${post.id}/unpublish`).expect(200);
       expect(archived.body.status).toBe('ARCHIVED');
-      expect(
-        (await request(app.getHttpServer()).get('/posts').expect(200)).body.some(
-          (p: { id: string }) => p.id === post.id,
-        ),
-      ).toBe(false);
+      await request(app.getHttpServer()).get(`/public/posts/${post.slug}`).expect(404);
 
       const restored = await editor.post(`/posts/${post.id}/restore`).expect(200);
       expect(restored.body.status).toBe('DRAFT');

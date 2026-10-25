@@ -12,7 +12,6 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
-import { Public } from '../../common/decorators/public.decorator.js';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import {
@@ -34,12 +33,6 @@ import { PostsService } from './posts.service.js';
 @Controller('posts')
 export class PostsController {
   constructor(private readonly posts: PostsService) {}
-
-  @Public()
-  @Get()
-  listPublished() {
-    return this.posts.listPublished();
-  }
 
   @Get('manage')
   list(

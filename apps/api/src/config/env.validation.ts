@@ -37,6 +37,10 @@ const envSchema = z.object({
   AGENT_MAX_TURNS: z.coerce.number().int().positive().default(8),
   AGENT_MAX_BUDGET_USD: z.coerce.number().positive().default(0.5),
 
+  // F01–F07 – bí mật dùng chung với web để API báo web làm mới cache khi đăng/gỡ bài
+  // (phải trùng REVALIDATE_SECRET của apps/web). Bỏ trống = không gọi web.
+  REVALIDATE_SECRET: optional(z.string().min(16)),
+
   // F13 – thư mục lưu ảnh tải lên (tương đối so với thư mục chạy API, hoặc đường dẫn tuyệt đối).
   UPLOAD_DIR: z.string().trim().min(1).default('uploads'),
 

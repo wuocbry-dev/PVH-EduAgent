@@ -6,6 +6,7 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 
 - `apps/api` – NestJS 12, **ESM** (`"type": "module"`): import nội bộ luôn có đuôi `.js` (vd. `'../../common/guards/permission.js'`).
 - `apps/web` – Next.js 16 App Router, Tailwind 4. `cacheComponents: true` → dữ liệu động (fetch, cookies, headers…) phải nằm trong `<Suspense>`.
+  - Trang công khai đọc dữ liệu qua hàm `use cache` + `cacheTag` (`posts`, `categories`, `admission`, `settings`; mẫu: `features/posts/api/public-posts.ts`, hàm không throw, lỗi API thì `cacheLife("seconds")`). API báo web làm mới qua `POST /api/revalidate` (`REVALIDATE_SECRET` ở cả hai `.env`). `next/cache` chỉ dùng phía server: không để hàm đó trong feature mà component client nhập qua `index.ts`.
   - **Trước khi viết code Next.js phải đọc tài liệu trong `apps/web/node_modules/next/dist/docs/`** (theo `apps/web/AGENTS.md`); phiên bản này khác kiến thức cũ.
 - `packages/shared` (`@pvh/shared`) – kiểu và hằng số dùng chung (vai trò, quyền, trạng thái…). Phải build trước khi api/web dùng: `pnpm --filter @pvh/shared build` (đã chạy trong `postinstall` và `pnpm dev`). Sửa shared xong phải build lại.
 

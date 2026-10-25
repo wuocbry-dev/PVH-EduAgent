@@ -1,22 +1,22 @@
-import Link from "next/link";
+import { Suspense } from "react";
+import { SiteFooter, SiteHeader } from "@/features/site";
 
 export default function PublicLayout({ children }: LayoutProps<"/">) {
   return (
     <>
-      <header className="border-b border-black/10 dark:border-white/15">
-        <nav className="mx-auto flex max-w-5xl items-center gap-6 px-4 py-4">
-          <Link href="/" className="font-semibold">
-            THPT Phan Văn Hớn
-          </Link>
-          <Link href="/tin-tuc" className="text-sm">
-            Tin tức
-          </Link>
-          <Link href="/admin" className="ml-auto text-sm opacity-70">
-            Quản trị
-          </Link>
-        </nav>
-      </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8">{children}</main>
+      <a
+        href="#noi-dung"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-30 focus:bg-background focus:p-3"
+      >
+        Bỏ qua điều hướng
+      </a>
+      <SiteHeader />
+      <main id="noi-dung" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+        {children}
+      </main>
+      <Suspense fallback={<div className="mt-12 h-40 bg-brand" aria-hidden />}>
+        <SiteFooter />
+      </Suspense>
     </>
   );
 }

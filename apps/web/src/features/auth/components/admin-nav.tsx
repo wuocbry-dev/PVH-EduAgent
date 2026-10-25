@@ -6,6 +6,7 @@ const NAV: { href: string; label: string; permission?: Permission }[] = [
   { href: "/admin", label: "Tổng quan" },
   { href: "/admin/bai-viet", label: "Bài viết", permission: "post:create" },
   { href: "/admin/chuyen-muc", label: "Chuyên mục", permission: "post:approve" },
+  { href: "/admin/lien-he", label: "Liên hệ", permission: "post:approve" },
   { href: "/admin/tro-ly-ai", label: "Trợ lý AI" },
   { href: "/admin/nguoi-dung", label: "Người dùng", permission: "user:manage" },
   { href: "/admin/vai-tro", label: "Vai trò và quyền", permission: "user:manage" },

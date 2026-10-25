@@ -46,12 +46,11 @@ describe('API (e2e)', () => {
       .expect({ status: 'ok', database: 'ok' });
   });
 
-  it('/posts (GET) chỉ trả bài đã đăng', async () => {
-    const res = await request(app.getHttpServer()).get('/posts').expect(200);
-    expect(res.body.length).toBeGreaterThan(0);
-    expect(
-      res.body.every((p: { status: string }) => p.status === 'PUBLISHED'),
-    ).toBe(true);
+  it('/public/posts (GET) không cần đăng nhập, có bài đã đăng', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/public/posts')
+      .expect(200);
+    expect(res.body.items.length).toBeGreaterThan(0);
   });
 
   describe('xác thực (F10)', () => {

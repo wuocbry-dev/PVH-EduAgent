@@ -11,6 +11,7 @@ import { stripHtml } from '../../common/utils/sanitize-content.js';
 import { slugify } from '../../common/utils/slugify.js';
 import type { Category } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
+import { RevalidateService } from '../../infrastructure/revalidate/revalidate.service.js';
 import { AuditLogService } from '../audit-log/audit-log.service.js';
 import type {
   CreateCategoryInput,
@@ -23,6 +24,7 @@ export class CategoriesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService,
+    private readonly revalidate: RevalidateService,
   ) {}
 
   async list(): Promise<CategoryDto[]> {
@@ -172,7 +174,7 @@ export class CategoriesService {
       params,
       ok: true,
       ip,
-    });
+    }).then(() => this.revalidate.revalidate('categories', 'posts'));
   }
 }
 
