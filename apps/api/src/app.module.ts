@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { validateEnv } from './config/env.validation.js';
+import { AgentActionsModule } from './features/agent-actions/agent-actions.module.js';
 import { AgentModule } from './features/agent/agent.module.js';
 import { AuditLogModule } from './features/audit-log/audit-log.module.js';
 import { AuthModule } from './features/auth/auth.module.js';
@@ -42,6 +43,7 @@ import { RevalidateModule } from './infrastructure/revalidate/revalidate.module.
     SettingsModule,
     TasksModule,
     SystemModule,
+    AgentActionsModule,
     AgentModule,
     TelegramModule,
     SchedulerModule,

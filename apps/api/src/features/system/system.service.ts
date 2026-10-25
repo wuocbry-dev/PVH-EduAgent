@@ -5,6 +5,10 @@ import type { AuthUser } from '../../common/types/auth-user.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
 import { QueueService } from '../../infrastructure/queue/queue.service.js';
 import { PostsService } from '../posts/posts.service.js';
+import { TasksService } from '../tasks/tasks.service.js';
+
+const TZ = 'Asia/Ho_Chi_Minh';
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class SystemService {
@@ -12,6 +16,7 @@ export class SystemService {
     private readonly prisma: PrismaService,
     private readonly posts: PostsService,
     private readonly queue: QueueService,
+    private readonly tasks: TasksService,
   ) {}
 
   async isDatabaseUp(): Promise<boolean> {
@@ -39,6 +44,28 @@ export class SystemService {
       queue: await this.queue.status(),
       postsPendingReview,
       postsScheduled,
+    };
+  }
+
+  // A07: tóm tắt trong ngày (giờ Việt Nam): việc quá hạn hoặc đến hạn hôm nay và bài hẹn đăng hôm nay.
+  // Mỗi phần chỉ có khi người dùng đủ quyền xem; giáo viên chỉ thấy việc và bài của mình.
+  async summarizeDay(user: AuthUser, now = new Date()) {
+    const day = now.toLocaleDateString('en-CA', { timeZone: TZ });
+    const start = new Date(`${day}T00:00:00+07:00`);
+    const end = new Date(start.getTime() + DAY_MS);
+    const hoursLeft = Math.max(1, Math.ceil((end.getTime() - now.getTime()) / 3_600_000));
+
+    const canTasks = can(user, 'task:read:all') || can(user, 'task:read:own');
+    const deadlines = canTasks ? await this.tasks.listDeadlines(user, hoursLeft) : [];
+    const scheduled = (await this.posts.list(user, 'SCHEDULED')).filter(
+      (p) => p.publishAt && new Date(p.publishAt) >= start && new Date(p.publishAt) < end,
+    );
+    return {
+      date: day,
+      tasks: canTasks
+        ? deadlines.map((t) => ({ id: t.id, title: t.title, assignee: t.assigneeName, dueAt: t.dueAt, overdue: t.overdue }))
+        : null,
+      postsScheduledToday: scheduled.map((p) => ({ id: p.id, title: p.title, publishAt: p.publishAt })),
     };
   }
 

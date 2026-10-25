@@ -10,8 +10,8 @@ import {
 import { createPostSchema } from './dto/create-post.dto.js';
 import { PostsService } from './posts.service.js';
 
-// Các thao tác ảnh hưởng công khai (duyệt, hẹn giờ, gỡ bài) cần xác nhận 2 bước (A08)
-// qua nút Telegram (bảng agent_actions), nên chưa đưa vào đây.
+// Các thao tác ảnh hưởng công khai (duyệt, hẹn giờ, dời lịch, gỡ bài) cần xác nhận 2 bước (A08)
+// nên nằm ở features/agent-actions, không ở đây.
 @Injectable()
 export class PostsAgentTools implements AgentToolProvider {
   constructor(private readonly posts: PostsService) {}
@@ -41,6 +41,13 @@ export class PostsAgentTools implements AgentToolProvider {
         createPostSchema.shape,
         async (input) =>
           jsonResult(await this.posts.createDraft(user, input, { channel })),
+      ),
+      tool(
+        'create_announcement',
+        'Tạo bài nháp (DRAFT) ở chuyên mục Thông báo. Chưa hiển thị công khai; người có quyền duyệt sẽ duyệt sau.',
+        createPostSchema.shape,
+        async (input) =>
+          jsonResult(await this.posts.createAnnouncement(user, input, { channel })),
       ),
     ];
   }

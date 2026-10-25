@@ -20,6 +20,13 @@ export class SystemAgentTools implements AgentToolProvider {
         async () => jsonResult(await this.system.getStatus(user)),
         { annotations: { readOnlyHint: true } },
       ),
+      tool(
+        'summarize_day',
+        'Tóm tắt hôm nay (giờ Việt Nam): công việc quá hạn hoặc đến hạn hôm nay và các bài hẹn đăng hôm nay. Chỉ gồm phần người dùng được phép xem.',
+        {},
+        async () => jsonResult(await this.system.summarizeDay(user)),
+        { annotations: { readOnlyHint: true } },
+      ),
     ];
   }
 }

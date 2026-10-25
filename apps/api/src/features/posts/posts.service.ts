@@ -225,6 +225,31 @@ export class PostsService {
     return toPostDto(updated, user);
   }
 
+  // A08: kiểm tra trước (quyền, luật chuyển trạng thái) mà chưa thay đổi gì; dùng khi agent đề xuất thao tác
+  // chờ xác nhận. Ném lỗi giống transition() nếu thao tác không hợp lệ.
+  async previewTransition(
+    user: AuthUser,
+    id: string,
+    action: Exclude<PostAction, 'edit' | 'delete'>,
+    input: ActionInput = {},
+  ): Promise<{ id: string; title: string; status: PostStatus; to: PostStatus }> {
+    const post = await this.findOrThrow(id);
+    const to = this.authorize(user, post, action, input);
+    return { id: post.id.toString(), title: post.title, status: post.status, to };
+  }
+
+  // A07: bài nháp ở chuyên mục Thông báo (slug thong-bao), do agent tạo.
+  async createAnnouncement(
+    user: AuthUser,
+    input: { title: string; summary?: string; content: string },
+    meta: ActionMeta = {},
+  ): Promise<PostDto> {
+    assertPermission(user, 'post:create');
+    const category = await this.prisma.category.findUnique({ where: { slug: 'thong-bao' } });
+    if (!category) throw new BadRequestException('Chưa có chuyên mục Thông báo');
+    return this.createDraft(user, { ...input, categoryId: category.id.toString() }, meta);
+  }
+
   // A05: đăng bài hẹn giờ khi đến hạn (do bộ lập lịch gọi). An toàn khi gọi lại: chỉ đăng nếu bài vẫn
   // SCHEDULED và đã đến giờ, nhờ cập nhật có điều kiện theo trạng thái.
   //   skipped = bài đã hủy/dời lịch/đã đăng; early = chưa đến giờ (lịch đã dời, job cũ thừa).

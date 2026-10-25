@@ -4,6 +4,8 @@ import {
   type OnApplicationBootstrap,
   type OnModuleDestroy,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { Env } from '../../config/env.validation.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { TelegramBotService } from './telegram-bot.service.js';
@@ -29,10 +31,11 @@ export class TelegramNotifierService implements OnApplicationBootstrap, OnModule
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
     private readonly telegram: TelegramBotService,
+    private readonly config: ConfigService<Env, true>,
   ) {}
 
   onApplicationBootstrap(): void {
-    if (!this.telegram.enabled) return;
+    if (!this.telegram.enabled || !this.config.get('TELEGRAM_AUTO_NOTIFY', { infer: true })) return;
     this.notifications.onCreated(() => this.flush());
     this.timer = setInterval(() => void this.flush().catch(() => 0), SWEEP_EVERY_MS);
     this.timer.unref();
@@ -46,8 +49,10 @@ export class TelegramNotifierService implements OnApplicationBootstrap, OnModule
 
   // Gửi các thông báo chưa gửi của người đã liên kết; trả về số tin đã gửi.
   // Đang có lượt gửi thì lượt mới chờ lượt đó xong rồi chạy thêm một lần.
-  async flush(): Promise<number> {
+  // `onlyUserIds` (dùng trong test) giới hạn việc gửi cho đúng những người dùng đó.
+  async flush(onlyUserIds?: bigint[]): Promise<number> {
     if (!this.telegram.enabled) return 0;
+    if (onlyUserIds) return this.sendBatch(onlyUserIds);
     if (this.flushing) {
       this.again = true;
       return this.flushing;
@@ -67,13 +72,14 @@ export class TelegramNotifierService implements OnApplicationBootstrap, OnModule
     return this.flushing;
   }
 
-  private async sendBatch(): Promise<number> {
+  private async sendBatch(onlyUserIds?: bigint[]): Promise<number> {
     const skip = [...this.failures].filter(([, n]) => n >= MAX_FAILURES).map(([id]) => BigInt(id));
     const rows = await this.prisma.notification.findMany({
       where: {
         channel: 'telegram',
         sentAt: null,
         id: skip.length ? { notIn: skip } : undefined,
+        userId: onlyUserIds ? { in: onlyUserIds } : undefined,
         user: { telegramChatId: { not: null }, status: 'ACTIVE' },
       },
       include: { user: { select: { telegramChatId: true } } },

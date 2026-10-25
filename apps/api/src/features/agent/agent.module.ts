@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { AgentActionsAgentTools } from '../agent-actions/agent-actions.agent-tools.js';
+import { AgentActionsModule } from '../agent-actions/agent-actions.module.js';
 import { PostsAgentTools } from '../posts/posts.agent-tools.js';
 import { PostsModule } from '../posts/posts.module.js';
 import { SystemAgentTools } from '../system/system.agent-tools.js';
@@ -10,10 +12,15 @@ import { AgentController } from './agent.controller.js';
 import { AgentService } from './agent.service.js';
 
 // Thêm tool cho feature mới: import module của feature và thêm provider vào danh sách này.
-const toolProviders = [PostsAgentTools, TasksAgentTools, SystemAgentTools];
+const toolProviders = [
+  PostsAgentTools,
+  TasksAgentTools,
+  SystemAgentTools,
+  AgentActionsAgentTools,
+];
 
 @Module({
-  imports: [PostsModule, TasksModule, SystemModule],
+  imports: [PostsModule, TasksModule, SystemModule, AgentActionsModule],
   controllers: [AgentController],
   providers: [
     AgentService,

@@ -119,7 +119,13 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
 2. Thêm provider vào `providers`/`exports` của module feature.
 3. Thêm class vào `toolProviders` trong `features/agent/agent.module.ts`.
 
-Thao tác ảnh hưởng công khai (duyệt, hẹn giờ, gỡ bài) cần xác nhận 2 bước qua Telegram (A08) trước khi đưa thành tool.
+### Xác nhận 2 bước cho thao tác nhạy cảm (A08)
+
+- Tool `approve_post` (đăng ngay), `schedule_post` (duyệt kèm giờ hẹn), `reschedule_post` (dời lịch), `unpublish_post` (gỡ bài) **không thực thi ngay**: chỉ kiểm tra quyền và trạng thái bài, tạo bản ghi `agent_actions` (`PENDING`, hết hạn sau 10 phút) rồi báo "đang chờ xác nhận" (`features/agent-actions`).
+- Telegram: bot gửi tin kèm nút **Xác nhận / Huỷ**. Web: thẻ xác nhận ngay trong trang Trợ lý AI (mở lại trang vẫn thấy các yêu cầu còn chờ).
+- Khi bấm, hệ thống kiểm tra đúng người ra lệnh, chưa hết hạn, chưa xử lý, kiểm tra lại quyền rồi thực thi qua `PostsService`. Bấm lặp hoặc đồng thời chỉ chạy một lần. Trạng thái: `PENDING → CONFIRMED → DONE/FAILED`, hoặc `CANCELLED`/`EXPIRED`; job mỗi phút chuyển yêu cầu quá hạn sang `EXPIRED`. Mọi bước ghi `audit_logs` (`agent_action.*`).
+- Thêm tool nhạy cảm mới: đặt vào `features/agent-actions` (gọi `AgentActionsService.propose`, thêm nhánh thực thi trong `execute`), không gọi thẳng service ghi.
+- Tool không nhạy cảm: `summarize_day` (việc và bài hẹn trong ngày), `create_announcement` (bài nháp ở chuyên mục Thông báo).
 
 ## Bot Telegram (A01–A04)
 

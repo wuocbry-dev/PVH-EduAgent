@@ -35,7 +35,7 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 
 - Tool nghiệp vụ đặt trong `features/<tên>/<tên>.agent-tools.ts` (implement `AgentToolProvider`, xem `posts.agent-tools.ts`), gọi service để service tự kiểm tra quyền; thêm vào `providers`/`exports` của module feature và vào `toolProviders` + `imports` trong `features/agent/agent.module.ts`.
 - Không bật tool có sẵn của Claude Code (`tools: []`, `strictMcpConfig`, `settingSources: []` trong `agent.service.ts`). Mọi tool được bọc audit log.
-- Thao tác nhạy cảm/ảnh hưởng công khai (duyệt, hẹn giờ, gỡ bài, xóa…) phải **xác nhận 2 bước** trước khi thực thi.
+- Thao tác nhạy cảm/ảnh hưởng công khai (duyệt, hẹn giờ, gỡ bài, xóa…) phải **xác nhận 2 bước** trước khi thực thi: tool chỉ gọi `AgentActionsService.propose` (`features/agent-actions`, bảng `agent_actions`, hết hạn 10 phút), thao tác chạy khi chính người ra lệnh bấm Xác nhận trên Telegram/web (`confirm`).
 
 ## Lệnh kiểm tra (chạy ở thư mục gốc)
 

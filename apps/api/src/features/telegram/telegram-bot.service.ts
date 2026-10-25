@@ -6,10 +6,12 @@ import {
   type OnModuleDestroy,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Bot, type Context } from 'grammy';
+import type { AgentActionDto } from '@pvh/shared';
+import { Bot, InlineKeyboard, type Context } from 'grammy';
 import type { Update } from 'grammy/types';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import type { Env } from '../../config/env.validation.js';
+import { AgentActionsService } from '../agent-actions/agent-actions.service.js';
 import { AgentService } from '../agent/agent.service.js';
 import { AuditLogService } from '../audit-log/audit-log.service.js';
 import { SystemService } from '../system/system.service.js';
@@ -66,6 +68,24 @@ function formatUptime(seconds: number) {
   return h > 0 ? `${h} giờ ${m} phút` : `${m} phút`;
 }
 
+// Dòng kết quả thay cho tin hỏi xác nhận sau khi bấm nút.
+function actionResultText(action: AgentActionDto, what: 'confirm' | 'cancel'): string {
+  switch (action.status) {
+    case 'DONE':
+      return `✅ ${action.resultMessage ?? action.description}`;
+    case 'FAILED':
+      return `⚠️ Không thực hiện được: ${action.resultMessage ?? action.description}`;
+    case 'CANCELLED':
+      return `❌ Đã huỷ: ${action.description}`;
+    case 'EXPIRED':
+      return `⌛ Yêu cầu đã hết hạn, chưa thực hiện: ${action.description}`;
+    default:
+      return what === 'confirm'
+        ? `Yêu cầu này đã được xử lý trước đó (${action.status}), không thực hiện lại.`
+        : `Yêu cầu này đã được xử lý trước đó (${action.status}).`;
+  }
+}
+
 // Lỗi nghiệp vụ (thiếu quyền, AI chưa cấu hình...) trả nguyên thông báo tiếng Việt; lỗi khác thì báo chung.
 const errorText = (err: unknown) =>
   err instanceof HttpException && err.getStatus() < 500
@@ -94,6 +114,7 @@ export class TelegramBotService implements OnApplicationBootstrap, OnModuleDestr
     private readonly tasks: TasksService,
     private readonly agent: AgentService,
     private readonly audit: AuditLogService,
+    private readonly actions: AgentActionsService,
   ) {
     this.mode = config.get('TELEGRAM_MODE', { infer: true });
     const token = config.get('TELEGRAM_BOT_TOKEN', { infer: true });
@@ -119,7 +140,7 @@ export class TelegramBotService implements OnApplicationBootstrap, OnModuleDestr
       // Không await: bot.start() chỉ kết thúc khi dừng bot. Nó tự xoá webhook cũ trước khi polling.
       this.bot
         .start({
-          allowed_updates: ['message'],
+          allowed_updates: ['message', 'callback_query'],
           onStart: (info) => this.logger.log(`Bot @${info.username} đang chạy (long polling)`),
         })
         .catch((err) => {
@@ -191,7 +212,7 @@ export class TelegramBotService implements OnApplicationBootstrap, OnModuleDestr
     try {
       await this.bot.api.setWebhook(url, {
         secret_token: this.config.get('TELEGRAM_WEBHOOK_SECRET', { infer: true }),
-        allowed_updates: ['message'],
+        allowed_updates: ['message', 'callback_query'],
       });
       this.logger.log(`Đã đăng ký webhook Telegram: ${url}`);
     } catch (err) {
@@ -202,17 +223,31 @@ export class TelegramBotService implements OnApplicationBootstrap, OnModuleDestr
   private registerHandlers(bot: Bot): void {
     // Chỉ nhận tin văn bản trong chat riêng; nhóm/kênh bị bỏ qua để không lộ dữ liệu cho người khác.
     bot.use(async (ctx, next) => {
-      if (ctx.chat?.type !== 'private' || !ctx.message?.text) return;
-      const chatId = String(ctx.chat.id);
+      const callback = ctx.callbackQuery;
+      // Tin văn bản và nút Xác nhận/Huỷ (callback_query) trong chat riêng; mọi loại update khác bị bỏ qua.
+      const chat = callback ? callback.message?.chat : ctx.chat;
+      if (chat?.type !== 'private' || !(callback?.data || ctx.message?.text)) return;
+      const chatId = String(chat.id);
+      if (callback) {
+        // Người bấm phải chính là chủ chat riêng (id người dùng Telegram trùng id chat riêng).
+        if (String(callback.from.id) !== chatId) return;
+      }
       const count = await this.limiter.increment('msg', chatId, MESSAGE_WINDOW_SEC);
       if (count > MESSAGE_LIMIT) {
         if (count === MESSAGE_LIMIT + 1) {
-          await this.reply(ctx, 'Bạn gửi quá nhiều tin trong thời gian ngắn, vui lòng chờ một phút.');
+          await this.sendText(chatId, 'Bạn gửi quá nhiều tin trong thời gian ngắn, vui lòng chờ một phút.');
         }
+        if (callback) await ctx.answerCallbackQuery().catch(() => undefined);
         return;
       }
       await next();
     });
+
+    // A08 – nút Xác nhận / Huỷ dưới tin nhắn của agent. callback_data: aa:c:<id> hoặc aa:x:<id>.
+    bot.callbackQuery(/^aa:([cx]):(\d{1,18})$/, (ctx) =>
+      this.onActionButton(ctx, ctx.match[1] === 'c' ? 'confirm' : 'cancel', ctx.match[2]),
+    );
+    bot.on('callback_query:data', (ctx) => ctx.answerCallbackQuery().catch(() => undefined));
 
     bot.command('start', async (ctx) => {
       const payload = ctx.match.trim();
@@ -354,6 +389,7 @@ export class TelegramBotService implements OnApplicationBootstrap, OnModuleDestr
     try {
       const res = await this.agent.chat({ user, channel: 'telegram' }, text);
       await this.reply(ctx, res.reply || 'Trợ lý không có câu trả lời.');
+      for (const action of res.pendingActions ?? []) await this.sendActionPrompt(ctx.chat!.id, action);
     } catch (err) {
       error = err instanceof Error ? err.message : String(err);
       await this.reply(ctx, errorText(err)).catch(() => undefined);
@@ -366,6 +402,39 @@ export class TelegramBotService implements OnApplicationBootstrap, OnModuleDestr
       ok: !error,
       error,
     });
+  }
+
+  // Tin hỏi xác nhận kèm hai nút inline cho một hành động nhạy cảm đang chờ.
+  private async sendActionPrompt(chatId: string | number, action: AgentActionDto): Promise<void> {
+    const keyboard = new InlineKeyboard()
+      .text('✅ Xác nhận', `aa:c:${action.id}`)
+      .text('❌ Huỷ', `aa:x:${action.id}`);
+    await this.bot!.api.sendMessage(
+      chatId,
+      `⚠️ Cần xác nhận:\n${action.description}\n\nYêu cầu hết hạn sau 10 phút.`,
+      { reply_markup: keyboard },
+    );
+  }
+
+  // Bấm nút: service kiểm tra đúng người tạo, chưa hết hạn, chưa xử lý và kiểm tra lại quyền.
+  // Chỉ chạy được một lần dù bấm lặp. Tin nhắn được sửa thành kết quả (nút biến mất).
+  private async onActionButton(ctx: Context, what: 'confirm' | 'cancel', id: string): Promise<void> {
+    // Middleware đã bảo đảm người bấm là chủ chat riêng (from.id = chat.id).
+    const chatId = String(ctx.callbackQuery!.from.id);
+    const user = await this.links.findUserByChat(chatId);
+    if (!user) {
+      await ctx.answerCallbackQuery({ text: 'Chat này chưa liên kết tài khoản.', show_alert: true }).catch(() => undefined);
+      return;
+    }
+    await ctx.answerCallbackQuery().catch(() => undefined);
+    let line: string;
+    try {
+      const action = what === 'confirm' ? await this.actions.confirm(user, id, 'telegram') : await this.actions.cancel(user, id, 'telegram');
+      line = actionResultText(action, what);
+    } catch (err) {
+      line = errorText(err);
+    }
+    await ctx.editMessageText(line).catch(() => this.sendText(chatId, line));
   }
 
   // Agent có thể chạy lâu: không giữ update (polling/webhook) chờ, chạy nền và trả lời khi xong.

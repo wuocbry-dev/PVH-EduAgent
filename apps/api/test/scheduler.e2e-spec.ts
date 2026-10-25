@@ -11,6 +11,7 @@ import { PublishPostProcessor } from './../src/features/scheduler/publish-post.p
 import { SchedulerService } from './../src/features/scheduler/scheduler.service.js';
 import { PrismaService } from './../src/infrastructure/database/prisma.service.js';
 import {
+  AGENT_ACTION_QUEUE,
   PUBLISH_QUEUE,
   REPORT_QUEUE,
   DEADLINE_QUEUE,
@@ -462,14 +463,14 @@ describe('Bộ lập lịch BullMQ (A05, A06, A09, e2e)', () => {
       const principal = await loginAs(PRINCIPAL);
       const status = (await principal.get('/system/status').expect(200)).body;
       expect(status.queue.enabled).toBe(true);
-      expect(status.queue.queues.map((q: { name: string }) => q.name).sort()).toEqual([DEADLINE_QUEUE, PUBLISH_QUEUE, REPORT_QUEUE].sort());
+      expect(status.queue.queues.map((q: { name: string }) => q.name).sort()).toEqual([AGENT_ACTION_QUEUE, DEADLINE_QUEUE, PUBLISH_QUEUE, REPORT_QUEUE].sort());
       const publish = status.queue.queues.find((q: { name: string }) => q.name === PUBLISH_QUEUE);
       expect(publish).toMatchObject({ waiting: expect.any(Number), delayed: expect.any(Number), active: expect.any(Number), failed: expect.any(Number) });
       expect(publish.delayed).toBeGreaterThanOrEqual(1); // job lặp quét bù luôn ở trạng thái chờ
 
       const dashboard = (await principal.get('/system/dashboard').expect(200)).body;
       expect(dashboard.system.queue.enabled).toBe(true);
-      expect(dashboard.system.queue.queues).toHaveLength(3);
+      expect(dashboard.system.queue.queues).toHaveLength(4);
     });
   });
 });

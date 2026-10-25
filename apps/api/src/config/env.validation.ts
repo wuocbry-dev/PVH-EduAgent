@@ -65,6 +65,9 @@ const envSchema = z.object({
       .string()
       .regex(/^[A-Za-z0-9_-]{16,256}$/, '16–256 ký tự A-Z, a-z, 0-9, _ hoặc -'),
   ),
+  // Tự động gửi thông báo (notifications) qua bot khi có thông báo mới và mỗi phút. e2e đặt false để không
+  // gửi thông báo của người dùng thật; test gọi flush() tường minh.
+  TELEGRAM_AUTO_NOTIFY: z.preprocess((v) => (v === '' ? undefined : v), z.stringbool().default(true)),
   // URL public của webhook (vd. https://pvh.edu.vn/api/telegram/webhook); có thì API tự gọi setWebhook.
   TELEGRAM_WEBHOOK_URL: optional(z.url()),
 });

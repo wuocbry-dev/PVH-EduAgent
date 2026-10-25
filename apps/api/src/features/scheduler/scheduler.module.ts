@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AgentActionsModule } from '../agent-actions/agent-actions.module.js';
 import { PostsModule } from '../posts/posts.module.js';
 import { SettingsModule } from '../settings/settings.module.js';
 import { DailyReportProcessor } from './daily-report.processor.js';
@@ -10,9 +11,10 @@ import { SchedulerService } from './scheduler.service.js';
 // - publish-post.processor.ts       đăng bài hẹn giờ khi đến publish_at (retry 3 lần) và quét bù mỗi phút
 // - deadline-reminder.processor.ts  đánh dấu OVERDUE và nhắc hạn trước X giờ, không nhắc trùng
 // - daily-report.processor.ts       báo cáo hằng ngày cho ADMIN/BGH
+// - hàng đợi agent-action           mỗi phút chuyển hành động agent chờ xác nhận quá 10 phút sang EXPIRED (A08)
 // Kết quả ghi vào notifications (bot Telegram gửi cho người đã liên kết) và audit_logs (channel = scheduler).
 @Module({
-  imports: [PostsModule, SettingsModule],
+  imports: [PostsModule, SettingsModule, AgentActionsModule],
   providers: [
     PublishPostProcessor,
     DeadlineReminderProcessor,

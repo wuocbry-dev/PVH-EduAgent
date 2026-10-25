@@ -19,6 +19,7 @@ export default defineConfig({
       TELEGRAM_MODE: 'webhook',
       TELEGRAM_WEBHOOK_SECRET: 'pvh-e2e-webhook-secret',
       TELEGRAM_WEBHOOK_URL: '',
+      TELEGRAM_AUTO_NOTIFY: 'false',
     },
     globalSetup: ['./test/global-setup.ts'],
     // Các file dùng chung một CSDL và tài khoản seed (có test tạm đổi mật khẩu, quyền vai trò) nên chạy tuần tự.

@@ -386,7 +386,7 @@ describe('Bot Telegram (A01–A04, e2e)', () => {
       const chat = await linkChat(TEACHER);
       const spy = vi
         .spyOn(agent, 'chat')
-        .mockResolvedValue({ reply: `${'Dòng trả lời dài.\n'.repeat(400)}Hết.`, numTurns: 1, costUsd: 0 });
+        .mockResolvedValue({ reply: `${'Dòng trả lời dài.\n'.repeat(400)}Hết.`, numTurns: 1, costUsd: 0, pendingActions: [] });
 
       const replies = await say(chat, 'Tuần này tôi có việc gì?');
       expect(spy).toHaveBeenCalledTimes(1);
@@ -417,9 +417,11 @@ describe('Bot Telegram (A01–A04, e2e)', () => {
   });
 
   describe('gửi thông báo qua Telegram (nối bước 7)', () => {
+    // Chỉ gửi cho tài khoản tạm của test này, không đụng thông báo của người dùng thật trong CSDL dev.
+    const testIds = () => Promise.all([PRINCIPAL, EDITOR, TEACHER].map(userId));
+
     it('gửi cho người đã liên kết rồi ghi sent_at; người chưa liên kết vẫn chờ trong CMS', async () => {
       const notifier = app.get(TelegramNotifierService, { strict: false });
-      await notifier.flush();
       const chat = await linkChat(PRINCIPAL);
       const before = sent.length;
 
@@ -427,7 +429,7 @@ describe('Bot Telegram (A01–A04, e2e)', () => {
         { userId: await userId(PRINCIPAL), title: `${TAG} Báo cáo ngày`, body: 'Có 2 việc đến hạn hôm nay' },
         { userId: await userId(EDITOR), title: `${TAG} Nhắc hạn`, body: 'Việc sắp đến hạn' },
       ]);
-      await notifier.flush();
+      await notifier.flush(await testIds());
 
       const toChat = sent.slice(before).filter((m) => String(m.chat_id) === String(chat));
       expect(toChat).toHaveLength(1);
@@ -439,7 +441,7 @@ describe('Bot Telegram (A01–A04, e2e)', () => {
 
       // Gọi lại không gửi trùng.
       const again = sent.length;
-      expect(await notifier.flush()).toBe(0);
+      expect(await notifier.flush(await testIds())).toBe(0);
       expect(sent.length).toBe(again);
       await say(chat, '/unlink');
     });
@@ -451,12 +453,12 @@ describe('Bot Telegram (A01–A04, e2e)', () => {
       await app.get(NotificationsService).notify([
         { userId: await userId(TEACHER), title: `${TAG} Nhắc hạn lỗi`, body: 'Thử gửi lỗi' },
       ]);
-      await notifier.flush();
+      await notifier.flush(await testIds());
       const row = await prisma.notification.findFirstOrThrow({ where: { title: `${TAG} Nhắc hạn lỗi` } });
       expect(row.sentAt).toBeNull();
 
       failingChats.delete(String(chat));
-      expect(await notifier.flush()).toBe(1);
+      expect(await notifier.flush(await testIds())).toBe(1);
       const after = await prisma.notification.findFirstOrThrow({ where: { id: row.id } });
       expect(after.sentAt).toBeInstanceOf(Date);
       await say(chat, '/unlink');

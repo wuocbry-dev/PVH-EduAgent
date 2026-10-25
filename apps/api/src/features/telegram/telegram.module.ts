@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AgentActionsModule } from '../agent-actions/agent-actions.module.js';
 import { AgentModule } from '../agent/agent.module.js';
 import { SystemModule } from '../system/system.module.js';
 import { TasksModule } from '../tasks/tasks.module.js';
@@ -15,7 +16,7 @@ import { TelegramController } from './telegram.controller.js';
 // - telegram-notifier.service.ts  gửi bảng notifications cho người đã liên kết rồi đặt sent_at
 // - telegram.controller.ts        webhook @Public() (header secret) và API liên kết cho CMS
 @Module({
-  imports: [UsersModule, SystemModule, TasksModule, AgentModule],
+  imports: [UsersModule, SystemModule, TasksModule, AgentModule, AgentActionsModule],
   controllers: [TelegramController],
   providers: [TelegramBotService, TelegramLinkService, TelegramNotifierService, TelegramRateLimiter],
 })

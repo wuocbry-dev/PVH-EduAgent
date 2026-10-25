@@ -1,4 +1,5 @@
 import type { SdkMcpToolDefinition } from '@anthropic-ai/claude-agent-sdk';
+import type { AgentActionDto } from '@pvh/shared';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import type { AuditChannel } from '../audit-log/audit-log.service.js';
 
@@ -6,6 +7,8 @@ import type { AuditChannel } from '../audit-log/audit-log.service.js';
 export interface AgentContext {
   user: AuthUser;
   channel: AuditChannel;
+  // Hành động chờ xác nhận mà tool nhạy cảm đề xuất trong lượt chat này (AgentService đọc ra để trả về).
+  pendingActions?: AgentActionDto[];
 }
 
 // Kiểu chung cho mọi tool tạo bởi `tool()`, bất kể input schema của từng tool.
