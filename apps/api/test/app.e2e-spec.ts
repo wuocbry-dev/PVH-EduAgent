@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
+import { PrismaService } from './../src/infrastructure/database/prisma.service.js';
 
 const PASSWORD = 'Pvh@2026';
 const PRINCIPAL = 'bgh@pvh.edu.vn';
@@ -236,6 +237,15 @@ describe('API (e2e)', () => {
       const agent = await loginAs(PRINCIPAL);
       await agent.get('/system/status').expect(200);
     });
+  });
+
+  it('thời gian ứng dụng ghi vào timestamptz không bị lệch múi giờ', async () => {
+    await loginAs(PRINCIPAL); // ghi một dòng audit_logs (created_at do Prisma gửi)
+    const [row] = await app.get(PrismaService).$queryRaw<
+      { lech_giay: number }[]
+    >`SELECT abs(extract(epoch FROM now() - created_at))::float AS lech_giay
+      FROM audit_logs ORDER BY id DESC LIMIT 1`;
+    expect(row.lech_giay).toBeLessThan(60);
   });
 
   afterEach(async () => {

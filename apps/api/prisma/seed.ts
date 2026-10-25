@@ -1,7 +1,6 @@
 // Dữ liệu mẫu cho môi trường phát triển. Chạy: pnpm --filter api db:seed
 // Chạy lại nhiều lần vẫn an toàn (upsert theo khoá duy nhất).
 import 'dotenv/config';
-import { PrismaPg } from '@prisma/adapter-pg';
 import {
   PERMISSIONS,
   ROLE_NAMES,
@@ -12,9 +11,10 @@ import {
 } from '@pvh/shared';
 import { hashPassword } from '../src/features/auth/password.js';
 import { PrismaClient } from '../src/generated/prisma/client.js';
+import { createPgAdapter } from '../src/infrastructure/database/pg-adapter.js';
 
 const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  adapter: createPgAdapter(process.env.DATABASE_URL),
 });
 
 const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
@@ -76,7 +76,9 @@ async function seedUsers() {
   const passwordHash = await hashPassword(DEMO_PASSWORD);
   const ids = new Map<Role, bigint>();
   for (const u of USERS) {
-    const role = await prisma.role.findUniqueOrThrow({ where: { code: u.role } });
+    const role = await prisma.role.findUniqueOrThrow({
+      where: { code: u.role },
+    });
     const user = await prisma.user.upsert({
       where: { email: u.email },
       update: {},
@@ -99,7 +101,11 @@ async function seedContent(users: Map<Role, bigint>) {
     { slug: 'tuyen-sinh', name: 'Tuyển sinh', sortOrder: 3 },
   ];
   for (const c of categories) {
-    await prisma.category.upsert({ where: { slug: c.slug }, update: {}, create: c });
+    await prisma.category.upsert({
+      where: { slug: c.slug },
+      update: {},
+      create: c,
+    });
   }
   const category = (slug: string) =>
     prisma.category.findUniqueOrThrow({ where: { slug } }).then((c) => c.id);
@@ -125,7 +131,8 @@ async function seedContent(users: Map<Role, bigint>) {
     {
       slug: 'thong-bao-hop-phu-huynh-dau-nam',
       title: 'Thông báo họp phụ huynh đầu năm',
-      content: 'Nhà trường tổ chức họp phụ huynh học sinh khối 10 vào sáng Chủ nhật.',
+      content:
+        'Nhà trường tổ chức họp phụ huynh học sinh khối 10 vào sáng Chủ nhật.',
       status: 'SCHEDULED' as const,
       publishAt: tomorrow7am,
       categoryId: await category('thong-bao'),
@@ -142,7 +149,11 @@ async function seedContent(users: Map<Role, bigint>) {
     },
   ];
   for (const p of posts) {
-    await prisma.post.upsert({ where: { slug: p.slug }, update: {}, create: p });
+    await prisma.post.upsert({
+      where: { slug: p.slug },
+      update: {},
+      create: p,
+    });
   }
 
   await prisma.admissionStat.upsert({
@@ -160,7 +171,11 @@ async function seedContent(users: Map<Role, bigint>) {
     ['school.name', 'Trường THPT Phan Văn Hớn'],
     ['school.address', 'Khu tái định cư 38ha, phường Đông Hưng Thuận, TP.HCM'],
   ]) {
-    await prisma.systemSetting.upsert({ where: { key }, update: {}, create: { key, value } });
+    await prisma.systemSetting.upsert({
+      where: { key },
+      update: {},
+      create: { key, value },
+    });
   }
 }
 
@@ -202,7 +217,10 @@ async function main() {
   await seedContent(users);
   await seedTasks(users);
 
-  console.log('Đã seed xong. Tài khoản mẫu (mật khẩu chung %s):', DEMO_PASSWORD);
+  console.log(
+    'Đã seed xong. Tài khoản mẫu (mật khẩu chung %s):',
+    DEMO_PASSWORD,
+  );
   for (const u of USERS) console.log(`  ${u.role.padEnd(9)} ${u.email}`);
 }
 
