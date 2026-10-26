@@ -75,11 +75,12 @@ model User {
   systemSettings SystemSetting[]
   refreshTokens  RefreshToken[]
 
-  teacherProfile  TeacherProfile?
-  studentProfile  StudentProfile?
-  enrollments     ClassEnrollment[]
-  homeroomClasses SchoolClass[]     @relation("ClassHomeroom")
-  activationCodes ActivationCode[]  @relation("ActivationTarget")
+  teacherProfile      TeacherProfile?
+  studentProfile      StudentProfile?
+  enrollments         ClassEnrollment[]
+  homeroomClasses     SchoolClass[]        @relation("ClassHomeroom")
+  activationCodes     ActivationCode[]     @relation("ActivationTarget")
+  teachingAssignments TeachingAssignment[]
 
   @@map("users")
 }
@@ -363,9 +364,11 @@ model SchoolYear {
   endDate   DateTime @map("end_date") @db.Date
   isCurrent Boolean  @default(false) @map("is_current")
 
-  semesters   Semester[]
-  classes     SchoolClass[]
-  enrollments ClassEnrollment[]
+  semesters           Semester[]
+  classes             SchoolClass[]
+  enrollments         ClassEnrollment[]
+  periodQuotas        SubjectPeriodQuota[]
+  teachingAssignments TeachingAssignment[]
 
   @@map("school_years")
 }
@@ -378,17 +381,19 @@ model Semester {
   startDate    DateTime @map("start_date") @db.Date
   endDate      DateTime @map("end_date") @db.Date
 
-  schoolYear SchoolYear @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
+  schoolYear          SchoolYear           @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
+  teachingAssignments TeachingAssignment[]
 
   @@unique([schoolYearId, number])
   @@map("semesters")
 }
 
 model Grade {
-  id      BigInt        @id @default(autoincrement())
-  level   Int           @unique
-  name    String        @db.VarChar(20)
-  classes SchoolClass[]
+  id           BigInt               @id @default(autoincrement())
+  level        Int                  @unique
+  name         String               @db.VarChar(20)
+  classes      SchoolClass[]
+  periodQuotas SubjectPeriodQuota[]
 
   @@map("grades")
 }
@@ -414,7 +419,10 @@ model Subject {
   departmentId BigInt?     @map("department_id")
   gradingType  GradingType @default(SCORE) @map("grading_type")
 
-  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  department          Department?          @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  periodQuotas        SubjectPeriodQuota[]
+  classQuotas         ClassPeriodQuota[]
+  teachingAssignments TeachingAssignment[]
 
   @@map("subjects")
 }
@@ -430,17 +438,19 @@ model Room {
 
 // Model tên SchoolClass vì `Class` dễ trùng từ khoá; bảng vẫn là `classes`.
 model SchoolClass {
-  id                BigInt   @id @default(autoincrement())
-  name              String   @db.VarChar(20)
-  gradeId           BigInt   @map("grade_id")
-  schoolYearId      BigInt   @map("school_year_id")
-  subjectCombo      String?  @map("subject_combo") @db.VarChar(100)
-  homeroomTeacherId BigInt?  @map("homeroom_teacher_id")
+  id                BigInt  @id @default(autoincrement())
+  name              String  @db.VarChar(20)
+  gradeId           BigInt  @map("grade_id")
+  schoolYearId      BigInt  @map("school_year_id")
+  subjectCombo      String? @map("subject_combo") @db.VarChar(100)
+  homeroomTeacherId BigInt? @map("homeroom_teacher_id")
 
-  grade           Grade             @relation(fields: [gradeId], references: [id])
-  schoolYear      SchoolYear        @relation(fields: [schoolYearId], references: [id])
-  homeroomTeacher User?             @relation("ClassHomeroom", fields: [homeroomTeacherId], references: [id], onDelete: SetNull)
-  enrollments     ClassEnrollment[]
+  grade               Grade                @relation(fields: [gradeId], references: [id])
+  schoolYear          SchoolYear           @relation(fields: [schoolYearId], references: [id])
+  homeroomTeacher     User?                @relation("ClassHomeroom", fields: [homeroomTeacherId], references: [id], onDelete: SetNull)
+  enrollments         ClassEnrollment[]
+  periodQuotas        ClassPeriodQuota[]
+  teachingAssignments TeachingAssignment[]
 
   @@unique([schoolYearId, name])
   @@index([homeroomTeacherId])
@@ -451,6 +461,8 @@ model TeacherProfile {
   userId       BigInt  @id @map("user_id")
   teacherCode  String  @unique @map("teacher_code") @db.VarChar(20)
   departmentId BigInt? @map("department_id")
+  // Định mức tiết/tuần riêng của giáo viên (giảm tiết cho chủ nhiệm, tổ trưởng…); rỗng = dùng mặc định chung (teaching.default_quota).
+  weeklyQuota  Int?    @map("weekly_quota")
 
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
@@ -505,4 +517,60 @@ model ActivationCode {
 
   @@index([userId])
   @@map("activation_codes")
+}
+
+// ───────────────────────────── Phân công giảng dạy (bước 16) ─────────────────────────────
+// Số liệu mẫu trong seed là MẪU theo GDPT 2018, cần đối chiếu với kế hoạch giáo dục của nhà trường.
+
+// Số tiết/tuần của một môn theo khối và năm học (vd. Toán khối 10: 3 tiết).
+model SubjectPeriodQuota {
+  id             BigInt @id @default(autoincrement())
+  schoolYearId   BigInt @map("school_year_id")
+  gradeId        BigInt @map("grade_id")
+  subjectId      BigInt @map("subject_id")
+  periodsPerWeek Int    @map("periods_per_week")
+
+  schoolYear SchoolYear @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
+  grade      Grade      @relation(fields: [gradeId], references: [id])
+  subject    Subject    @relation(fields: [subjectId], references: [id])
+
+  @@unique([schoolYearId, gradeId, subjectId])
+  @@map("subject_period_quotas")
+}
+
+// Ghi đè định mức môn cho một lớp cụ thể (lớp chuyên, tổ hợp khác).
+model ClassPeriodQuota {
+  id             BigInt @id @default(autoincrement())
+  classId        BigInt @map("class_id")
+  subjectId      BigInt @map("subject_id")
+  periodsPerWeek Int    @map("periods_per_week")
+
+  class   SchoolClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject Subject     @relation(fields: [subjectId], references: [id])
+
+  @@unique([classId, subjectId])
+  @@map("class_period_quotas")
+}
+
+// Một lớp–môn–phạm vi chỉ có một giáo viên chính. semester_id rỗng = cả năm học. Ràng buộc duy nhất là hai index
+// một phần (xem migration `teaching_assignments`): (lớp, môn) khi cả năm và (lớp, môn, học kỳ) khi theo học kỳ.
+model TeachingAssignment {
+  id             BigInt   @id @default(autoincrement())
+  schoolYearId   BigInt   @map("school_year_id")
+  semesterId     BigInt?  @map("semester_id")
+  classId        BigInt   @map("class_id")
+  subjectId      BigInt   @map("subject_id")
+  teacherId      BigInt   @map("teacher_id")
+  periodsPerWeek Int      @map("periods_per_week")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  schoolYear SchoolYear  @relation(fields: [schoolYearId], references: [id])
+  semester   Semester?   @relation(fields: [semesterId], references: [id])
+  class      SchoolClass @relation(fields: [classId], references: [id])
+  subject    Subject     @relation(fields: [subjectId], references: [id])
+  teacher    User        @relation(fields: [teacherId], references: [id])
+
+  @@index([teacherId])
+  @@index([classId])
+  @@map("teaching_assignments")
 }

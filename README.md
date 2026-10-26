@@ -120,6 +120,12 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
 - Sau đăng nhập/kích hoạt tự vào cổng chính (ADMIN → PRINCIPAL → EDITOR → TEACHER → STUDENT); `next` hợp lệ và thuộc cổng của người đó thì ưu tiên. Người nhiều vai trò có nút **Đổi cổng**. Vào cổng không thuộc mình, hoặc dùng đường dẫn cũ `/admin/bai-viet…`, thì `src/proxy.ts` chuyển hướng (308) sang trang tương ứng của cổng mình.
 - **Ẩn menu/chuyển hướng không phải bảo mật:** API luôn kiểm tra quyền trong service. Proxy chọn cổng theo claim `roles` trong access token (chỉ để định tuyến); đổi vai trò người dùng thì thu hồi mọi phiên đăng nhập của họ.
 
+## Phân công giảng dạy (bước 16)
+
+- **BGH** (`/bgh/phan-cong`, quyền `teaching:assign`; ADMIN xem ở `/admin/phan-cong`): chọn năm học và phạm vi (cả năm / học kỳ), bốn tab: **Theo lớp** (hàng là môn, chọn giáo viên và số tiết, ô thiếu/thừa tô màu), **Theo giáo viên** (lớp–môn đang dạy, tiết so với định mức, định mức riêng cho giáo viên giảm tiết), **Định mức môn** (số tiết/tuần theo khối, ghi đè theo lớp), **Cảnh báo và thống kê** (môn chưa có giáo viên, lớp thiếu/thừa tiết, giáo viên vượt/thiếu định mức, dạy chéo tổ; thống kê theo lớp/tổ/toàn trường; xuất Excel; sao chép phân công từ năm học/học kỳ trước).
+- Định mức tiết/tuần mặc định của giáo viên là 17, đổi ở **Cấu hình hệ thống** (`teaching.default_quota`). Giao môn cho giáo viên khác tổ chuyên môn cần xác nhận rõ ràng.
+- **Giáo viên** xem "Lớp tôi dạy" ở `/giao-vien/lop-toi-day`. Số liệu trong seed (định mức khối 10 theo GDPT 2018, phân công Toán 10A1) chỉ là **mẫu**, cần đối chiếu với kế hoạch giáo dục của nhà trường.
+
 ## Học vụ, nhập danh sách và phiếu tài khoản (bước 14)
 
 - Trang `/bgh/hoc-vu` (quyền `academic:manage`: ADMIN, BGH): năm học (chỉ một năm hiện hành), học kỳ, lớp (chủ nhiệm, sĩ số, chuyển lớp), môn, tổ chuyên môn, phòng bộ môn. Giáo viên chủ nhiệm **không phải vai trò**: suy từ `classes.homeroom_teacher_id`.

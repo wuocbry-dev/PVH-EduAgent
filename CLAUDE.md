@@ -70,6 +70,12 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 - `src/proxy.ts` đọc claim `roles` trong access token (do `TokenService.issue` thêm) **chỉ để chọn cổng/chuyển hướng**; không bao giờ dùng claim làm bằng chứng quyền (API đọc lại quyền từ CSDL mỗi request). Đổi vai trò của người dùng thu hồi mọi refresh token (`UsersAdminService.update`).
 - Quyền không đổi ở bước 15 (ADMIN vẫn giữ `post:approve`, `task:assign`…); chỉ điều hướng và menu thay đổi.
 
+## Phân công giảng dạy (bước 16)
+
+- `features/teaching`: định mức tiết/tuần của môn theo khối (`subject_period_quotas`, ghi đè theo lớp `class_period_quotas`), phân công giáo viên–môn–lớp (`teaching_assignments`, `semester_id` rỗng = cả năm), định mức riêng của giáo viên (`teacher_profiles.weekly_quota`, mặc định chung ở cấu hình `teaching.default_quota`, 17 tiết). **Một lớp–môn chỉ một giáo viên chính, ràng buộc ở CSDL** bằng hai index duy nhất một phần (cả năm / từng học kỳ); service còn chặn cả năm đụng học kỳ. Giáo viên khác tổ chuyên môn với môn thì phải `confirmCrossDepartment: true` (dạy chéo vẫn có thật, chỉ cảnh báo).
+- Quyền `teaching:read` (BGH, ADMIN) và `teaching:assign` (**chỉ BGH**, ADMIN chỉ xem; `ROLE_PERMISSIONS.ADMIN` loại `teaching:assign`). Giáo viên chỉ xem phân công của chính mình qua `GET /teaching/mine`. Tính cảnh báo/thống kê ở hàm thuần `computeSummary` (`teaching-summary.ts`, có unit test); phân công đã có thì **không xoá được** lớp/môn (khoá ngoại không xoá dây chuyền). Xuất Excel dùng `safeCell`.
+- Số liệu seed (định mức khối 10, phân công Toán 10A1) là **mẫu**; giao diện luôn hiện lời nhắc cần đối chiếu với kế hoạch giáo dục của trường (`TEACHING_SAMPLE_NOTE`). Thời khoá biểu (bước 17) và quyền nhập điểm (bước 18) dùng `teaching_assignments` làm nguồn.
+
 ## Học vụ và tài khoản hàng loạt (bước 14)
 
 - Dữ liệu học vụ gốc ở `features/academic` (năm học hiện hành duy nhất, học kỳ, khối, lớp, môn, tổ, phòng bộ môn; hồ sơ giáo viên/học sinh; `class_enrollments` một lớp mỗi năm học). Quyền `academic:manage` (ADMIN, BGH), `student:import` (ADMIN). **Giáo viên chủ nhiệm không phải vai trò**: suy từ `classes.homeroom_teacher_id`, dùng `isHomeroomOf(prisma, user, classId)` (`features/academic/homeroom.ts`) cho mọi chỗ cần (cấp lại mã, xem lớp, bước 19–20). Chỉ lưu dữ liệu học sinh tối thiểu (không gia đình, địa chỉ, CCCD).

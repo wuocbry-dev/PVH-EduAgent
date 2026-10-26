@@ -30,6 +30,8 @@ const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   'setting:manage': 'Sửa cấu hình hệ thống',
   'academic:manage': 'Quản lý năm học, lớp, môn, phòng bộ môn',
   'student:import': 'Nhập danh sách giáo viên/học sinh từ Excel, phát mã kích hoạt',
+  'teaching:read': 'Xem phân công giảng dạy và định mức tiết',
+  'teaching:assign': 'Phân công giảng dạy, đặt định mức tiết',
 };
 
 // Mật khẩu chung cho tài khoản mẫu, chỉ dùng trên máy phát triển.
@@ -73,6 +75,11 @@ const SAMPLE_SUBJECTS: { code: string; name: string; department: string; score?:
   { code: 'HDTNHN', name: 'Hoạt động trải nghiệm, hướng nghiệp', department: 'Tổ Khoa học xã hội', score: false },
   { code: 'GDDP', name: 'Nội dung giáo dục của địa phương', department: 'Tổ Khoa học xã hội', score: false },
 ];
+
+// Định mức tiết/tuần MẪU của khối 10 theo GDPT 2018 (chưa theo tổ hợp, chưa đối chiếu kế hoạch giáo dục của nhà trường).
+const SAMPLE_GRADE10_QUOTAS: Record<string, number> = {
+  TOAN: 3, VAN: 3, ANH: 3, SU: 2, DIA: 2, GDKTPL: 2, LI: 2, HOA: 2, SINH: 2, TIN: 2, CNGHE: 2, GDTC: 2, GDQPAN: 1, HDTNHN: 3, GDDP: 1,
+};
 
 const SAMPLE_ROOMS = [
   { name: 'Phòng Tin học 1', kind: 'Tin học' },
@@ -225,6 +232,26 @@ async function seedAcademic(users: Map<Role, bigint>) {
       },
     });
     classIds.set(c.name, cls.id);
+  }
+
+  // Phân công giảng dạy MẪU (bước 16): định mức khối 10 và một phân công (GVMAU01 dạy Toán 10A1). Cần đối chiếu với
+  // kế hoạch giáo dục của nhà trường trước khi dùng thật.
+  const grade10Quota = await prisma.grade.findUniqueOrThrow({ where: { level: 10 } });
+  for (const [code, periodsPerWeek] of Object.entries(SAMPLE_GRADE10_QUOTAS)) {
+    const subject = await prisma.subject.findUnique({ where: { code } });
+    if (!subject) continue;
+    await prisma.subjectPeriodQuota.upsert({
+      where: { schoolYearId_gradeId_subjectId: { schoolYearId: year.id, gradeId: grade10Quota.id, subjectId: subject.id } },
+      update: {},
+      create: { schoolYearId: year.id, gradeId: grade10Quota.id, subjectId: subject.id, periodsPerWeek },
+    });
+  }
+  const math = await prisma.subject.findUniqueOrThrow({ where: { code: 'TOAN' } });
+  const class10A1 = classIds.get('10A1')!;
+  if (!(await prisma.teachingAssignment.findFirst({ where: { classId: class10A1, subjectId: math.id } }))) {
+    await prisma.teachingAssignment.create({
+      data: { schoolYearId: year.id, classId: class10A1, subjectId: math.id, teacherId, periodsPerWeek: 3 },
+    });
   }
 
   // Học sinh mẫu: đăng nhập bằng mã học sinh (không có email) với mật khẩu mẫu chung.
@@ -403,7 +430,7 @@ async function main() {
     DEMO_PASSWORD,
   );
   for (const u of USERS) console.log(`  ${u.role.padEnd(9)} ${u.email}`);
-  console.log('Dữ liệu học vụ MẪU (không phải dữ liệu thật): giáo viên GVMAU01 (gv.toan@), học sinh HSMAU01–HSMAU03 đăng nhập bằng mã học sinh.');
+  console.log('Dữ liệu học vụ MẪU (không phải dữ liệu thật): giáo viên GVMAU01 (gv.toan@), học sinh HSMAU01–HSMAU03 đăng nhập bằng mã học sinh; định mức tiết khối 10 và phân công Toán 10A1 cũng là MẪU, cần đối chiếu kế hoạch giáo dục của trường.');
 }
 
 main()

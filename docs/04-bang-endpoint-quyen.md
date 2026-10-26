@@ -58,6 +58,17 @@ Web chọn cổng giao diện (`/admin`, `/bgh`, `/bien-tap`, `/giao-vien`, `/ho
 | `GET /academic/me` | Tự phục vụ | mã, lớp, năm học, giáo viên chủ nhiệm (học sinh) hoặc các lớp chủ nhiệm (giáo viên) của chính mình |
 | `GET /system/overview` | `academic:manage` | số lớp, học sinh, giáo viên của năm học hiện hành (trang tổng quan BGH) |
 
+## Phân công giảng dạy – `/teaching` (bước 16)
+
+| Endpoint | Quyền | Ghi chú |
+|---|---|---|
+| `GET /teaching/quotas`, `/teaching/assignments`, `/teaching/summary`, `/teaching/summary/export` | `teaching:read` | BGH và ADMIN; thống kê/cảnh báo, xuất Excel chống Excel injection |
+| `PUT /teaching/quotas`, `PUT /teaching/quotas/class` | `teaching:assign` | chỉ BGH; số tiết 0–10, `null` = xoá định mức |
+| `POST /teaching/assignments`, `PATCH/DELETE /teaching/assignments/:id` | `teaching:assign` | chỉ BGH; một lớp–môn một giáo viên chính (409), khác tổ chuyên môn cần `confirmCrossDepartment`, giáo viên khoá/không có hồ sơ → 400 |
+| `POST /teaching/assignments/copy` | `teaching:assign` | sao chép từ năm học/học kỳ khác theo tên lớp, không tạo trùng, liệt kê dòng bị bỏ qua |
+| `PUT /teaching/teachers/:userId/quota` | `teaching:assign` | định mức tiết riêng của giáo viên (`null` = mặc định) |
+| `GET /teaching/mine` | Tự phục vụ | chỉ phân công của chính mình (năm học hiện hành) |
+
 ## Học vụ – `/academic`, `/roster` (bước 14)
 
 | Endpoint | Quyền | Ghi chú |

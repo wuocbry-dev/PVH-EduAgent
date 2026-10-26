@@ -30,6 +30,10 @@ export const settingValueSchemas: Record<SettingKey, z.ZodType<string>> = {
     .string()
     .regex(/^\d{1,3}$/, 'Phải là số nguyên từ 1 đến 168')
     .refine((v) => Number(v) >= 1 && Number(v) <= 168, 'Phải từ 1 đến 168 giờ'),
+  'teaching.default_quota': z
+    .string()
+    .regex(/^\d{1,2}$/, 'Phải là số nguyên từ 1 đến 40')
+    .refine((v) => Number(v) >= 1 && Number(v) <= 40, 'Phải từ 1 đến 40 tiết'),
   'telegram.review_notify': z.enum(['true', 'false'], { error: 'Chỉ nhận true hoặc false' }),
 };
 

@@ -17,7 +17,7 @@ import {
   updateRoom,
   updateSubject,
 } from "../api/academic-api";
-import { errorText, useData } from "./use-data";
+import { errorText, useData } from "@/shared/lib/use-data";
 
 const smallButton = "rounded border border-black/20 px-3 py-1 text-sm dark:border-white/20";
 const submitButton = "rounded bg-foreground px-4 py-2 text-background";

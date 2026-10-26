@@ -144,6 +144,19 @@ const ROUTES: Record<string, Access> = {
   'DELETE /tasks/:id': ['task:assign'],
 
   'POST /telegram/webhook': 'public',
+  'GET /teaching/quotas': ['teaching:read'],
+  'PUT /teaching/quotas': ['teaching:assign'],
+  'PUT /teaching/quotas/class': ['teaching:assign'],
+  'GET /teaching/assignments': ['teaching:read'],
+  'POST /teaching/assignments': ['teaching:assign'],
+  'POST /teaching/assignments/copy': ['teaching:assign'],
+  'PATCH /teaching/assignments/:id': ['teaching:assign'],
+  'DELETE /teaching/assignments/:id': ['teaching:assign'],
+  'GET /teaching/summary': ['teaching:read'],
+  'GET /teaching/summary/export': ['teaching:read'],
+  'GET /teaching/mine': 'self', // chỉ phân công của chính mình
+  'PUT /teaching/teachers/:userId/quota': ['teaching:assign'],
+
   'GET /telegram/link': 'self',
   'POST /telegram/link-code': 'self',
   'DELETE /telegram/link': 'self',

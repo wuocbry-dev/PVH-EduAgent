@@ -11,7 +11,7 @@ import {
   listSemesters,
   updateSchoolYear,
 } from "../api/academic-api";
-import { errorText, useData } from "./use-data";
+import { errorText, useData } from "@/shared/lib/use-data";
 
 const fmt = (iso: string) => iso.split("-").reverse().join("/");
 const smallButton = "rounded border border-black/20 px-3 py-1 text-sm dark:border-white/20";

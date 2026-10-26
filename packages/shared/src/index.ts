@@ -9,3 +9,4 @@ export * from './admin.js';
 export * from './telegram.js';
 export * from './academic.js';
 export * from './portals.js';
+export * from './teaching.js';

@@ -49,6 +49,7 @@ export const SETTING_KEYS = [
   'report.daily_time',
   'reminder.hours_before',
   'telegram.review_notify',
+  'teaching.default_quota',
 ] as const;
 export type SettingKey = (typeof SETTING_KEYS)[number];
 
@@ -120,6 +121,13 @@ export const SETTING_META: Record<SettingKey, SettingMeta> = {
     defaultValue: 'true',
     optional: false,
     input: 'toggle',
+  },
+  'teaching.default_quota': {
+    label: 'Định mức tiết/tuần của giáo viên',
+    description: 'Số tiết/tuần chuẩn của một giáo viên (THPT thường là 17). Có thể ghi đè theo từng giáo viên ở trang Phân công giảng dạy.',
+    defaultValue: '17',
+    optional: false,
+    input: 'number',
   },
 };
 
