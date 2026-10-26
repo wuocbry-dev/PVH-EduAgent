@@ -10,7 +10,7 @@ import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
 import { hashPassword } from './../src/features/auth/password.js';
-import { addDays, vnToday } from './../src/features/timetable/timetable-dates.js';
+import { addDays, vnToday, weekStart } from './../src/features/timetable/timetable-dates.js';
 import { TimetableAgentTools } from './../src/features/timetable/timetable.agent-tools.js';
 import { PrismaService } from './../src/infrastructure/database/prisma.service.js';
 
@@ -398,7 +398,8 @@ describe('Thời khoá biểu (bước 17, e2e)', () => {
       expect(v2.slotCount).toBe(7);
       const toMove = (await prisma.timetableSlot.findFirstOrThrow({ where: { timetableId: BigInt(v2.id), classId: BigInt(clsB.id), day: 1, period: 5 } })).id;
       await principal.patch(`/timetable/slots/${toMove}`).send({ day: 3, period: 2 }).expect(200);
-      const nextWeek = addDays(TODAY, 7);
+      // Thứ Hai tuần sau: cả tuần sau dùng lịch mới, không phụ thuộc hôm nay là thứ mấy.
+      const nextWeek = weekStart(addDays(TODAY, 7));
       const published = (await principal.post(`/timetable/versions/${v2.id}/publish`).send({ effectiveDate: nextWeek }).expect(200)).body as TimetableVersionDto;
       expect(published).toMatchObject({ status: 'PUBLISHED', effectiveDate: nextWeek, publishedByName: expect.any(String) });
       await principal.post(`/timetable/versions/${v2.id}/slots`).send({ assignmentId: asg.A1, day: 4, period: 2 }).expect(409); // đã công bố thì không sửa trực tiếp

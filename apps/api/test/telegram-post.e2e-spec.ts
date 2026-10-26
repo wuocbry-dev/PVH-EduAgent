@@ -227,7 +227,11 @@ describe('Soạn và đăng bài từ Telegram qua AI Agent (bước 12, e2e)', 
     },
   });
   const sentTo = (chatId: number) => calls.filter((c) => c.method === 'sendMessage' && c.payload.chat_id === chatId).map((c) => c.payload.text as string);
-  const prompts = () => calls.filter((c) => c.method === 'sendMessage' && c.payload.reply_markup);
+  // Chỉ thẻ xác nhận 2 bước (nút aa:…); tin báo bài chờ duyệt (nút rv:…, bước 13) được gửi nền và có thể đến muộn.
+  const prompts = () =>
+    calls.filter(
+      (c) => c.method === 'sendMessage' && String(c.payload.reply_markup?.inline_keyboard?.[0]?.[0]?.callback_data ?? '').startsWith('aa:'),
+    );
 
   type AgentCall = { message: string; attachments: string[]; history: number; userId: string };
   // Giả lập agent: mỗi lượt gọi các tool thật như model sẽ làm; ghi lại những gì agent nhận được.

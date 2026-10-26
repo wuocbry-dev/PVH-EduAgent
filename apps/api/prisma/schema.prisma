@@ -87,6 +87,13 @@ model User {
   createdTimetables   Timetable[]             @relation("TimetableCreator")
   publishedTimetables Timetable[]             @relation("TimetablePublisher")
 
+  createdAssessments   Assessment[]      @relation("AssessmentCreator")
+  publishedAssessments AssessmentClass[] @relation("AssessmentPublisher")
+  scores               Score[]           @relation("ScoreStudent")
+  enteredScores        Score[]           @relation("ScoreEnteredBy")
+  scoreHistory         ScoreHistory[]    @relation("ScoreHistoryStudent")
+  scoreChanges         ScoreHistory[]    @relation("ScoreHistoryChanger")
+
   @@map("users")
 }
 
@@ -389,7 +396,8 @@ model Semester {
   schoolYear          SchoolYear           @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
   teachingAssignments TeachingAssignment[]
 
-  timetables Timetable[]
+  timetables  Timetable[]
+  assessments Assessment[]
 
   @@unique([schoolYearId, number])
   @@map("semesters")
@@ -430,6 +438,7 @@ model Subject {
   periodQuotas        SubjectPeriodQuota[]
   classQuotas         ClassPeriodQuota[]
   teachingAssignments TeachingAssignment[]
+  assessments         Assessment[]
 
   @@map("subjects")
 }
@@ -464,6 +473,9 @@ model SchoolClass {
   timetableSlots TimetableSlot[]
   // Lớp học buổi nào (thời khoá biểu): mặc định cả sáng lẫn chiều.
   sessions       ClassSessions   @default(BOTH)
+
+  assessmentClasses AssessmentClass[]
+  scores            Score[]
 
   @@unique([schoolYearId, name])
   @@index([homeroomTeacherId])
@@ -683,4 +695,116 @@ model TeacherUnavailability {
 
   @@unique([teacherId, day, period])
   @@map("teacher_unavailability")
+}
+
+// ───────────────────────────── Đợt thi và điểm (bước 18) ─────────────────────────────
+// Điểm là dữ liệu nhạy cảm nhất hệ thống: ADMIN, AI Agent, Telegram không đọc/ghi. Mọi thay đổi điểm ghi score_history
+// (bảng chỉ thêm: trigger chặn UPDATE/DELETE). CHECK 0–10 và CHECK "có điểm ⇔ trạng thái GRADED" nằm trong migration.
+
+enum AssessmentType {
+  THUONG_XUYEN
+  GIUA_KY
+  CUOI_KY
+}
+
+enum AssessmentClassStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum ScoreStatus {
+  GRADED
+  ABSENT
+  EXEMPT
+}
+
+// Đợt thi/kiểm tra có mã duy nhất (KT-2026-HK1-TOAN-10A1-003). Đợt thường xuyên do giáo viên tạo cho một lớp;
+// giữa kỳ/cuối kỳ do BGH tạo cho nhiều lớp của một khối (grade_level).
+model Assessment {
+  id            BigInt         @id @default(autoincrement())
+  code          String         @unique @db.VarChar(40)
+  type          AssessmentType
+  semesterId    BigInt         @map("semester_id")
+  subjectId     BigInt         @map("subject_id")
+  gradeLevel    Int?           @map("grade_level")
+  testDate      DateTime       @map("test_date") @db.Date
+  description   String?        @db.VarChar(500)
+  entryDeadline DateTime?      @map("entry_deadline") @db.Timestamptz
+  createdBy     BigInt         @map("created_by")
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz
+
+  semester Semester          @relation(fields: [semesterId], references: [id])
+  subject  Subject           @relation(fields: [subjectId], references: [id])
+  creator  User              @relation("AssessmentCreator", fields: [createdBy], references: [id])
+  classes  AssessmentClass[]
+  scores   Score[]
+  history  ScoreHistory[]
+
+  @@index([semesterId, subjectId])
+  @@map("assessments")
+}
+
+// Lớp áp dụng đợt thi; trạng thái nháp/công bố theo từng lớp (giáo viên công bố cho lớp mình).
+model AssessmentClass {
+  id           BigInt                @id @default(autoincrement())
+  assessmentId BigInt                @map("assessment_id")
+  classId      BigInt                @map("class_id")
+  status       AssessmentClassStatus @default(DRAFT)
+  publishedAt  DateTime?             @map("published_at") @db.Timestamptz
+  publishedBy  BigInt?               @map("published_by")
+
+  assessment Assessment  @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  class      SchoolClass @relation(fields: [classId], references: [id])
+  publisher  User?       @relation("AssessmentPublisher", fields: [publishedBy], references: [id])
+
+  @@unique([assessmentId, classId])
+  @@index([classId])
+  @@map("assessment_classes")
+}
+
+// Mỗi học sinh một điểm cho mỗi đợt. class_id: lớp của học sinh lúc nhập (học sinh phải thuộc một lớp của đợt).
+model Score {
+  id           BigInt      @id @default(autoincrement())
+  assessmentId BigInt      @map("assessment_id")
+  studentId    BigInt      @map("student_id")
+  classId      BigInt      @map("class_id")
+  value        Decimal?    @db.Decimal(4, 2)
+  status       ScoreStatus @default(GRADED)
+  note         String?     @db.VarChar(200)
+  enteredBy    BigInt      @map("entered_by")
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  assessment    Assessment  @relation(fields: [assessmentId], references: [id])
+  student       User        @relation("ScoreStudent", fields: [studentId], references: [id])
+  class         SchoolClass @relation(fields: [classId], references: [id])
+  enteredByUser User        @relation("ScoreEnteredBy", fields: [enteredBy], references: [id])
+
+  @@unique([assessmentId, studentId])
+  @@index([classId])
+  @@map("scores")
+}
+
+// Lịch sử mọi lần tạo/sửa/xoá điểm (giá trị điểm CHỈ nằm ở đây và ở scores, không bao giờ trong audit_logs).
+model ScoreHistory {
+  id           BigInt       @id @default(autoincrement())
+  assessmentId BigInt       @map("assessment_id")
+  studentId    BigInt       @map("student_id")
+  action       String       @db.VarChar(10) // CREATE | UPDATE | DELETE
+  oldValue     Decimal?     @map("old_value") @db.Decimal(4, 2)
+  newValue     Decimal?     @map("new_value") @db.Decimal(4, 2)
+  oldStatus    ScoreStatus? @map("old_status")
+  newStatus    ScoreStatus? @map("new_status")
+  note         String?      @db.VarChar(200)
+  reason       String?      @db.VarChar(300)
+  source       String       @db.VarChar(10) // GRID | EXCEL | EXEMPT
+  changedBy    BigInt       @map("changed_by")
+  changedAt    DateTime     @default(now()) @map("changed_at") @db.Timestamptz
+
+  assessment Assessment @relation(fields: [assessmentId], references: [id])
+  student    User       @relation("ScoreHistoryStudent", fields: [studentId], references: [id])
+  changer    User       @relation("ScoreHistoryChanger", fields: [changedBy], references: [id])
+
+  @@index([assessmentId, studentId])
+  @@map("score_history")
 }

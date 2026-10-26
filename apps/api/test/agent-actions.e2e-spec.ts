@@ -464,7 +464,11 @@ describe('Xác nhận 2 bước cho AI Agent (A07, A08, e2e)', () => {
         return { reply: 'Đang chờ bạn xác nhận.', numTurns: 1, costUsd: 0, pendingActions: t.ctx.pendingActions! };
       });
     }
-    const prompts = () => calls.filter((c) => c.method === 'sendMessage' && c.payload.reply_markup);
+    // Chỉ thẻ xác nhận 2 bước (nút aa:…); tin báo bài chờ duyệt (nút rv:…, bước 13) được gửi nền và có thể đến muộn.
+    const prompts = () =>
+      calls.filter(
+        (c) => c.method === 'sendMessage' && String(c.payload.reply_markup?.inline_keyboard?.[0]?.[0]?.callback_data ?? '').startsWith('aa:'),
+      );
 
     it('ra lệnh dời bài → bot hỏi xác nhận kèm nút → bấm Xác nhận thì bài được dời, tin sửa thành kết quả', async () => {
       const principal = await linkChat(PRINCIPAL);

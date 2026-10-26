@@ -35,7 +35,7 @@ export function assertZipSafe(buffer: Buffer): void {
 
 export type RawRow = { row: number; cells: Record<string, string>; formula: boolean };
 
-interface ColumnSpec {
+export interface ColumnSpec {
   key: string;
   label: string;
   aliases: string[];
@@ -89,7 +89,12 @@ function cellText(value: ExcelJS.CellValue): CellText {
 }
 
 // Đọc sheet đầu tiên: dòng 1 là tiêu đề, bỏ dòng trống. Quá số dòng cho phép hoặc thiếu cột bắt buộc thì từ chối cả file.
-export async function readRoster(buffer: Buffer, kind: RosterKind): Promise<RawRow[]> {
+export function readRoster(buffer: Buffer, kind: RosterKind): Promise<RawRow[]> {
+  return readSheet(buffer, columnsOf(kind), ROSTER_MAX_ROWS);
+}
+
+// Dùng chung cho mọi file nhập (danh sách bước 14, điểm bước 18): không đánh giá công thức, giới hạn giải nén và số dòng.
+export async function readSheet(buffer: Buffer, spec: readonly ColumnSpec[], maxRows: number): Promise<RawRow[]> {
   assertZipSafe(buffer);
   const workbook = new ExcelJS.Workbook();
   try {
@@ -99,11 +104,10 @@ export async function readRoster(buffer: Buffer, kind: RosterKind): Promise<RawR
   }
   const sheet = workbook.worksheets[0];
   if (!sheet) throw new BadRequestException('File Excel không có trang tính nào');
-  if (sheet.rowCount > ROSTER_MAX_ROWS + 1) {
-    throw new BadRequestException(`File có quá nhiều dòng (tối đa ${ROSTER_MAX_ROWS} dòng dữ liệu)`);
+  if (sheet.rowCount > maxRows + 1) {
+    throw new BadRequestException(`File có quá nhiều dòng (tối đa ${maxRows} dòng dữ liệu)`);
   }
 
-  const spec = columnsOf(kind);
   const byColumn = new Map<number, string>();
   sheet.getRow(1).eachCell((cell, col) => {
     const header = normalizeHeader(cellText(cell.value).text);

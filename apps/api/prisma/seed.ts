@@ -34,6 +34,9 @@ const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   'teaching:assign': 'Phân công giảng dạy, đặt định mức tiết',
   'timetable:read': 'Xem toàn bộ thời khoá biểu (các phiên bản, theo lớp/giáo viên/phòng)',
   'timetable:manage': 'Xếp, công bố thời khoá biểu, quản lý khung tiết và tiết cố định',
+  'score:enter': 'Nhập điểm cho lớp–môn được phân công (giáo viên)',
+  'assessment:manage': 'Tạo đợt thi giữa kỳ/cuối kỳ chung, đặt hạn nhập điểm, miễn kiểm tra',
+  'score:read:all': 'Xem điểm và tiến độ nhập điểm toàn trường',
 };
 
 // Mật khẩu chung cho tài khoản mẫu, chỉ dùng trên máy phát triển.

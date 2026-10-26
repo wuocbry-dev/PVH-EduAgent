@@ -72,6 +72,25 @@ Web chọn cổng giao diện (`/admin`, `/bgh`, `/bien-tap`, `/giao-vien`, `/ho
 | `GET /timetable/view/teacher/:teacherId` | Tự phục vụ | `timetable:read`, hoặc chính giáo viên đó |
 | `PATCH /academic/classes/sessions` | `academic:manage` | chỉnh buổi học của lớp hàng loạt theo khối |
 
+## Đợt thi và điểm – `/scores` (bước 18)
+
+Điểm là dữ liệu nhạy cảm nhất: **ADMIN không có quyền điểm nào**, AI Agent và Telegram không có đường nào tới điểm (có test). Ngoài quyền, service còn kiểm tra **phạm vi phân công** (giáo viên–lớp–môn–học kỳ, phân công cả năm áp cho mọi học kỳ); người ngoài phạm vi luôn nhận 403, kể cả khi đoán id (không phân biệt "không tồn tại"). Ghi điểm (lưu, nhập Excel, công bố, miễn) giới hạn 60 lần/phút/tài khoản (`RateLimitService`, khoá `score-write`) → 429. `audit_logs` chỉ ghi mã đợt, lớp và số lượng; giá trị điểm chỉ nằm ở `scores` và `score_history`.
+
+| Endpoint | Truy cập | Ghi chú |
+|---|---|---|
+| `GET /scores/context` | `score:enter`, `assessment:manage` hoặc `score:read:all` | học kỳ của năm hiện hành, lớp–môn **của chính giáo viên** (môn tính điểm) |
+| `GET /scores/assessments` | `score:enter` hoặc `score:read:all` | giáo viên: chỉ đợt và lớp thuộc phân công của mình; BGH: mọi đợt |
+| `POST /scores/assessments` | `score:enter` (thường xuyên) / `assessment:manage` (giữa kỳ, cuối kỳ) | thường xuyên: một lớp trong phạm vi phân công, mã `KT-<năm>-HK<n>-<môn>-<lớp>-<số>`; giữa kỳ/cuối kỳ: một khối, mặc định mọi lớp của khối, mã `GK/CK-<năm>-HK<n>-<môn>-K<khối>` hoặc mã BGH đặt (trùng → 409); môn đánh giá bằng nhận xét → 400; ngày ngoài học kỳ → 400 |
+| `PATCH /scores/assessments/:id`, `DELETE /scores/assessments/:id` | người tạo đợt thường xuyên (`score:enter`, còn trong phạm vi) hoặc `assessment:manage` | hạn nhập điểm (`entryDeadline`) chỉ BGH đặt; đợt đã có lịch sử điểm hoặc đã công bố không xoá được (409) |
+| `GET /scores/assessments/:id/classes/:classId` | trong phạm vi phân công, hoặc `score:read:all` | bảng điểm một lớp: học sinh, điểm, trạng thái, số còn trống |
+| `PUT /scores/assessments/:id/classes/:classId` | chỉ giáo viên được phân công | lưu hàng loạt; `8,5` = `8.5`, 0–10, tối đa 2 chữ số thập phân; vắng có lý do (`ABSENT`) bắt buộc ghi chú, điểm trống; học sinh phải thuộc lớp, không trùng; học sinh được miễn → 409; quá hạn nhập → 409; mỗi ô thay đổi một dòng `score_history` |
+| `POST /scores/assessments/:id/classes/:classId/publish` | giáo viên được phân công hoặc `assessment:manage` | công bố theo lớp; vẫn sửa được trong hạn nhập |
+| `PUT /scores/assessments/:id/classes/:classId/exemptions/:studentId` | `assessment:manage` | đặt/bỏ miễn kiểm tra (bắt buộc lý do), ghi `score_history` |
+| `GET /scores/assessments/:id/classes/:classId/template` | giáo viên được phân công | file mẫu điền sẵn mã + tên học sinh của lớp (chống Excel injection) |
+| `POST /scores/assessments/:id/classes/:classId/import/preview` | giáo viên được phân công, trong hạn | kiểm tra phạm vi **trước** khi đọc file; tối đa 2 MB, 200 dòng; 20 lượt/phút; bản xem trước ở Redis 30 phút |
+| `POST /scores/import/:previewId/confirm` | `score:enter` (chính người tải lên) | dùng một lần; kiểm tra lại phạm vi, hạn nhập, danh sách lớp; 10 lượt/phút |
+| `GET /scores/progress` | `score:read:all` | tiến độ theo đợt–lớp: đã nhập/sĩ số, đã công bố, giáo viên dạy |
+
 ## Phân công giảng dạy – `/teaching` (bước 16)
 
 | Endpoint | Quyền | Ghi chú |

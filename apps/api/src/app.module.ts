@@ -15,6 +15,7 @@ import { MediaModule } from './features/media/media.module.js';
 import { PostsModule } from './features/posts/posts.module.js';
 import { PublicSiteModule } from './features/public-site/public-site.module.js';
 import { RosterModule } from './features/roster/roster.module.js';
+import { ScoresModule } from './features/scores/scores.module.js';
 import { RolesModule } from './features/roles/roles.module.js';
 import { SettingsModule } from './features/settings/settings.module.js';
 import { SchedulerModule } from './features/scheduler/scheduler.module.js';
@@ -49,6 +50,7 @@ import { RevalidateModule } from './infrastructure/revalidate/revalidate.module.
     RosterModule,
     TeachingModule,
     TimetableModule,
+    ScoresModule,
     PostsModule,
     CategoriesModule,
     MediaModule,

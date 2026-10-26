@@ -120,6 +120,12 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
 - Sau đăng nhập/kích hoạt tự vào cổng chính (ADMIN → PRINCIPAL → EDITOR → TEACHER → STUDENT); `next` hợp lệ và thuộc cổng của người đó thì ưu tiên. Người nhiều vai trò có nút **Đổi cổng**. Vào cổng không thuộc mình, hoặc dùng đường dẫn cũ `/admin/bai-viet…`, thì `src/proxy.ts` chuyển hướng (308) sang trang tương ứng của cổng mình.
 - **Ẩn menu/chuyển hướng không phải bảo mật:** API luôn kiểm tra quyền trong service. Proxy chọn cổng theo claim `roles` trong access token (chỉ để định tuyến); đổi vai trò người dùng thì thu hồi mọi phiên đăng nhập của họ.
 
+## Đợt thi và nhập điểm (bước 18)
+
+- **Giáo viên** (`/giao-vien/nhap-diem`, quyền `score:enter`): chọn học kỳ và lớp–môn mình được phân công, tạo **đợt kiểm tra thường xuyên** (mã tự sinh, vd. `KT-2026-HK1-TOAN-10A1-003`), nhập điểm trên lưới (gõ `8,5` hoặc `8.5`, Enter/mũi tên để xuống dòng, ô sai tô đỏ ngay, **tự lưu sau 2 giây**, cảnh báo khi rời trang còn điểm chưa lưu), đánh dấu **vắng có lý do** (ốm, tai nạn…, bắt buộc ghi lý do; không tính là 0), hoặc **nhập từ Excel** (tải file mẫu điền sẵn mã + tên học sinh của lớp → xem trước dòng lỗi → xác nhận). **Công bố** theo lớp (hộp thoại báo số học sinh còn trống điểm); sau công bố vẫn sửa được trong hạn nhập điểm.
+- **BGH** (`/bgh/diem`): tạo đợt **giữa kỳ/cuối kỳ** cho cả khối (mã chung tự sinh `GK-2026-HK1-TOAN-K10` hoặc tự đặt), đặt hạn nhập điểm, xem **tiến độ** theo lớp (đã nhập/sĩ số, đã công bố, giáo viên dạy), xem bảng điểm và đặt **miễn kiểm tra** (chỉ BGH, bắt buộc lý do). BGH không tự nhập điểm.
+- **Điểm là dữ liệu nhạy cảm:** quản trị hệ thống (ADMIN) không xem được điểm; AI Agent và Telegram không bao giờ đọc hay gửi điểm. Mỗi lần tạo/sửa/xoá điểm sinh một dòng `score_history` không sửa/xoá được; nhật ký hoạt động chỉ ghi số lượng, không ghi giá trị điểm. Xem điểm (học sinh), điểm trung bình, khoá sổ và điều chỉnh sau hạn thuộc bước 19.
+
 ## Thời khoá biểu (bước 17)
 
 - **BGH** (`/bgh/thoi-khoa-bieu`; ADMIN xem ở `/admin/thoi-khoa-bieu`): xếp tiết trên lưới thứ × tiết (chọn phân công hoặc kéo thả, ô xanh đặt được / vàng giáo viên báo bận / đỏ không đặt được kèm lý do), xem theo giáo viên và phòng, phiên bản nháp → **công bố kèm ngày hiệu lực** (bản cũ vẫn dùng tới ngày đó), khung tiết và tiết cố định, xuất Excel và in. Buổi học của từng lớp (sáng/chiều/cả hai) chỉnh ở trang Học vụ, có nút áp dụng cho cả khối.

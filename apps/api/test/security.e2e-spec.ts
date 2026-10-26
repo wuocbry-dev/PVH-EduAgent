@@ -1,5 +1,8 @@
 // Bước 10 – rà soát bảo mật: bảng endpoint → quyền, guard, header, CORS/CSRF, giới hạn body, định dạng lỗi,
 // dữ liệu học sinh với agent. Cần PostgreSQL (đã seed) và Redis.
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Logger } from '@nestjs/common';
 import { ModulesContainer } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -180,6 +183,21 @@ const ROUTES: Record<string, Access> = {
   'GET /teaching/summary/export': ['teaching:read'],
   'GET /teaching/mine': 'self', // chỉ phân công của chính mình
   'PUT /teaching/teachers/:userId/quota': ['teaching:assign'],
+
+  // Điểm (bước 18): ngoài quyền còn kiểm tra phạm vi phân công lớp–môn–học kỳ trong service; ADMIN không có quyền điểm.
+  'GET /scores/context': ['score:enter'], // hoặc assessment:manage / score:read:all
+  'GET /scores/progress': ['score:read:all'],
+  'GET /scores/assessments': ['score:enter'], // hoặc score:read:all (BGH xem mọi đợt)
+  'POST /scores/assessments': ['score:enter'], // thường xuyên; giữa kỳ/cuối kỳ cần assessment:manage
+  'PATCH /scores/assessments/:id': ['score:enter'], // người tạo đợt thường xuyên, hoặc assessment:manage
+  'DELETE /scores/assessments/:id': ['score:enter'], // như trên; đã có lịch sử điểm thì không xoá được
+  'GET /scores/assessments/:id/classes/:classId': ['score:enter'], // trong phạm vi phân công, hoặc score:read:all
+  'PUT /scores/assessments/:id/classes/:classId': ['score:enter'], // chỉ giáo viên được phân công, trong hạn nhập
+  'POST /scores/assessments/:id/classes/:classId/publish': ['score:enter'], // hoặc assessment:manage
+  'PUT /scores/assessments/:id/classes/:classId/exemptions/:studentId': ['assessment:manage'],
+  'GET /scores/assessments/:id/classes/:classId/template': ['score:enter'],
+  'POST /scores/assessments/:id/classes/:classId/import/preview': ['score:enter'],
+  'POST /scores/import/:previewId/confirm': ['score:enter'],
 
   'GET /telegram/link': 'self',
   'POST /telegram/link-code': 'self',
@@ -437,6 +455,24 @@ describe('Rà soát bảo mật (bước 10, e2e)', () => {
           'unpublish_post', 'update_task_status',
         ].sort(),
       );
+    });
+
+    it('không tool nào của agent và không đường Telegram nào truy cập bảng điểm (bước 18)', () => {
+      const providers = app.get<AgentToolProvider[]>(AGENT_TOOL_PROVIDERS, { strict: false });
+      const user = { id: '1', email: 'x@pvh.edu.vn', fullName: 'X', roles: ['PRINCIPAL' as const], permissions: [] };
+      const tools = providers.flatMap((p) => p.buildTools({ user, channel: 'telegram' }));
+      for (const t of tools) expect(`${t.name} ${t.description}`, t.name).not.toMatch(/score|assessment|điểm số|bảng điểm|đợt thi/i);
+
+      // Quét mã nguồn: mọi file tool của agent, thư mục agent và telegram không được nhắc tới bảng/dịch vụ điểm.
+      const src = fileURLToPath(new URL('../src/features', import.meta.url));
+      const files = readdirSync(src, { recursive: true, encoding: 'utf8' })
+        .filter((f) => f.endsWith('.ts') && !f.endsWith('.spec.ts'))
+        .filter((f) => f.endsWith('.agent-tools.ts') || /^(agent|agent-actions|telegram)[\\/]/.test(f));
+      expect(files.length).toBeGreaterThan(10);
+      for (const f of files) {
+        const code = readFileSync(join(src, f), 'utf8');
+        expect(code, f).not.toMatch(/\.scores?\b|scoreHistory|\.assessments?\b|assessmentClass|ScoresService|features\/scores|['"]\.\.\/scores\//);
+      }
     });
 
     it('danh sách người được giao việc không có học sinh; system prompt cấm xử lý dữ liệu học sinh', async () => {
