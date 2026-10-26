@@ -94,7 +94,8 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
 
 | Endpoint | Việc |
 |---|---|
-| `POST /api/auth/login` | Email + mật khẩu → đặt cookie `pvh_access` (JWT 15 phút) và `pvh_refresh` (7 ngày) |
+| `POST /api/auth/login` | Email hoặc mã học sinh/giáo viên + mật khẩu → đặt cookie `pvh_access` (JWT 15 phút) và `pvh_refresh` (7 ngày) |
+| `POST /api/auth/activate` | Kích hoạt tài khoản bằng mã in trên phiếu rồi đăng nhập luôn (xem mục Học vụ) |
 | `POST /api/auth/refresh` | Cấp cặp token mới, thu hồi refresh token cũ |
 | `POST /api/auth/logout` | Thu hồi refresh token, xoá cookie |
 | `GET /api/auth/me` | Người đang đăng nhập (tên, vai trò, quyền) |
@@ -105,6 +106,15 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
 - Sai mật khẩu 5 lần/phút (theo IP + email) thì bị chặn tạm thời (429). Đăng nhập thành công/thất bại đều ghi `audit_logs`.
 - Web: `src/proxy.ts` chuyển `/admin/*` về `/dang-nhap` khi chưa đăng nhập và tự refresh khi access token hết hạn. Web và API phải cùng tên miền gốc để dùng chung cookie (dev: cùng `localhost`).
 - Chế độ thử nghiệm: `DEV_AUTH=true` (API, chỉ khi `NODE_ENV=development`) + `NEXT_PUBLIC_DEV_AUTH=true` (web) → trang Trợ lý AI có ô chọn vai trò (header `x-dev-user-email`).
+
+## Học vụ, nhập danh sách và phiếu tài khoản (bước 14)
+
+- Trang `/admin/hoc-vu` (quyền `academic:manage`: ADMIN, BGH): năm học (chỉ một năm hiện hành), học kỳ, lớp (chủ nhiệm, sĩ số, chuyển lớp), môn, tổ chuyên môn, phòng bộ môn. Giáo viên chủ nhiệm **không phải vai trò**: suy từ `classes.homeroom_teacher_id`.
+- **Nhập danh sách bằng Excel** (`/admin/nhap-danh-sach`, quyền `student:import`: ADMIN): tải file mẫu (hoặc dùng `docs/mau/mau-nhap-hoc-sinh.xlsx`, `mau-nhap-giao-vien.xlsx`, dữ liệu giả) → **Xem trước** (từng dòng: hợp lệ / bỏ qua vì đã có / lỗi kèm lý do, tô màu) → **Xác nhận** tạo trong một transaction → **In phiếu tài khoản** theo lớp (mỗi lớp một trang). Giới hạn 2 MB, 3000 dòng; công thức Excel không được đánh giá. Cần Redis (bản xem trước lưu 30 phút). Tạo lại file mẫu: `pnpm --filter api roster:templates`.
+- Tài khoản nhập hàng loạt ở trạng thái **chờ kích hoạt**; mỗi tài khoản có **một mã kích hoạt dùng một lần** (dạng `XXXXX-XXXXX`, hạn 14 ngày, chỉ lưu bản băm) in trên phiếu. **Mã gốc chỉ hiện một lần lúc phát hành**, không xem lại được. Người dùng vào `/kich-hoat`, nhập mã học sinh (hoặc email với giáo viên) + mã kích hoạt + mật khẩu mới là đăng nhập luôn. Sau đó đăng nhập bằng mã học sinh/giáo viên hoặc email ở `/dang-nhap`.
+- Mất phiếu / quên mật khẩu: ADMIN hoặc **giáo viên chủ nhiệm của đúng lớp** cấp lại mã (`POST /api/roster/users/:id/activation-code`, nút "Cấp lại mã kích hoạt" ở trang Người dùng); mã cũ và mọi phiên đăng nhập của học sinh bị thu hồi.
+- Dữ liệu học sinh là dữ liệu cá nhân (có em dưới 16 tuổi): chỉ lưu mã, họ tên, lớp, ngày sinh/giới tính (tuỳ chọn). Muốn nhập danh sách thật phải được nhà trường đồng ý. Dữ liệu mẫu trong `pnpm db:seed` (mã có tiền tố `MAU`) chỉ để phát triển.
+- Dọn tài khoản rác `f11.*` do e2e cũ để lại: `pnpm --filter api db:cleanup-test --dry-run` (chỉ in số lượng), bỏ `--dry-run` để xoá thật.
 
 ## AI Agent và API key
 

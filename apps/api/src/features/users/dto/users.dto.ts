@@ -25,6 +25,7 @@ export const listUsersQuerySchema = z.object({
   q: z.string().trim().max(150).optional(),
   status: z.enum(USER_STATUSES).optional(),
   role: z.enum(ROLES).optional(),
+  classId: z.string().regex(/^\d{1,18}$/).optional(),
   page: z.coerce.number().int().min(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
@@ -46,7 +47,8 @@ export const updateUserSchema = z.object({
 });
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
 
-export const setUserStatusSchema = z.object({ status: z.enum(USER_STATUSES) });
+// Chỉ khóa/mở khóa; PENDING do hệ thống đặt khi nhập hàng loạt và tự mất khi kích hoạt.
+export const setUserStatusSchema = z.object({ status: z.enum(['ACTIVE', 'LOCKED']) });
 export type SetUserStatusInput = z.infer<typeof setUserStatusSchema>;
 
 export const resetUserPasswordSchema = z.object({ newPassword: password });

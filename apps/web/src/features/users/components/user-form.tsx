@@ -53,7 +53,7 @@ export function UserForm({ user, onSaved, onCancel }: Props) {
       onSubmit={onSubmit}
       className="max-w-md space-y-4 rounded border border-black/10 p-4 dark:border-white/15"
     >
-      <h2 className="text-lg font-semibold">{user ? `Sửa: ${user.email}` : "Thêm người dùng"}</h2>
+      <h2 className="text-lg font-semibold">{user ? `Sửa: ${user.email ?? user.fullName}` : "Thêm người dùng"}</h2>
       {!user && (
         <>
           <label className="block space-y-1 text-sm">

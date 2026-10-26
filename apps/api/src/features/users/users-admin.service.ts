@@ -15,6 +15,7 @@ import type { AuthUser } from '../../common/types/auth-user.js';
 import { parseId } from '../../common/utils/parse-id.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
+import { UNUSABLE_PASSWORD_HASH } from '../activation/activation.service.js';
 import { hashPassword } from '../auth/password.js';
 import { AuditLogService } from '../audit-log/audit-log.service.js';
 import type {
@@ -25,6 +26,11 @@ import type {
 
 const WITH_ROLES = {
   roles: { include: { role: { select: { code: true } } } },
+  studentProfile: { select: { studentCode: true } },
+  teacherProfile: { select: { teacherCode: true } },
+  // Lớp của năm học hiện hành: học sinh đang học lớp nào, giáo viên đang chủ nhiệm lớp nào.
+  enrollments: { where: { schoolYear: { isCurrent: true } }, include: { class: { select: { name: true } } } },
+  homeroomClasses: { where: { schoolYear: { isCurrent: true } }, select: { name: true } },
 } satisfies Prisma.UserInclude;
 
 type UserWithRoles = Prisma.UserGetPayload<{ include: typeof WITH_ROLES }>;
@@ -42,10 +48,13 @@ export class UsersAdminService {
     const where: Prisma.UserWhereInput = {
       status: query.status,
       roles: query.role ? { some: { role: { code: query.role } } } : undefined,
+      enrollments: query.classId ? { some: { classId: BigInt(query.classId) } } : undefined,
       OR: query.q
         ? [
             { fullName: { contains: query.q, mode: 'insensitive' } },
             { email: { contains: query.q, mode: 'insensitive' } },
+            { studentProfile: { studentCode: { contains: query.q, mode: 'insensitive' } } },
+            { teacherProfile: { teacherCode: { contains: query.q, mode: 'insensitive' } } },
           ]
         : undefined,
     };
@@ -142,9 +151,12 @@ export class UsersAdminService {
       }
       await this.assertNotLastAdmin(target, 'Không thể khóa quản trị viên cuối cùng');
     }
+    // Mở khóa tài khoản chưa từng kích hoạt thì quay về "chờ kích hoạt", không thành ACTIVE với mật khẩu không dùng được.
+    const hash = await this.prisma.user.findUniqueOrThrow({ where: { id: target.id }, select: { passwordHash: true } });
+    const next = status === 'ACTIVE' && hash.passwordHash === UNUSABLE_PASSWORD_HASH ? 'PENDING' : status;
     const user = await this.prisma.user.update({
       where: { id: target.id },
-      data: { status },
+      data: { status: next },
       include: WITH_ROLES,
     });
     // Khóa xong thì đăng xuất mọi phiên (access token tự vô hiệu vì guard đọc lại CSDL).
@@ -169,7 +181,11 @@ export class UsersAdminService {
     const target = await this.findOrThrow(id);
     await this.prisma.user.update({
       where: { id: target.id },
-      data: { passwordHash: await hashPassword(newPassword) },
+      data: {
+        passwordHash: await hashPassword(newPassword),
+        // Quản trị đặt mật khẩu cho tài khoản chờ kích hoạt thì tài khoản dùng được ngay.
+        status: target.status === 'PENDING' ? 'ACTIVE' : undefined,
+      },
     });
     await this.revokeSessions(target.id);
     await this.record(actor, 'user.reset_password', target.id, ip, {
@@ -250,6 +266,8 @@ function toUserDto(user: UserWithRoles): UserDto {
     phone: user.phone,
     status: user.status,
     roles: user.roles.map((ur) => ur.role.code as Role),
+    code: user.studentProfile?.studentCode ?? user.teacherProfile?.teacherCode ?? null,
+    className: user.enrollments[0]?.class.name ?? user.homeroomClasses[0]?.name ?? null,
     createdAt: user.createdAt.toISOString(),
   };
 }

@@ -29,7 +29,17 @@ describe('Người dùng & phân quyền (F11, e2e)', () => {
     prisma = app.get(PrismaService);
   });
 
+  // Dọn tài khoản `f11.*` do chính lần chạy này tạo (cùng nhật ký liên quan) để e2e không để lại dữ liệu rác.
   afterEach(async () => {
+    const mine = await prisma.user.findMany({
+      where: { email: { startsWith: 'f11.', endsWith: `.${run}@pvh.edu.vn` } },
+      select: { id: true },
+    });
+    const ids = mine.map((u) => u.id);
+    await prisma.auditLog.deleteMany({
+      where: { OR: [{ userId: { in: ids } }, { targetType: 'user', targetId: { in: ids } }] },
+    });
+    await prisma.user.deleteMany({ where: { id: { in: ids } } });
     await app.close();
   });
 

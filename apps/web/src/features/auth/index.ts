@@ -1,4 +1,5 @@
 export { AccountInfo } from "./components/account-info";
+export { ActivationForm } from "./components/activation-form";
 export { AdminNav } from "./components/admin-nav";
 export { ChangePasswordForm } from "./components/change-password-form";
 export { ForgotPasswordForm } from "./components/forgot-password-form";

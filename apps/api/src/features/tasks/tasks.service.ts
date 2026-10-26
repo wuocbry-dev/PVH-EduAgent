@@ -113,7 +113,7 @@ export class TasksService {
   async listAssignees(user: AuthUser): Promise<TaskAssigneeDto[]> {
     if (!can(user, 'task:assign') && !can(user, 'task:read:all')) {
       throw new ForbiddenException(
-        `Tài khoản ${user.email} không được xem danh sách người phụ trách`,
+        `Tài khoản ${user.fullName} không được xem danh sách người phụ trách`,
       );
     }
     const users = await this.prisma.user.findMany({
@@ -247,7 +247,7 @@ export class TasksService {
     if (can(user, 'task:read:all')) return 'all';
     if (can(user, 'task:read:own')) return 'own';
     throw new ForbiddenException(
-      `Tài khoản ${user.email} không được xem công việc`,
+      `Tài khoản ${user.fullName} không được xem công việc`,
     );
   }
 

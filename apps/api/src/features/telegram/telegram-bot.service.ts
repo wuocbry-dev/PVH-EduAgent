@@ -378,11 +378,11 @@ export class TelegramBotService implements OnApplicationBootstrap, OnModuleDestr
     const chatId = this.chatId(ctx);
     const current = await this.links.findUserByChat(chatId);
     if (current) {
-      return this.reply(ctx, `Chat này đã liên kết với tài khoản ${current.email}. Gửi /unlink nếu muốn đổi tài khoản.`);
+      return this.reply(ctx, `Chat này đã liên kết với tài khoản ${current.fullName}. Gửi /unlink nếu muốn đổi tài khoản.`);
     }
     const result = await this.links.verifyAndLink(code, chatId);
     if (!result.ok) return this.reply(ctx, LINK_ERRORS[result.reason]);
-    await this.reply(ctx, `Liên kết thành công! Xin chào ${result.user.fullName} (${result.user.email}).\n\n${HELP}`);
+    await this.reply(ctx, `Liên kết thành công! Xin chào ${result.user.fullName}.\n\n${HELP}`);
   }
 
   // Chat lạ: không gọi lệnh hay agent, chỉ gửi hướng dẫn liên kết.

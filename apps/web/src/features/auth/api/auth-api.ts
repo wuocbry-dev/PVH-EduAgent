@@ -1,8 +1,12 @@
-import type { AuthMeDto, ChangePasswordRequest, LoginRequest, ResetPasswordRequest } from "@pvh/shared";
+import type { ActivateRequest, AuthMeDto, ChangePasswordRequest, LoginRequest, ResetPasswordRequest } from "@pvh/shared";
 import { api } from "@/shared/lib/api-client";
 
 export function login(body: LoginRequest) {
   return api<AuthMeDto>("/auth/login", { method: "POST", body: JSON.stringify(body) });
+}
+
+export function activateAccount(body: ActivateRequest) {
+  return api<AuthMeDto>("/auth/activate", { method: "POST", body: JSON.stringify(body) });
 }
 
 export function logout() {

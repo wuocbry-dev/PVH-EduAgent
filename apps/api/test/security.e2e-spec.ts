@@ -29,12 +29,42 @@ type Access = 'public' | 'self' | string[];
 //   [..]    = cần ít nhất các quyền này (service gọi assertPermission/can; một số còn kiểm tra quyền sở hữu)
 const ROUTES: Record<string, Access> = {
   'POST /auth/login': 'public',
+  'POST /auth/activate': 'public', // mã kích hoạt dùng một lần; giới hạn theo IP và mã đăng nhập
   'POST /auth/refresh': 'public',
   'POST /auth/logout': 'public',
   'GET /auth/me': 'self',
   'POST /auth/change-password': 'self',
   'POST /auth/forgot-password': 'public',
   'POST /auth/reset-password': 'public',
+
+  'GET /academic/school-years': ['academic:manage'],
+  'POST /academic/school-years': ['academic:manage'],
+  'PATCH /academic/school-years/:id': ['academic:manage'],
+  'DELETE /academic/school-years/:id': ['academic:manage'],
+  'GET /academic/semesters': ['academic:manage'],
+  'POST /academic/semesters': ['academic:manage'],
+  'PATCH /academic/semesters/:id': ['academic:manage'],
+  'DELETE /academic/semesters/:id': ['academic:manage'],
+  'GET /academic/grades': ['academic:manage'],
+  'GET /academic/departments': ['academic:manage'],
+  'POST /academic/departments': ['academic:manage'],
+  'PATCH /academic/departments/:id': ['academic:manage'],
+  'DELETE /academic/departments/:id': ['academic:manage'],
+  'GET /academic/subjects': ['academic:manage'],
+  'POST /academic/subjects': ['academic:manage'],
+  'PATCH /academic/subjects/:id': ['academic:manage'],
+  'DELETE /academic/subjects/:id': ['academic:manage'],
+  'GET /academic/rooms': ['academic:manage'],
+  'POST /academic/rooms': ['academic:manage'],
+  'PATCH /academic/rooms/:id': ['academic:manage'],
+  'DELETE /academic/rooms/:id': ['academic:manage'],
+  'GET /academic/teachers': ['academic:manage'],
+  'GET /academic/classes': ['academic:manage'],
+  'POST /academic/classes': ['academic:manage'],
+  'PATCH /academic/classes/:id': ['academic:manage'],
+  'DELETE /academic/classes/:id': ['academic:manage'],
+  'GET /academic/classes/:id/students': ['academic:manage'], // hoặc giáo viên chủ nhiệm đúng lớp
+  'POST /academic/students/:userId/transfer': ['academic:manage'],
 
   'POST /agent/chat': 'self',
   'GET /agent/actions': 'self',
@@ -85,6 +115,12 @@ const ROUTES: Record<string, Access> = {
   'GET /public/admission': 'public',
   'GET /public/settings': 'public',
   'GET /public/gallery': 'public',
+
+  'GET /roster/templates/:kind': ['student:import'],
+  'POST /roster/import/:kind/preview': ['student:import'],
+  'POST /roster/import/:previewId/confirm': ['student:import'],
+  'POST /roster/users/:userId/activation-code': ['student:import'], // hoặc giáo viên chủ nhiệm của học sinh đó
+  'POST /roster/classes/:classId/activation-codes': ['student:import'],
 
   'GET /roles': ['user:manage'],
   'PUT /roles/:code/permissions': ['user:manage'],

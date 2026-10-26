@@ -79,7 +79,15 @@ Tài khoản mẫu (mật khẩu chung `Pvh@2026`, đổi qua biến `SEED_PASSW
 | Nội dung | `posts`, `categories`, `media`, `events`, `admission_stats`, `contacts` | `posts.status`: DRAFT → PENDING_REVIEW → SCHEDULED → PUBLISHED (hoặc REJECTED, ARCHIVED) |
 | Công việc | `tasks`, `task_reminders` | `tasks.status`: TODO, IN_PROGRESS, DONE, OVERDUE |
 | Hệ thống | `system_settings`, `notifications`, `agent_actions`, `audit_logs` | Mọi lần AI Agent gọi tool đều ghi vào `audit_logs` |
+| Học vụ *(ngoài ERD, bước 14)* | `school_years`, `semesters`, `grades`, `classes`, `departments`, `subjects`, `rooms`, `teacher_profiles`, `student_profiles`, `class_enrollments`, `activation_codes` | Xem mục bên dưới. **Dữ liệu mẫu trong seed (năm học 2026-2027, môn, lớp 10A1–10A3, giáo viên `GVMAU01`, học sinh `HSMAU01–03`) chỉ để phát triển, không phải dữ liệu thật** |
 | Xác thực *(ngoài ERD)* | `refresh_tokens` | Thêm ở F10 (migration `add_refresh_tokens`): refresh token đăng nhập, chỉ lưu bản băm SHA-256, dùng một lần (`revoked_at`) |
+
+**Lệch so với ERD (hình 17), bước 14 – học vụ:** ERD gốc chưa có lớp/năm học/môn, nên thêm 11 bảng (migration `academic_foundation`, cộng `school_year_one_current`):
+- `school_years` (tên `2026-2027`, `is_current`; index duy nhất một phần `school_years_one_current` bảo đảm tối đa một năm hiện hành), `semesters` (học kỳ 1/2, duy nhất theo năm), `grades` (khối 10–12), `classes` (model Prisma `SchoolClass`; `UNIQUE (school_year_id, name)`, `homeroom_teacher_id` → `users`, **giáo viên chủ nhiệm không phải vai trò mà suy ra từ cột này**), `departments` (tổ chuyên môn), `subjects` (mã duy nhất, `grading_type` `SCORE`/`COMMENT`), `rooms` (chỉ phòng bộ môn).
+- `teacher_profiles` và `student_profiles` (1–1 với `users`, `teacher_code`/`student_code` duy nhất; tên, số điện thoại lấy từ `users`), `class_enrollments` (`UNIQUE (student_id, school_year_id)`: một học sinh một lớp mỗi năm học). Chỉ lưu dữ liệu tối thiểu (ngày sinh, giới tính tuỳ chọn); không lưu gia đình, địa chỉ, CCCD, điểm số.
+- `users.email` nay **tuỳ chọn** (học sinh đăng nhập bằng mã học sinh), vẫn duy nhất khi có; `user_status` thêm `PENDING` (chờ kích hoạt, `password_hash` là giá trị không dùng được `!unusable`).
+- `activation_codes`: mã kích hoạt dùng một lần, chỉ lưu **HMAC-SHA256** của mã (khoá từ `JWT_ACCESS_SECRET`, gắn với `user_id`), hết hạn sau 14 ngày, `used_at`/`revoked_at`; cấp mã mới thì mã cũ bị thu hồi.
+- Môn, tổ, phòng, lớp sẽ được các bước 16–19 tham chiếu bằng khoá ngoại không xoá dây chuyền, nên đã có dữ liệu thì không xoá được.
 
 **Lệch so với ERD (hình 17), bước 11:** bảng `media` thêm `storage_key` (khoá object trong R2/`uploads/`, duy nhất), `status` (`PENDING` → `READY` sau khi server kiểm tra file thật), `kind` (`IMAGE`/`VIDEO`) và `created_at` (để dọn bản ghi chờ quá 1 giờ). `media.url` là URL công khai đầy đủ (R2) hoặc đường dẫn `/media/files/<khoá>` (driver local). Migration `media_r2` đặt các bản ghi cũ thành `READY`, `IMAGE`, `storage_key` = tên file cũ.
 

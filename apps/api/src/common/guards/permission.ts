@@ -11,7 +11,7 @@ export function can(user: AuthUser, permission: Permission): boolean {
 export function assertPermission(user: AuthUser, permission: Permission): void {
   if (!can(user, permission)) {
     throw new ForbiddenException(
-      `Tài khoản ${user.email} không có quyền ${permission}`,
+      `Tài khoản ${user.fullName} không có quyền ${permission}`,
     );
   }
 }

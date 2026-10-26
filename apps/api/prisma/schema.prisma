@@ -46,11 +46,14 @@ model RolePermission {
 enum UserStatus {
   ACTIVE
   LOCKED
+  // Tài khoản nhập hàng loạt, chưa kích hoạt (password_hash là giá trị không dùng được).
+  PENDING
 }
 
 model User {
   id             BigInt     @id @default(autoincrement())
-  email          String     @unique @db.VarChar(150)
+  // Học sinh có thể không có email (đăng nhập bằng mã học sinh); vẫn duy nhất khi có.
+  email          String?    @unique @db.VarChar(150)
   passwordHash   String     @map("password_hash") @db.VarChar(255)
   fullName       String     @map("full_name") @db.VarChar(120)
   phone          String?    @db.VarChar(20)
@@ -71,6 +74,12 @@ model User {
   auditLogs      AuditLog[]
   systemSettings SystemSetting[]
   refreshTokens  RefreshToken[]
+
+  teacherProfile  TeacherProfile?
+  studentProfile  StudentProfile?
+  enrollments     ClassEnrollment[]
+  homeroomClasses SchoolClass[]     @relation("ClassHomeroom")
+  activationCodes ActivationCode[]  @relation("ActivationTarget")
 
   @@map("users")
 }
@@ -341,4 +350,159 @@ model AuditLog {
   @@index([createdAt])
   @@index([userId, createdAt])
   @@map("audit_logs")
+}
+
+// ───────────────────────────── Học vụ (bước 14) ─────────────────────────────
+// Dữ liệu tối thiểu: không lưu thông tin gia đình, địa chỉ, CCCD, điểm số.
+// Chỉ có đúng một năm học hiện hành: index duy nhất một phần `school_years_one_current` (xem migration).
+
+model SchoolYear {
+  id        BigInt   @id @default(autoincrement())
+  name      String   @unique @db.VarChar(20)
+  startDate DateTime @map("start_date") @db.Date
+  endDate   DateTime @map("end_date") @db.Date
+  isCurrent Boolean  @default(false) @map("is_current")
+
+  semesters   Semester[]
+  classes     SchoolClass[]
+  enrollments ClassEnrollment[]
+
+  @@map("school_years")
+}
+
+model Semester {
+  id           BigInt   @id @default(autoincrement())
+  schoolYearId BigInt   @map("school_year_id")
+  number       Int
+  name         String   @db.VarChar(40)
+  startDate    DateTime @map("start_date") @db.Date
+  endDate      DateTime @map("end_date") @db.Date
+
+  schoolYear SchoolYear @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolYearId, number])
+  @@map("semesters")
+}
+
+model Grade {
+  id      BigInt        @id @default(autoincrement())
+  level   Int           @unique
+  name    String        @db.VarChar(20)
+  classes SchoolClass[]
+
+  @@map("grades")
+}
+
+model Department {
+  id       BigInt           @id @default(autoincrement())
+  name     String           @unique @db.VarChar(100)
+  subjects Subject[]
+  teachers TeacherProfile[]
+
+  @@map("departments")
+}
+
+enum GradingType {
+  SCORE
+  COMMENT
+}
+
+model Subject {
+  id           BigInt      @id @default(autoincrement())
+  code         String      @unique @db.VarChar(20)
+  name         String      @db.VarChar(100)
+  departmentId BigInt?     @map("department_id")
+  gradingType  GradingType @default(SCORE) @map("grading_type")
+
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  @@map("subjects")
+}
+
+// Chỉ phòng bộ môn (Tin học, thí nghiệm, sân/nhà thể chất…), không quản lý từng phòng học thường.
+model Room {
+  id   BigInt  @id @default(autoincrement())
+  name String  @unique @db.VarChar(100)
+  kind String? @db.VarChar(50)
+
+  @@map("rooms")
+}
+
+// Model tên SchoolClass vì `Class` dễ trùng từ khoá; bảng vẫn là `classes`.
+model SchoolClass {
+  id                BigInt   @id @default(autoincrement())
+  name              String   @db.VarChar(20)
+  gradeId           BigInt   @map("grade_id")
+  schoolYearId      BigInt   @map("school_year_id")
+  subjectCombo      String?  @map("subject_combo") @db.VarChar(100)
+  homeroomTeacherId BigInt?  @map("homeroom_teacher_id")
+
+  grade           Grade             @relation(fields: [gradeId], references: [id])
+  schoolYear      SchoolYear        @relation(fields: [schoolYearId], references: [id])
+  homeroomTeacher User?             @relation("ClassHomeroom", fields: [homeroomTeacherId], references: [id], onDelete: SetNull)
+  enrollments     ClassEnrollment[]
+
+  @@unique([schoolYearId, name])
+  @@index([homeroomTeacherId])
+  @@map("classes")
+}
+
+model TeacherProfile {
+  userId       BigInt  @id @map("user_id")
+  teacherCode  String  @unique @map("teacher_code") @db.VarChar(20)
+  departmentId BigInt? @map("department_id")
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  @@map("teacher_profiles")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+model StudentProfile {
+  userId      BigInt    @id @map("user_id")
+  studentCode String    @unique @map("student_code") @db.VarChar(20)
+  birthDate   DateTime? @map("birth_date") @db.Date
+  gender      Gender?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("student_profiles")
+}
+
+// Một học sinh chỉ thuộc một lớp trong một năm học (unique student_id + school_year_id).
+model ClassEnrollment {
+  id           BigInt @id @default(autoincrement())
+  studentId    BigInt @map("student_id")
+  classId      BigInt @map("class_id")
+  schoolYearId BigInt @map("school_year_id")
+
+  student    User        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class      SchoolClass @relation(fields: [classId], references: [id])
+  schoolYear SchoolYear  @relation(fields: [schoolYearId], references: [id])
+
+  @@unique([studentId, schoolYearId])
+  @@index([classId])
+  @@map("class_enrollments")
+}
+
+// Mã kích hoạt dùng một lần: chỉ lưu HMAC của mã; cấp mã mới thì mã cũ bị thu hồi.
+model ActivationCode {
+  id        BigInt    @id @default(autoincrement())
+  userId    BigInt    @map("user_id")
+  codeHash  String    @map("code_hash") @db.Char(64)
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz
+  usedAt    DateTime? @map("used_at") @db.Timestamptz
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz
+  createdBy BigInt?   @map("created_by")
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation("ActivationTarget", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("activation_codes")
 }

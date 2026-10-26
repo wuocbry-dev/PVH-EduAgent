@@ -26,10 +26,12 @@ import {
 } from './auth.cookies.js';
 import { AuthService, toAuthMeDto } from './auth.service.js';
 import {
+  activateSchema,
   changePasswordSchema,
   forgotPasswordSchema,
   loginSchema,
   resetPasswordSchema,
+  type ActivateInput,
   type ChangePasswordInput,
   type ForgotPasswordInput,
   type LoginInput,
@@ -58,6 +60,21 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthMeDto> {
     const { user, tokens } = await this.auth.login(body, clientMeta(req));
+    setAuthCookies(res, tokens, this.secureCookies);
+    return user;
+  }
+
+  // Kích hoạt tài khoản bằng mã dùng một lần rồi đăng nhập luôn (giới hạn tần suất sai nằm trong AuthService).
+  @Public()
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
+  @Post('activate')
+  @HttpCode(200)
+  async activate(
+    @Body(new ZodValidationPipe(activateSchema)) body: ActivateInput,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<AuthMeDto> {
+    const { user, tokens } = await this.auth.activate(body, clientMeta(req));
     setAuthCookies(res, tokens, this.secureCookies);
     return user;
   }

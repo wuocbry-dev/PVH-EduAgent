@@ -56,6 +56,14 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 - `PostsService.transition` (nhánh `submit`) gọi các listener đăng ký bằng `onSubmitted` (chạy nền, lỗi chỉ ghi log) nên mọi đường gửi duyệt đều được báo; `TelegramReviewService` (`features/telegram`) đăng ký listener, chọn người nhận theo `role_permissions` (cả `post:approve` và `post:schedule`, không phải tác giả), chống báo trùng theo (bài, số lần gửi duyệt) trong Redis, tắt được bằng khoá `telegram.review_notify`. Tin là **văn bản thuần** (không `parse_mode`) và mọi giá trị người dùng nhập đi qua `defang()`; nút URL chỉ khi `isPublicHttps`.
 - Nút `rv:v|a|r:<id>`: kiểm tra lại quyền + trạng thái `PENDING_REVIEW` mỗi lần bấm; Duyệt đăng chỉ gọi `AgentActionsService.propose` (xác nhận 2 bước); Từ chối giữ trạng thái chờ lý do trong Redis 5 phút rồi gọi `PostsService.transition('reject')`. `PostsService` cũng báo tác giả (bảng `notifications` → Telegram) khi bài được duyệt/từ chối bởi người khác.
 
+## Học vụ và tài khoản hàng loạt (bước 14)
+
+- Dữ liệu học vụ gốc ở `features/academic` (năm học hiện hành duy nhất, học kỳ, khối, lớp, môn, tổ, phòng bộ môn; hồ sơ giáo viên/học sinh; `class_enrollments` một lớp mỗi năm học). Quyền `academic:manage` (ADMIN, BGH), `student:import` (ADMIN). **Giáo viên chủ nhiệm không phải vai trò**: suy từ `classes.homeroom_teacher_id`, dùng `isHomeroomOf(prisma, user, classId)` (`features/academic/homeroom.ts`) cho mọi chỗ cần (cấp lại mã, xem lớp, bước 19–20). Chỉ lưu dữ liệu học sinh tối thiểu (không gia đình, địa chỉ, CCCD).
+- `users.email` có thể rỗng (học sinh); đăng nhập bằng email **hoặc** mã học sinh/giáo viên (`normalizeLoginId`). Đừng giả định `email` luôn có (dùng `fullName` trong thông báo/log). Trạng thái `PENDING` = chờ kích hoạt, `password_hash` là `UNUSABLE_PASSWORD_HASH`.
+- Mã kích hoạt (`features/activation`): dùng một lần, 14 ngày, **chỉ lưu HMAC**, không bao giờ ghi mã gốc vào log/DB/audit; cấp mã mới thu hồi mã cũ. `POST /auth/activate` giới hạn sai theo IP và theo mã đăng nhập, mọi lỗi cùng một thông báo.
+- Nhập Excel (`features/roster`, thư viện `exceljs`): luồng xem trước → xác nhận, dữ liệu thô giữ ở Redis 30 phút, kiểm tra lại với CSDL lúc xác nhận; không đánh giá công thức; chống Excel injection khi xuất (`safeCell`). Audit chỉ ghi số lượng, không ghi danh sách học sinh.
+- Test/e2e tạo tài khoản phải tự dọn sau khi chạy (không để lại dữ liệu rác); script dọn dữ liệu cũ: `pnpm --filter api db:cleanup-test --dry-run`.
+
 ## Lệnh kiểm tra (chạy ở thư mục gốc)
 
 | Lệnh | Việc |

@@ -16,7 +16,8 @@ Ký hiệu: **Công khai** = không cần đăng nhập; **Tự phục vụ** = 
 
 | Endpoint | Truy cập | Ghi chú |
 |---|---|---|
-| `POST /auth/login` | Công khai | 20 lượt/phút/IP; sai 5 lần/phút theo IP+email thì khoá tạm (Redis); ghi `audit_logs` |
+| `POST /auth/login` | Công khai | nhận email hoặc mã học sinh/giáo viên (`identifier`); 20 lượt/phút/IP; sai 5 lần/phút theo IP + tài khoản thì khoá tạm (Redis); ghi `audit_logs` |
+| `POST /auth/activate` | Công khai | kích hoạt tài khoản bằng mã dùng một lần rồi đăng nhập luôn; 20 lượt/phút/IP; **sai** 5 lần/15 phút theo mã đăng nhập hoặc 20 lần/10 phút theo IP thì khoá tạm (429); mọi lý do thất bại cùng một thông báo (không lộ mã học sinh có tồn tại) |
 | `POST /auth/refresh` | Công khai | cần cookie `pvh_refresh` hợp lệ (xoay vòng, dùng một lần) |
 | `POST /auth/logout` | Công khai | thu hồi refresh token nếu có |
 | `GET /auth/me` | Tự phục vụ | |
@@ -45,6 +46,23 @@ Ký hiệu: **Công khai** = không cần đăng nhập; **Tự phục vụ** = 
 | `GET /system/health` | Công khai (chỉ trả `ok`/`down`) |
 | `GET /roles`, `PUT /roles/:code/permissions` | `user:manage` |
 | `GET /users`, `POST /users`, `PATCH /users/:id`, `PATCH /users/:id/status`, `POST /users/:id/reset-password` | `user:manage` |
+
+`GET /users` có thêm bộ lọc `classId`, tìm theo mã học sinh/giáo viên; trả `code`, `className`, trạng thái `PENDING` (chờ kích hoạt).
+
+## Học vụ – `/academic`, `/roster` (bước 14)
+
+| Endpoint | Quyền | Ghi chú |
+|---|---|---|
+| `GET/POST/PATCH/DELETE /academic/school-years…`, `/academic/semesters…` | `academic:manage` | luôn đúng một năm hiện hành (index duy nhất một phần); không xoá năm hiện hành hay năm còn lớp |
+| `GET /academic/grades`, `GET/POST/PATCH/DELETE /academic/departments…`, `/subjects…`, `/rooms…` | `academic:manage` | tổ còn môn/giáo viên và môn/phòng đang có dữ liệu thì 409 |
+| `GET /academic/teachers`, `GET/POST/PATCH/DELETE /academic/classes…` | `academic:manage` | tên lớp duy nhất trong năm học; chủ nhiệm phải là giáo viên có hồ sơ; lớp còn học sinh thì 409 |
+| `GET /academic/classes/:id/students` | `academic:manage`, hoặc giáo viên chủ nhiệm đúng lớp đó | kiểm tra trong service (`isHomeroomOf`) |
+| `POST /academic/students/:userId/transfer` | `academic:manage` | một học sinh chỉ thuộc một lớp mỗi năm học |
+| `GET /roster/templates/:kind` | `student:import` | file `.xlsx` mẫu (dữ liệu giả) |
+| `POST /roster/import/:kind/preview` | `student:import` | thân request là chính file `.xlsx` (≤ 2 MB, ≤ 3000 dòng, không đánh giá công thức, chặn zip phình to); chưa ghi CSDL, lưu tạm Redis 30 phút; 20 lượt/phút |
+| `POST /roster/import/:previewId/confirm` | `student:import` | kiểm tra lại với CSDL hiện tại rồi tạo trong một transaction; mỗi bản xem trước dùng một lần, chỉ người tải lên xác nhận được; trả phiếu kèm mã kích hoạt gốc (chỉ lần này) |
+| `POST /roster/users/:userId/activation-code` | `student:import`, hoặc giáo viên chủ nhiệm lớp của học sinh đó | cấp mã mới, thu hồi mã cũ và mọi phiên đăng nhập; tài khoản khoá thì 409; người không đủ quyền luôn nhận 403 (không phân biệt id có tồn tại) |
+| `POST /roster/classes/:classId/activation-codes` | `student:import` | phát hành phiếu cả lớp, chỉ cho học sinh còn chờ kích hoạt |
 
 ## Nội dung
 

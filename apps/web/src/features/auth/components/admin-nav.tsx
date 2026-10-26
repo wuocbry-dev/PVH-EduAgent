@@ -13,6 +13,8 @@ const NAV: { href: string; label: string; permissions?: Permission[] }[] = [
   { href: "/admin/nhat-ky", label: "Nhật ký hoạt động", permissions: ["system:read"] },
   { href: "/admin/cau-hinh", label: "Cấu hình", permissions: ["system:read"] },
   { href: "/admin/tro-ly-ai", label: "Trợ lý AI" },
+  { href: "/admin/hoc-vu", label: "Học vụ", permissions: ["academic:manage"] },
+  { href: "/admin/nhap-danh-sach", label: "Nhập danh sách", permissions: ["student:import"] },
   { href: "/admin/nguoi-dung", label: "Người dùng", permissions: ["user:manage"] },
   { href: "/admin/vai-tro", label: "Vai trò và quyền", permissions: ["user:manage"] },
 ];

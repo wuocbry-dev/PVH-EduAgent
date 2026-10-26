@@ -6,7 +6,7 @@ import { AdminNav, UserMenu } from "@/features/auth";
 export default function AdminLayout({ children }: LayoutProps<"/admin">) {
   return (
     <div className="flex flex-1 flex-col md:flex-row">
-      <aside className="flex flex-col gap-4 border-b border-black/10 p-4 md:w-56 md:border-r md:border-b-0 dark:border-white/15">
+      <aside className="flex flex-col gap-4 print:hidden border-b border-black/10 p-4 md:w-56 md:border-r md:border-b-0 dark:border-white/15">
         <Link href="/" className="font-semibold">
           CMS · PVH
         </Link>
@@ -19,7 +19,7 @@ export default function AdminLayout({ children }: LayoutProps<"/admin">) {
           </Suspense>
         </div>
       </aside>
-      <main className="flex-1 p-4 md:p-8">{children}</main>
+      <main className="flex-1 p-4 md:p-8 print:p-0">{children}</main>
     </div>
   );
 }

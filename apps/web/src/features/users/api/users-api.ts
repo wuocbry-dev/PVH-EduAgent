@@ -1,4 +1,5 @@
 import type {
+  ClassDto,
   CreateUserRequest,
   Permission,
   Role,
@@ -15,6 +16,7 @@ export interface UserFilters {
   q: string;
   status: UserStatus | "";
   role: Role | "";
+  classId: string;
   page: number;
 }
 
@@ -25,6 +27,7 @@ export function listUsers(filters: UserFilters) {
   if (filters.q) params.set("q", filters.q);
   if (filters.status) params.set("status", filters.status);
   if (filters.role) params.set("role", filters.role);
+  if (filters.classId) params.set("classId", filters.classId);
   return api<UserListDto>(`/users?${params}`);
 }
 
@@ -50,4 +53,9 @@ export function getRoles() {
 
 export function updateRolePermissions(role: Role, permissions: Permission[]) {
   return api<RoleDto>(`/roles/${role}/permissions`, { method: "PUT", body: JSON.stringify({ permissions }) });
+}
+
+// Lớp của năm học hiện hành, để lọc danh sách người dùng theo lớp.
+export function listClassOptions() {
+  return api<ClassDto[]>("/academic/classes");
 }

@@ -7,3 +7,4 @@ export * from './users.js';
 export * from './public.js';
 export * from './admin.js';
 export * from './telegram.js';
+export * from './academic.js';

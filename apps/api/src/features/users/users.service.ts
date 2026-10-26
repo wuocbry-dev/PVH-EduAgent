@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { Permission, Role } from '@pvh/shared';
 import type { AuthUser } from '../../common/types/auth-user.js';
-import type { Prisma } from '../../generated/prisma/client.js';
+import type { Prisma, UserStatus } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
 
 // users → user_roles → roles → role_permissions → permissions
@@ -19,9 +19,16 @@ type UserWithPermissions = Prisma.UserGetPayload<{
 
 export interface UserCredentials {
   id: string;
-  email: string;
+  email: string | null;
   passwordHash: string;
   active: boolean;
+  status: UserStatus;
+}
+
+// Ô đăng nhập nhận email hoặc mã học sinh/giáo viên: có `@` là email, còn lại là mã (không phân biệt hoa thường).
+export function normalizeLoginId(identifier: string): { email: string } | { code: string } {
+  const value = identifier.trim();
+  return value.includes('@') ? { email: value.toLowerCase() } : { code: value.toUpperCase() };
 }
 
 @Injectable()
@@ -47,10 +54,20 @@ export class UsersService {
 
   // Chỉ dùng cho xác thực: trả kèm password_hash, không bao giờ đưa ra API.
   async findCredentials(
-    where: { email: string } | { id: string },
+    where: { email: string } | { code: string } | { id: string },
   ): Promise<UserCredentials | null> {
-    const user = await this.prisma.user.findUnique({
-      where: 'email' in where ? where : { id: BigInt(where.id) },
+    const user = await this.prisma.user.findFirst({
+      where:
+        'email' in where
+          ? { email: where.email }
+          : 'id' in where
+            ? { id: BigInt(where.id) }
+            : {
+                OR: [
+                  { studentProfile: { studentCode: where.code } },
+                  { teacherProfile: { teacherCode: where.code } },
+                ],
+              },
       select: { id: true, email: true, passwordHash: true, status: true },
     });
     if (!user) return null;
@@ -59,6 +76,7 @@ export class UsersService {
       email: user.email,
       passwordHash: user.passwordHash,
       active: user.status === 'ACTIVE',
+      status: user.status,
     };
   }
 

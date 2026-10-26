@@ -28,6 +28,8 @@ const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   'post:unpublish': 'Gỡ / ẩn bài',
   'user:manage': 'Quản lý người dùng và phân quyền',
   'setting:manage': 'Sửa cấu hình hệ thống',
+  'academic:manage': 'Quản lý năm học, lớp, môn, phòng bộ môn',
+  'student:import': 'Nhập danh sách giáo viên/học sinh từ Excel, phát mã kích hoạt',
 };
 
 // Mật khẩu chung cho tài khoản mẫu, chỉ dùng trên máy phát triển.
@@ -41,6 +43,57 @@ const USERS: { email: string; fullName: string; role: Role }[] = [
 ];
 
 const HOUR_MS = 60 * 60 * 1000;
+
+// ───── DỮ LIỆU MẪU học vụ (bước 14): chỉ để phát triển/thử nghiệm, KHÔNG phải dữ liệu thật của nhà trường. ─────
+// Mã mẫu có tiền tố "MAU" (học sinh HSMAU01…, giáo viên GVMAU01) để không lẫn với dữ liệu thật.
+const SAMPLE_DEPARTMENTS = [
+  'Tổ Toán – Tin',
+  'Tổ Ngữ văn',
+  'Tổ Ngoại ngữ',
+  'Tổ Khoa học xã hội',
+  'Tổ Khoa học tự nhiên',
+  'Tổ Thể dục – Quốc phòng',
+];
+
+// Môn học THPT theo chương trình GDPT 2018. `score: false` = chỉ nhận xét.
+const SAMPLE_SUBJECTS: { code: string; name: string; department: string; score?: boolean }[] = [
+  { code: 'TOAN', name: 'Toán', department: 'Tổ Toán – Tin' },
+  { code: 'TIN', name: 'Tin học', department: 'Tổ Toán – Tin' },
+  { code: 'VAN', name: 'Ngữ văn', department: 'Tổ Ngữ văn' },
+  { code: 'ANH', name: 'Tiếng Anh', department: 'Tổ Ngoại ngữ' },
+  { code: 'SU', name: 'Lịch sử', department: 'Tổ Khoa học xã hội' },
+  { code: 'DIA', name: 'Địa lí', department: 'Tổ Khoa học xã hội' },
+  { code: 'GDKTPL', name: 'Giáo dục kinh tế và pháp luật', department: 'Tổ Khoa học xã hội' },
+  { code: 'LI', name: 'Vật lí', department: 'Tổ Khoa học tự nhiên' },
+  { code: 'HOA', name: 'Hóa học', department: 'Tổ Khoa học tự nhiên' },
+  { code: 'SINH', name: 'Sinh học', department: 'Tổ Khoa học tự nhiên' },
+  { code: 'CNGHE', name: 'Công nghệ', department: 'Tổ Khoa học tự nhiên' },
+  { code: 'GDTC', name: 'Giáo dục thể chất', department: 'Tổ Thể dục – Quốc phòng' },
+  { code: 'GDQPAN', name: 'Giáo dục quốc phòng và an ninh', department: 'Tổ Thể dục – Quốc phòng' },
+  { code: 'HDTNHN', name: 'Hoạt động trải nghiệm, hướng nghiệp', department: 'Tổ Khoa học xã hội', score: false },
+  { code: 'GDDP', name: 'Nội dung giáo dục của địa phương', department: 'Tổ Khoa học xã hội', score: false },
+];
+
+const SAMPLE_ROOMS = [
+  { name: 'Phòng Tin học 1', kind: 'Tin học' },
+  { name: 'Phòng thí nghiệm Vật lí', kind: 'Thí nghiệm' },
+  { name: 'Phòng thí nghiệm Hóa học', kind: 'Thí nghiệm' },
+  { name: 'Phòng thí nghiệm Sinh học', kind: 'Thí nghiệm' },
+  { name: 'Nhà thi đấu đa năng', kind: 'Thể chất' },
+  { name: 'Sân thể chất', kind: 'Thể chất' },
+];
+
+const SAMPLE_CLASSES = [
+  { name: '10A1', combo: 'Khoa học tự nhiên', homeroom: 'GVMAU01' },
+  { name: '10A2', combo: 'Khoa học tự nhiên', homeroom: null },
+  { name: '10A3', combo: 'Khoa học xã hội', homeroom: null },
+];
+
+const SAMPLE_STUDENTS = [
+  { code: 'HSMAU01', fullName: 'Nguyễn Văn Mẫu', className: '10A1', gender: 'MALE' as const },
+  { code: 'HSMAU02', fullName: 'Trần Thị Thử', className: '10A1', gender: 'FEMALE' as const },
+  { code: 'HSMAU03', fullName: 'Lê Minh Giả', className: '10A2', gender: 'MALE' as const },
+];
 
 async function seedRbac() {
   for (const code of PERMISSIONS) {
@@ -93,6 +146,102 @@ async function seedUsers() {
     ids.set(u.role, user.id);
   }
   return ids;
+}
+
+async function seedAcademic(users: Map<Role, bigint>) {
+  // Năm học hiện hành: chỉ tạo/đặt nếu chưa có năm nào hiện hành (không ghi đè lựa chọn của quản trị).
+  const hasCurrent = (await prisma.schoolYear.count({ where: { isCurrent: true } })) > 0;
+  const year = await prisma.schoolYear.upsert({
+    where: { name: '2026-2027' },
+    update: {},
+    create: {
+      name: '2026-2027',
+      startDate: new Date('2026-09-05T00:00:00Z'),
+      endDate: new Date('2027-05-31T00:00:00Z'),
+      isCurrent: !hasCurrent,
+    },
+  });
+  for (const sem of [
+    { number: 1, name: 'Học kỳ I', startDate: '2026-09-05', endDate: '2027-01-17' },
+    { number: 2, name: 'Học kỳ II', startDate: '2027-01-18', endDate: '2027-05-31' },
+  ]) {
+    await prisma.semester.upsert({
+      where: { schoolYearId_number: { schoolYearId: year.id, number: sem.number } },
+      update: {},
+      create: {
+        schoolYearId: year.id,
+        number: sem.number,
+        name: sem.name,
+        startDate: new Date(`${sem.startDate}T00:00:00Z`),
+        endDate: new Date(`${sem.endDate}T00:00:00Z`),
+      },
+    });
+  }
+  for (const level of [10, 11, 12]) {
+    await prisma.grade.upsert({ where: { level }, update: {}, create: { level, name: `Khối ${level}` } });
+  }
+
+  const departments = new Map<string, bigint>();
+  for (const name of SAMPLE_DEPARTMENTS) {
+    const d = await prisma.department.upsert({ where: { name }, update: {}, create: { name } });
+    departments.set(name, d.id);
+  }
+  for (const s of SAMPLE_SUBJECTS) {
+    await prisma.subject.upsert({
+      where: { code: s.code },
+      update: {},
+      create: {
+        code: s.code,
+        name: s.name,
+        departmentId: departments.get(s.department),
+        gradingType: s.score === false ? 'COMMENT' : 'SCORE',
+      },
+    });
+  }
+  for (const r of SAMPLE_ROOMS) {
+    await prisma.room.upsert({ where: { name: r.name }, update: {}, create: r });
+  }
+
+  // Giáo viên mẫu: tài khoản gv.toan@ có hồ sơ giáo viên và chủ nhiệm 10A1.
+  const teacherId = users.get('TEACHER')!;
+  await prisma.teacherProfile.upsert({
+    where: { userId: teacherId },
+    update: {},
+    create: { userId: teacherId, teacherCode: 'GVMAU01', departmentId: departments.get('Tổ Toán – Tin') },
+  });
+
+  const grade10 = await prisma.grade.findUniqueOrThrow({ where: { level: 10 } });
+  const classIds = new Map<string, bigint>();
+  for (const c of SAMPLE_CLASSES) {
+    const cls = await prisma.schoolClass.upsert({
+      where: { schoolYearId_name: { schoolYearId: year.id, name: c.name } },
+      update: {},
+      create: {
+        name: c.name,
+        gradeId: grade10.id,
+        schoolYearId: year.id,
+        subjectCombo: c.combo,
+        homeroomTeacherId: c.homeroom ? teacherId : null,
+      },
+    });
+    classIds.set(c.name, cls.id);
+  }
+
+  // Học sinh mẫu: đăng nhập bằng mã học sinh (không có email) với mật khẩu mẫu chung.
+  const studentRole = await prisma.role.findUniqueOrThrow({ where: { code: 'STUDENT' } });
+  const passwordHash = await hashPassword(DEMO_PASSWORD);
+  for (const st of SAMPLE_STUDENTS) {
+    if (await prisma.studentProfile.findUnique({ where: { studentCode: st.code } })) continue;
+    await prisma.user.create({
+      data: {
+        fullName: st.fullName,
+        passwordHash,
+        roles: { create: { roleId: studentRole.id } },
+        studentProfile: { create: { studentCode: st.code, gender: st.gender } },
+        enrollments: { create: { classId: classIds.get(st.className)!, schoolYearId: year.id } },
+      },
+    });
+  }
 }
 
 async function seedContent(users: Map<Role, bigint>) {
@@ -244,6 +393,7 @@ async function seedEvents(users: Map<Role, bigint>) {
 async function main() {
   await seedRbac();
   const users = await seedUsers();
+  await seedAcademic(users);
   await seedContent(users);
   await seedTasks(users);
   await seedEvents(users);
@@ -253,6 +403,7 @@ async function main() {
     DEMO_PASSWORD,
   );
   for (const u of USERS) console.log(`  ${u.role.padEnd(9)} ${u.email}`);
+  console.log('Dữ liệu học vụ MẪU (không phải dữ liệu thật): giáo viên GVMAU01 (gv.toan@), học sinh HSMAU01–HSMAU03 đăng nhập bằng mã học sinh.');
 }
 
 main()

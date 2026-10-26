@@ -38,6 +38,9 @@ export function ForgotPasswordForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
+      <p className="text-sm opacity-70">
+        Học sinh đăng nhập bằng mã học sinh (không có email): hãy liên hệ giáo viên chủ nhiệm để được cấp lại mã kích hoạt.
+      </p>
       <label className="block space-y-1 text-sm">
         <span>Email đăng nhập</span>
         <input name="email" type="email" autoComplete="username" required className={inputClass} />

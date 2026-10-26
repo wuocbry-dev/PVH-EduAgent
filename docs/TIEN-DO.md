@@ -31,6 +31,20 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 | [x] | 11 | Upload ảnh/video lên Cloudflare R2 | 2026-10-26 |
 | [x] | 12 | Tạo và đăng bài trực tiếp từ Telegram qua AI Agent | 2026-10-26 |
 | [x] | 13 | Telegram báo người duyệt khi có bài gửi duyệt | 2026-10-26 |
+| [x] | 14 | Nền tảng học vụ & tạo tài khoản hàng loạt (Excel, mã kích hoạt) | 2026-10-26 |
+| [ ] | 15 | Khung các cổng theo vai trò | |
+| [ ] | 16 | Phân công giảng dạy | |
+| [ ] | 17 | Thời khoá biểu | |
+| [ ] | 18 | Đợt thi có mã & giáo viên nhập điểm | |
+| [ ] | 19 | Xem điểm, thống kê, khoá sổ & điều chỉnh | |
+| [ ] | 20 | Cổng học sinh hoàn chỉnh & thông báo theo lớp/khối | |
+| [ ] | 21 | Thư viện số | |
+| [ ] | 22 | Trắc nghiệm ôn tập trực tuyến | |
+| [ ] | 23 | Rà soát bảo mật, kiểm thử theo vai trò & đối chiếu tài liệu | |
+| [-] | 24 | *(tuỳ chọn)* Quản lý mượn trả sách giấy | |
+| [-] | 25 | *(tuỳ chọn)* Tự động gợi ý xếp thời khoá biểu | |
+
+Ô `[-]` nghĩa là bỏ bước đó: `/buoc tiep` sẽ bỏ qua.
 
 ## Nhật ký từng bước
 
@@ -186,3 +200,19 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 - **Chưa thử thật:** bot Telegram thật trên điện thoại (nhận tin, bấm nút, nút URL với tên miền https thật). Giao diện web (công tắc ở trang Cấu hình) mới qua build/lint, chưa thao tác bằng trình duyệt.
 - **Còn lại:** không có việc nào thuộc bước 13. Hết lộ trình hiện tại.
 
+### Bước 14 – Nền tảng học vụ & tạo tài khoản hàng loạt (2026-10-26)
+
+- **Đã làm:**
+  - **CSDL** (migration `academic_foundation` + `school_year_one_current`): `school_years` (index duy nhất một phần: tối đa một năm hiện hành), `semesters`, `grades`, `classes` (model `SchoolClass`, tên duy nhất trong năm học, `homeroom_teacher_id`), `departments`, `subjects`, `rooms` (chỉ phòng bộ môn), `teacher_profiles`, `student_profiles`, `class_enrollments` (một lớp mỗi năm học, ràng buộc ở CSDL), `activation_codes`; `users.email` tuỳ chọn, `user_status` thêm `PENDING`. Chỉ lưu dữ liệu tối thiểu. Seed thêm dữ liệu **mẫu** (ghi rõ trong seed, tài liệu và log seed): năm học 2026-2027 + 2 học kỳ, 3 khối, 15 môn GDPT 2018 (HĐTN-HN, GDĐP chỉ nhận xét), 6 tổ, 6 phòng bộ môn, lớp 10A1–10A3, giáo viên `GVMAU01` (= gv.toan@, chủ nhiệm 10A1), học sinh `HSMAU01–03`.
+  - **Quyền:** `academic:manage` (ADMIN, BGH), `student:import` (ADMIN). Giáo viên chủ nhiệm suy từ `classes.homeroom_teacher_id`, hàm dùng chung `isHomeroomOf` (`features/academic/homeroom.ts`).
+  - **API học vụ** (`features/academic`, 28 route): CRUD năm học (đặt năm hiện hành), học kỳ, lớp (chủ nhiệm, đổi tên, sĩ số), môn, tổ, phòng; học sinh theo lớp (quản lý học vụ hoặc đúng giáo viên chủ nhiệm); chuyển lớp. Không xoá lớp còn học sinh, tổ còn môn/giáo viên, năm hiện hành; báo rõ lý do (409). Audit `academic.*`.
+  - **Nhập Excel** (`features/roster`, `exceljs`): xem trước → xác nhận. File gửi thẳng làm thân request (≤ 2 MB → 413, ≤ 3000 dòng, không đánh giá công thức, kiểm tra thư mục trung tâm zip để chặn file giải nén quá 30 MB). Mỗi dòng: hợp lệ / bỏ qua (đã có) / lỗi kèm lý do tiếng Việt (thiếu/trùng mã trong file, lớp, tổ, email, ngày sinh, giới tính, tên bắt đầu `=+-@`, ký tự `<>`/điều khiển, ô công thức…). Dữ liệu thô giữ ở Redis 30 phút (không ghi đĩa); xác nhận kiểm tra lại với CSDL, cấp sẵn id (`nextval`) rồi `createMany` trong **một transaction** (850 học sinh vài giây), mỗi bản xem trước dùng một lần và chỉ người tải lên xác nhận được. Audit `roster.preview/import` chỉ ghi số lượng. File mẫu (dữ liệu giả) có nút tải trên web và ở `docs/mau/*.xlsx` (`pnpm --filter api roster:templates`); `safeCell` chống Excel injection khi xuất.
+  - **Mã kích hoạt** (`features/activation`): 10 ký tự dễ đọc (không 0/O/1/I/L, dạng `XXXXX-XXXXX`, ≈ 49 bit), dùng một lần, hạn 14 ngày, **chỉ lưu HMAC-SHA256** (khoá từ `JWT_ACCESS_SECRET`, gắn userId), cấp mã mới thu hồi mã cũ. `POST /auth/activate` (công khai) đổi mã lấy mật khẩu mới + đăng nhập luôn trong một transaction (dùng song song chỉ một lần thành công; tài khoản khoá không kích hoạt được); sai nhiều lần khoá tạm theo mã đăng nhập (5/15 phút) và theo IP (20/10 phút) bằng `RateLimitService`; mọi lý do thất bại cùng một thông báo. Đăng nhập nhận email **hoặc** mã học sinh/giáo viên (không phân biệt hoa thường; trường `email` cũ vẫn dùng được). Cấp lại mã: ADMIN hoặc đúng giáo viên chủ nhiệm (`POST /roster/users/:id/activation-code`, thu hồi mọi phiên); phát phiếu cả lớp `POST /roster/classes/:id/activation-codes` (chỉ học sinh còn chờ kích hoạt).
+  - **Web:** `/admin/hoc-vu` (năm học/học kỳ, lớp kèm chủ nhiệm–sĩ số–xem học sinh–chuyển lớp, môn, tổ, phòng), `/admin/nhap-danh-sach` (tải mẫu, xem trước tô màu lỗi, xác nhận, **trang in phiếu** mỗi lớp một trang), `/kich-hoat`, ô đăng nhập "Email hoặc mã học sinh/giáo viên", trang quên mật khẩu hướng dẫn học sinh liên hệ chủ nhiệm, danh sách người dùng thêm cột mã/lớp, trạng thái "Chờ kích hoạt", lọc theo lớp, nút "Cấp lại mã kích hoạt" (hiện phiếu một lần để in). Menu theo quyền.
+  - **Dọn rác test:** `pnpm --filter api db:cleanup-test [--dry-run]` (chỉ email khớp `f11.<nhãn>.<số>@pvh.edu.vn`, loại tài khoản seed, giữ lại tài khoản đã có dữ liệu nghiệp vụ). `users.e2e-spec.ts` nay tự dọn sau mỗi test; test mới của bước này dọn sạch dữ liệu của chính nó.
+  - **Tài liệu:** `CLAUDE.md`, README (mục Học vụ), `docs/02` (11 bảng mới, lệch ERD), `docs/04` (30 route mới), bảng `ROUTES` trong `test/security.e2e-spec.ts`.
+- **Test:** unit `activation.service.spec.ts` (sinh/chuẩn hoá/băm mã), `roster.spec.ts` (đọc Excel: tiêu đề có/không dấu, thiếu cột, công thức, ngày, quá dòng, file hỏng, zip phình to; kiểm tra từng dòng học sinh/giáo viên; `safeCell`; file mẫu đọc lại được). e2e `academic.e2e-spec.ts` (11 test: quyền, seed, một năm hiện hành kể cả ở CSDL, CRUD, chuyển lớp, chủ nhiệm) và `roster.e2e-spec.ts` (21 test: quyền, file hỏng/quá lớn, xem trước đúng dòng lỗi, xác nhận chỉ tạo dòng hợp lệ, nhập lại không tạo trùng, chỉ lưu bản băm + nhật ký không có danh sách, **850 học sinh một lần**, kích hoạt đúng/sai/hết hạn/dùng lại/khoá/giới hạn IP và mã, đăng nhập bằng mã học sinh, cấp lại mã của giáo viên chủ nhiệm đúng lớp và 403 lớp khác, nhập giáo viên, danh sách người dùng, file mẫu). `pnpm build`, `pnpm lint`, `pnpm test` (131 unit + 236 e2e) xanh.
+- **Kiểm tra giao diện (Chrome headless, API + web dev thật):** đăng nhập ADMIN bằng ô mới, menu có "Học vụ" và "Nhập danh sách"; các tab học vụ tải đủ dữ liệu; nhập file mẫu học sinh → xem trước 3 dòng hợp lệ → xác nhận → 3 phiếu theo lớp; kích hoạt bằng mã (gõ chữ thường), mã dùng lại bị từ chối, đăng nhập bằng mã học sinh viết thường vào `/admin`. Tài khoản `MAU0001–3` tạo lúc kiểm tra đã được xoá. **Chưa kiểm** hộp thoại in thật của trình duyệt (chỉ có lớp CSS `print:`) và giao diện ở 375px.
+- **Lệch thiết kế:** thêm bảng `activation_codes` ngoài ERD; số điện thoại giáo viên lưu ở `users.phone` (không lặp ở `teacher_profiles`), họ tên ở `users.full_name`. Phiếu tài khoản là trang in HTML (không PDF, không thêm thư viện). Mã kích hoạt cũng dùng để **đặt lại mật khẩu** (cấp lại mã cho tài khoản đã kích hoạt thì mật khẩu cũ vẫn dùng được tới khi nhập mã mới). Mở khoá tài khoản chưa từng kích hoạt thì về `PENDING`; quản trị đặt mật khẩu cho tài khoản `PENDING` thì chuyển `ACTIVE`. Đọc dữ liệu học vụ chỉ cho `academic:manage` (trừ danh sách học sinh của lớp chủ nhiệm); các bước sau sẽ mở thêm cho giáo viên/học sinh. Môn học xoá được khi chưa có bảng nào tham chiếu: bước 16+ phải dùng khoá ngoại không xoá dây chuyền.
+- **Chưa làm / cần người dùng:** script dọn `f11.*` **chưa chạy thật** (chạy thử `--dry-run`: 258 tài khoản, 946 dòng nhật ký, 301 refresh token, không có tài khoản bị giữ lại) — chờ người dùng đồng ý. Dữ liệu học sinh thật chưa nhập (cần nhà trường đồng ý). Học sinh sau khi kích hoạt hiện vào `/admin` với menu rỗng: cổng riêng theo vai trò thuộc bước 15.
+- **Còn lại:** bước 15 (khung cổng theo vai trò, chuyển hướng sau đăng nhập theo vai trò); bước 20 (giao diện của giáo viên chủ nhiệm cấp lại mã cho lớp mình — API đã có).

@@ -12,7 +12,7 @@ export async function AccountInfo() {
         <dt className="opacity-70">Họ tên</dt>
         <dd className="font-medium">{user.fullName}</dd>
         <dt className="opacity-70">Email</dt>
-        <dd className="break-all">{user.email}</dd>
+        <dd className="break-all">{user.email ?? "Không có (đăng nhập bằng mã)"}</dd>
         <dt className="opacity-70">Vai trò</dt>
         <dd>{user.roles.map((r) => ROLE_NAMES[r]).join(", ")}</dd>
       </dl>
