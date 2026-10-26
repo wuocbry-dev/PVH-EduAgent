@@ -23,6 +23,8 @@ function QueueSummary({ queue }: { queue: QueueStatusDto }) {
   );
 }
 
+export type DashboardGroup = "content" | "tasks" | "system";
+
 function Card({ label, value, href, alert }: { label: string; value: number; href: string; alert?: boolean }) {
   return (
     <Link
@@ -37,47 +39,54 @@ function Card({ label, value, href, alert }: { label: string; value: number; hre
 
 // Thẻ thống kê và tình trạng hệ thống; mỗi nhóm chỉ hiện khi API trả (người dùng đủ quyền).
 // Đọc phiên đăng nhập nên phải đặt trong <Suspense>.
-export async function DashboardCards() {
+// `base`: đường dẫn gốc của cổng (liên kết trên thẻ); `groups`: nhóm số liệu hiện ở cổng này (mặc định tất cả).
+export async function DashboardCards({
+  base,
+  groups = ["content", "tasks", "system"],
+}: {
+  base: string;
+  groups?: DashboardGroup[];
+}) {
   const d = await getDashboard();
+  const content = groups.includes("content");
+  const tasks = groups.includes("tasks");
   const hasCards =
-    d.postsPendingReview !== undefined ||
-    d.postsScheduled !== undefined ||
-    d.tasksOverdue !== undefined ||
-    d.contactsNew !== undefined;
+    (content && (d.postsPendingReview !== undefined || d.postsScheduled !== undefined || d.contactsNew !== undefined)) ||
+    (tasks && d.tasksOverdue !== undefined);
 
   return (
     <div className="space-y-6">
       {hasCards && (
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {d.postsPendingReview !== undefined && (
+          {content && d.postsPendingReview !== undefined && (
             <li>
-              <Card label="Bài chờ duyệt" value={d.postsPendingReview} href="/admin/bai-viet" />
+              <Card label="Bài chờ duyệt" value={d.postsPendingReview} href={`${base}/bai-viet`} />
             </li>
           )}
-          {d.postsScheduled !== undefined && (
+          {content && d.postsScheduled !== undefined && (
             <li>
-              <Card label="Bài đã hẹn giờ" value={d.postsScheduled} href="/admin/bai-viet" />
+              <Card label="Bài đã hẹn giờ" value={d.postsScheduled} href={`${base}/bai-viet`} />
             </li>
           )}
-          {d.tasksOverdue !== undefined && (
+          {tasks && d.tasksOverdue !== undefined && (
             <li>
               <Card
                 label={d.tasksOverdueScope === "own" ? "Việc của tôi quá hạn" : "Việc quá hạn"}
                 value={d.tasksOverdue}
-                href="/admin/cong-viec"
+                href={`${base}/cong-viec`}
                 alert
               />
             </li>
           )}
-          {d.contactsNew !== undefined && (
+          {content && d.contactsNew !== undefined && (
             <li>
-              <Card label="Liên hệ mới" value={d.contactsNew} href="/admin/lien-he" />
+              <Card label="Liên hệ mới" value={d.contactsNew} href={`${base}/lien-he`} />
             </li>
           )}
         </ul>
       )}
 
-      {d.system && (
+      {groups.includes("system") && d.system && (
         <section aria-label="Tình trạng hệ thống" className="rounded-lg border border-black/10 p-4 dark:border-white/15">
           <h2 className="mb-2 font-semibold">Tình trạng hệ thống</h2>
           <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2 lg:grid-cols-4">

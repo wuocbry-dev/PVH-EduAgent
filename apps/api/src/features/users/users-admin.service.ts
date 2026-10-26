@@ -115,6 +115,9 @@ export class UsersAdminService {
       await this.assertNotLastAdmin(target, 'Không thể gỡ vai trò của quản trị viên cuối cùng');
     }
     const roleIds = input.roles ? await this.roleIds(input.roles) : null;
+    const before = target.roles.map((ur) => ur.role.code).sort();
+    const rolesChanged =
+      !!input.roles && JSON.stringify([...input.roles].sort()) !== JSON.stringify(before);
     const user = await this.prisma.user.update({
       where: { id: target.id },
       data: {
@@ -129,6 +132,9 @@ export class UsersAdminService {
       },
       include: WITH_ROLES,
     });
+    // Đổi vai trò thì đăng xuất mọi phiên như khi khóa (claim `roles` trong access token cũ chỉ còn tối đa 15 phút,
+    // và chỉ dùng để chọn cổng giao diện).
+    if (rolesChanged) await this.revokeSessions(target.id);
     await this.record(actor, 'user.update', user.id, ip, {
       fullName: input.fullName,
       phone: input.phone,

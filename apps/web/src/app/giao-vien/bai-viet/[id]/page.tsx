@@ -4,7 +4,7 @@ import { PostEditor } from "@/features/posts";
 
 export const metadata: Metadata = { title: "Bài viết" };
 
-export default function EditPostPage({ params }: PageProps<"/admin/bai-viet/[id]">) {
+export default function EditPostPage({ params }: PageProps<"/giao-vien/bai-viet/[id]">) {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Bài viết</h1>
@@ -16,7 +16,7 @@ export default function EditPostPage({ params }: PageProps<"/admin/bai-viet/[id]
 }
 
 // Đọc params trong <Suspense> (cacheComponents).
-async function PostById({ params }: Pick<PageProps<"/admin/bai-viet/[id]">, "params">) {
+async function PostById({ params }: Pick<PageProps<"/giao-vien/bai-viet/[id]">, "params">) {
   const { id } = await params;
   return <PostEditor postId={id} />;
 }

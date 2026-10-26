@@ -3,6 +3,7 @@
 import { POST_STATUS_NAMES, POST_STATUSES, type PostDto, type PostStatus } from "@pvh/shared";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { usePortalBase } from "@/shared/lib/use-portal-base";
 import { CategorySelect } from "@/features/categories";
 import { errorClass, inputClass } from "@/shared/ui/form-styles";
 import { listManagePosts } from "../api/posts-api";
@@ -13,6 +14,7 @@ const formatDate = (iso: string) => new Date(iso).toLocaleString("vi-VN", { time
 
 // Danh sách bài viết trong CMS, lọc theo trạng thái và chuyên mục.
 export function PostManager() {
+  const base = usePortalBase();
   const [status, setStatus] = useState<PostStatus | "">("");
   const [categoryId, setCategoryId] = useState("");
   const [posts, setPosts] = useState<PostDto[] | null>(null);
@@ -50,7 +52,7 @@ export function PostManager() {
           </select>
           <CategorySelect value={categoryId} onChange={setCategoryId} emptyLabel="Mọi chuyên mục" />
         </div>
-        <Link href="/admin/bai-viet/moi" className="rounded bg-foreground px-4 py-2 text-background">
+        <Link href={`${base}/bai-viet/moi`} className="rounded bg-foreground px-4 py-2 text-background">
           Viết bài mới
         </Link>
       </div>
@@ -74,7 +76,7 @@ export function PostManager() {
               {posts.map((post) => (
                 <tr key={post.id}>
                   <td className="py-2 pr-4">
-                    <Link href={`/admin/bai-viet/${post.id}`} className="underline">
+                    <Link href={`${base}/bai-viet/${post.id}`} className="underline">
                       {post.title}
                     </Link>
                     {post.source === "TELEGRAM" && (

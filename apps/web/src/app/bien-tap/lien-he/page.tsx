@@ -3,7 +3,7 @@ import { ContactManager } from "@/features/contacts";
 
 export const metadata: Metadata = { title: "Liên hệ" };
 
-export default function AdminContactsPage() {
+export default function ContactsPage() {
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Liên hệ từ website</h1>

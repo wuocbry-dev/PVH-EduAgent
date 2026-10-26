@@ -22,6 +22,12 @@ export class SystemController {
     return this.system.getStatus(user);
   }
 
+  // Số liệu toàn trường (số lớp, học sinh, giáo viên) cho Ban giám hiệu.
+  @Get('overview')
+  overview(@CurrentUser() user: AuthUser) {
+    return this.system.getOverview(user);
+  }
+
   // Số liệu trang tổng quan; mỗi nhóm số liệu chỉ có khi người dùng đủ quyền.
   @Get('dashboard')
   dashboard(@CurrentUser() user: AuthUser) {

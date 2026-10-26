@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { DashboardDto } from '@pvh/shared';
+import type { DashboardDto, SchoolOverviewDto } from '@pvh/shared';
 import { assertPermission, can } from '../../common/guards/permission.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
@@ -69,7 +69,19 @@ export class SystemService {
     };
   }
 
-  // Số liệu cho trang tổng quan /admin: mỗi nhóm chỉ trả khi người dùng có quyền tương ứng.
+  // Số liệu toàn trường cho trang tổng quan của Ban giám hiệu (quyền academic:manage).
+  async getOverview(user: AuthUser): Promise<SchoolOverviewDto> {
+    assertPermission(user, 'academic:manage');
+    const year = await this.prisma.schoolYear.findFirst({ where: { isCurrent: true } });
+    const [classes, students, teachers] = await Promise.all([
+      year ? this.prisma.schoolClass.count({ where: { schoolYearId: year.id } }) : 0,
+      year ? this.prisma.classEnrollment.count({ where: { schoolYearId: year.id, student: { status: { not: 'LOCKED' } } } }) : 0,
+      this.prisma.teacherProfile.count({ where: { user: { status: { not: 'LOCKED' } } } }),
+    ]);
+    return { schoolYearName: year?.name ?? null, classes, students, teachers };
+  }
+
+  // Số liệu cho trang tổng quan của cổng: mỗi nhóm chỉ trả khi người dùng có quyền tương ứng.
   async getDashboard(user: AuthUser): Promise<DashboardDto> {
     const dashboard: DashboardDto = {};
 

@@ -37,6 +37,7 @@ const ROUTES: Record<string, Access> = {
   'POST /auth/forgot-password': 'public',
   'POST /auth/reset-password': 'public',
 
+  'GET /academic/me': 'self', // chỉ thông tin học vụ của chính mình
   'GET /academic/school-years': ['academic:manage'],
   'POST /academic/school-years': ['academic:manage'],
   'PATCH /academic/school-years/:id': ['academic:manage'],
@@ -131,6 +132,7 @@ const ROUTES: Record<string, Access> = {
   'GET /system/health': 'public',
   'GET /system/status': ['system:read'],
   'GET /system/dashboard': 'self',
+  'GET /system/overview': ['academic:manage'],
 
   'GET /tasks/deadlines': ['task:read:all', 'task:read:own'],
   'GET /tasks/assignees': ['task:assign', 'task:read:all'],

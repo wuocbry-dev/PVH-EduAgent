@@ -51,6 +51,12 @@ import {
 export class AcademicController {
   constructor(private readonly academic: AcademicService) {}
 
+  // Thông tin học vụ của chính mình (không cần quyền học vụ).
+  @Get('me')
+  me(@CurrentUser() user: AuthUser) {
+    return this.academic.me(user);
+  }
+
   // ── Năm học & học kỳ
   @Get('school-years')
   listSchoolYears(@CurrentUser() user: AuthUser) {

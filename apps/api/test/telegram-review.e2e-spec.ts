@@ -384,7 +384,7 @@ describe('Telegram báo người duyệt khi có bài gửi duyệt (bước 13,
       const buttons = (first.reply_markup.inline_keyboard as { text: string; url?: string; callback_data?: string }[][]).flat();
       expect(buttons.some((b) => b.url)).toBe(false);
       expect(buttons.map((b) => b.callback_data)).toEqual([`rv:v:${post.id}`, `rv:a:${post.id}`, `rv:r:${post.id}`]);
-      expect(first.text).toContain(`Trang duyệt: http://localhost:3000/admin/bai-viet/${post.id}`);
+      expect(first.text).toContain(`Trang duyệt: http://localhost:3000/bgh/bai-viet/${post.id}`);
 
       calls = [];
       (review as any).webUrl = (id: string) => `https://truong.example.vn/admin/bai-viet/${id}`;

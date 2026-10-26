@@ -245,7 +245,7 @@ describe('Nhập danh sách & mã kích hoạt (bước 14, e2e)', () => {
 
     it('mã đúng → kích hoạt, đăng nhập luôn (cookie), dùng mật khẩu mới đăng nhập bằng mã học sinh; mã dùng lại bị từ chối', async () => {
       const res = await activate(code('k').toLowerCase(), slip.activationCode.toLowerCase().replace('-', ' ')).expect(200);
-      expect(res.headers['set-cookie']?.join(';')).toMatch(/pvh_access=/);
+      expect((res.headers['set-cookie'] as unknown as string[] | undefined)?.join(';')).toMatch(/pvh_access=/);
       expect(res.body).toMatchObject({ email: null, fullName: 'Kích Hoạt Thử', roles: ['STUDENT'] });
 
       const cookie = res.headers['set-cookie'] as unknown as string[];
@@ -427,7 +427,7 @@ describe('Nhập danh sách & mã kích hoạt (bước 14, e2e)', () => {
         expect(res.headers['content-type']).toContain('spreadsheetml');
         expect(res.headers['content-disposition']).toContain('.xlsx');
         const wb = new ExcelJS.Workbook();
-        await wb.xlsx.load(res.body as Buffer);
+        await wb.xlsx.load(res.body as unknown as ExcelJS.Buffer);
         expect(wb.worksheets[0]!.rowCount).toBeGreaterThanOrEqual(3);
       }
       await admin.get('/roster/templates/khac').expect(400);

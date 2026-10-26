@@ -3,6 +3,7 @@
 import type { PostDto } from "@pvh/shared";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
+import { usePortalBase } from "@/shared/lib/use-portal-base";
 import { CategorySelect } from "@/features/categories";
 import { MediaLibrary } from "@/features/media";
 import { mediaSrc } from "@/shared/lib/media-url";
@@ -39,6 +40,7 @@ export function PostEditor({ postId }: { postId?: string }) {
 }
 
 function PostForm({ post, onPost }: { post: PostDto | null; onPost: (post: PostDto) => void }) {
+  const base = usePortalBase();
   const router = useRouter();
   const editable = !post || post.actions.includes("edit");
   const [content, setContent] = useState(post?.content ?? "");
@@ -68,7 +70,7 @@ function PostForm({ post, onPost }: { post: PostDto | null; onPost: (post: PostD
         setSaved(true);
       } else {
         const created = await createPost(body);
-        router.replace(`/admin/bai-viet/${created.id}`);
+        router.replace(`${base}/bai-viet/${created.id}`);
       }
     } catch (err) {
       setError(errorText(err));
@@ -98,7 +100,7 @@ function PostForm({ post, onPost }: { post: PostDto | null; onPost: (post: PostD
           <PostActions
             post={post}
             onChanged={onPost}
-            onDeleted={() => router.replace("/admin/bai-viet")}
+            onDeleted={() => router.replace(`${base}/bai-viet`)}
           />
         </div>
       )}

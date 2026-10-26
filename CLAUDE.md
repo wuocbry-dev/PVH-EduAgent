@@ -19,7 +19,7 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 
 - Validate input bằng zod: schema trong `dto/*.dto.ts`, dùng `@Body(new ZodValidationPipe(schema))` (`common/pipes/zod-validation.pipe.ts`).
 - Kiểm tra quyền **trong service**, không trong controller: `assertPermission(user, 'post:create')` / `can(user, ...)` (`common/guards/permission.ts`). Quyền của user lấy từ `users → user_roles → roles → role_permissions` (`UsersService.findAuthUserByEmail`). Route không cần đăng nhập dùng `@Public()`; lấy user bằng `@CurrentUser()`.
-- Xác thực (F10): `JwtAuthGuard` toàn cục đọc JWT từ cookie `pvh_access`; header `x-dev-user-email` chỉ có tác dụng khi `NODE_ENV=development` và `DEV_AUTH=true`. Web: `src/proxy.ts` chặn `/admin`; Server Component gọi API bằng `serverApi` (`shared/lib/server-api.ts`, chuyển tiếp cookie), Client Component dùng `api` (`credentials: "include"`).
+- Xác thực (F10): `JwtAuthGuard` toàn cục đọc JWT từ cookie `pvh_access`; header `x-dev-user-email` chỉ có tác dụng khi `NODE_ENV=development` và `DEV_AUTH=true`. Web: `src/proxy.ts` chặn mọi cổng (xem mục Các cổng giao diện); Server Component gọi API bằng `serverApi` (`shared/lib/server-api.ts`, chuyển tiếp cookie), Client Component dùng `api` (`credentials: "include"`).
 - Bảo mật HTTP (bước 10): `bootstrap/configure-app.ts` (helmet, CORS, giới hạn body, chống CSRF bằng kiểm tra `Origin`), `common/filters/all-exceptions.filter.ts` (lỗi tiếng Việt thống nhất), `infrastructure/rate-limit` (throttler + `RateLimitService`, đếm trong Redis; mọi giới hạn mới dùng `RateLimitService`, không tự viết bộ đếm trong bộ nhớ). Endpoint mới phải được thêm vào bảng `ROUTES` ở `test/security.e2e-spec.ts` và `docs/04-bang-endpoint-quyen.md` (test sẽ đỏ nếu thiếu).
 - Biến môi trường khai báo và kiểm tra bằng zod ở `src/config/env.validation.ts`; thêm biến mới thì cập nhật cả `apps/api/.env.example`.
 - Thao tác quan trọng (tạo/sửa/xóa/duyệt/đăng, phân quyền, đăng nhập…) phải ghi `audit_logs` qua `AuditLogService.record()` (channel `web` | `telegram` | `scheduler`).
@@ -55,6 +55,20 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 
 - `PostsService.transition` (nhánh `submit`) gọi các listener đăng ký bằng `onSubmitted` (chạy nền, lỗi chỉ ghi log) nên mọi đường gửi duyệt đều được báo; `TelegramReviewService` (`features/telegram`) đăng ký listener, chọn người nhận theo `role_permissions` (cả `post:approve` và `post:schedule`, không phải tác giả), chống báo trùng theo (bài, số lần gửi duyệt) trong Redis, tắt được bằng khoá `telegram.review_notify`. Tin là **văn bản thuần** (không `parse_mode`) và mọi giá trị người dùng nhập đi qua `defang()`; nút URL chỉ khi `isPublicHttps`.
 - Nút `rv:v|a|r:<id>`: kiểm tra lại quyền + trạng thái `PENDING_REVIEW` mỗi lần bấm; Duyệt đăng chỉ gọi `AgentActionsService.propose` (xác nhận 2 bước); Từ chối giữ trạng thái chờ lý do trong Redis 5 phút rồi gọi `PostsService.transition('reject')`. `PostsService` cũng báo tác giả (bảng `notifications` → Telegram) khi bài được duyệt/từ chối bởi người khác.
+
+## Các cổng giao diện theo vai trò (bước 15)
+
+| Cổng | Vai trò | Ghi chú |
+|---|---|---|
+| `/admin` | ADMIN | hệ thống: người dùng, nhập Excel, vai trò/quyền, cấu hình, nhật ký (không có duyệt bài/giao việc) |
+| `/bgh` | PRINCIPAL | tổng quan toàn trường, học vụ, bài viết + duyệt, giao việc, lịch, Trợ lý AI |
+| `/bien-tap` | EDITOR | bài viết, chuyên mục, liên hệ, lịch, Trợ lý AI |
+| `/giao-vien` | TEACHER | tổng quan, bài của tôi, việc của tôi, Trợ lý AI |
+| `/hoc-sinh` | STUDENT | trang của em, đổi mật khẩu |
+
+- Bảng cổng nằm ở **một nơi**: `PORTAL_INFO` trong `packages/shared/src/portals.ts` (đường dẫn, tên, vai trò, menu `nav` theo `slug`, `portalRedirect`); proxy, menu và API (liên kết trong Telegram) đều dùng nó. **Thêm trang mới:** thêm mục vào `nav` của cổng cần có, tạo `apps/web/src/app/<cổng>/<slug>/page.tsx` (trang mỏng gọi component của feature; trang dùng ở nhiều cổng thì mỗi cổng một route gọi chung một component, không sao chép code), rồi chạy `portals.spec.ts` (kiểm mọi mục menu có trang). Component dùng chung giữa cổng dựng liên kết bằng `usePortalBase()` (client) hoặc prop `base` (server), không viết cứng `/admin`.
+- `src/proxy.ts` đọc claim `roles` trong access token (do `TokenService.issue` thêm) **chỉ để chọn cổng/chuyển hướng**; không bao giờ dùng claim làm bằng chứng quyền (API đọc lại quyền từ CSDL mỗi request). Đổi vai trò của người dùng thu hồi mọi refresh token (`UsersAdminService.update`).
+- Quyền không đổi ở bước 15 (ADMIN vẫn giữ `post:approve`, `task:assign`…); chỉ điều hướng và menu thay đổi.
 
 ## Học vụ và tài khoản hàng loạt (bước 14)
 

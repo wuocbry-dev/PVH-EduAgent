@@ -49,6 +49,15 @@ Ký hiệu: **Công khai** = không cần đăng nhập; **Tự phục vụ** = 
 
 `GET /users` có thêm bộ lọc `classId`, tìm theo mã học sinh/giáo viên; trả `code`, `className`, trạng thái `PENDING` (chờ kích hoạt).
 
+## Cổng theo vai trò (bước 15)
+
+Web chọn cổng giao diện (`/admin`, `/bgh`, `/bien-tap`, `/giao-vien`, `/hoc-sinh`) theo vai trò; ẩn menu và chuyển hướng **không phải** bảo mật, API vẫn kiểm tra quyền như các bảng dưới đây. Access token có thêm claim `roles` chỉ để proxy của web định tuyến; đổi vai trò người dùng thu hồi mọi phiên của họ.
+
+| Endpoint | Quyền | Ghi chú |
+|---|---|---|
+| `GET /academic/me` | Tự phục vụ | mã, lớp, năm học, giáo viên chủ nhiệm (học sinh) hoặc các lớp chủ nhiệm (giáo viên) của chính mình |
+| `GET /system/overview` | `academic:manage` | số lớp, học sinh, giáo viên của năm học hiện hành (trang tổng quan BGH) |
+
 ## Học vụ – `/academic`, `/roster` (bước 14)
 
 | Endpoint | Quyền | Ghi chú |

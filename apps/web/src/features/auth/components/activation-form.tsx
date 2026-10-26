@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { activateAccount } from "../api/auth-api";
-import { DEFAULT_AFTER_LOGIN, LOGIN_PATH } from "../config";
+import { afterLoginPath, LOGIN_PATH } from "../config";
 import { buttonClass, errorClass, inputClass } from "@/shared/ui/form-styles";
 import { NewPasswordFields, readNewPassword } from "./password-fields";
 
@@ -19,12 +19,12 @@ export function ActivationForm() {
     setPending(true);
     setError(null);
     try {
-      await activateAccount({
+      const me = await activateAccount({
         identifier: String(form.get("identifier")).trim(),
         activationCode: String(form.get("activationCode")).trim(),
         newPassword: readNewPassword(form),
       });
-      router.replace(DEFAULT_AFTER_LOGIN);
+      router.replace(afterLoginPath(me.roles, null));
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

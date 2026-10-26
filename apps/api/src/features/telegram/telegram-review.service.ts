@@ -1,7 +1,7 @@
 import { HttpException, Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ModuleRef } from '@nestjs/core';
-import { POST_STATUS_NAMES } from '@pvh/shared';
+import { PORTAL_INFO, POST_STATUS_NAMES, portalSections, portalsFor, type Role } from '@pvh/shared';
 import { InlineKeyboard, type Context } from 'grammy';
 import { can } from '../../common/guards/permission.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
@@ -101,8 +101,12 @@ export class TelegramReviewService implements OnApplicationBootstrap {
     return this.moduleRef.get(TelegramBotService, { strict: false });
   }
 
-  private webUrl(postId: string): string {
-    return `${this.config.get('WEB_ORIGIN', { infer: true }).replace(/\/+$/, '')}/admin/bai-viet/${postId}`;
+  // Trang duyệt nằm ở cổng của người nhận có mục bài viết (BGH: /bgh, biên tập viên: /bien-tap).
+  // Người chỉ có cổng quản trị (ADMIN) không có trang bài viết: proxy của web đưa về trang chủ cổng của họ.
+  private webUrl(postId: string, roles: readonly Role[] = []): string {
+    const portal = portalsFor(roles).find((p) => portalSections(p).includes('bai-viet'));
+    const base = PORTAL_INFO[portal ?? 'admin'].path;
+    return `${this.config.get('WEB_ORIGIN', { infer: true }).replace(/\/+$/, '')}${base}/bai-viet/${postId}`;
   }
 
   // ── Gửi thông báo ────────────────────────────────────────────────────────────────────────────
@@ -157,29 +161,32 @@ export class TelegramReviewService implements OnApplicationBootstrap {
     const images = (post.content.match(/<img\b/gi) ?? []).length;
     const videos = (post.content.match(/<video\b/gi) ?? []).length;
     const files = [images ? `${images} ảnh` : '', videos ? `${videos} video` : ''].filter(Boolean).join(', ') || 'không có';
-    const url = this.webUrl(postId);
-    const urlButton = isPublicHttps(url);
-    const text = [
-      '📝 Có bài mới chờ duyệt',
-      `Tiêu đề: ${defang(post.title)}`,
-      `Tác giả: ${defang(post.author.fullName)}`,
-      `Chuyên mục: ${post.category ? defang(post.category.name) : 'chưa phân loại'}`,
-      `Gửi lúc: ${formatTime(new Date())} (giờ Việt Nam)`,
-      `Đính kèm: ${files}`,
-      ...(urlButton ? [] : [`Trang duyệt: ${url}`]),
-      '',
-      defang(excerptOf(post.content)) || '(bài chưa có chữ)',
-    ].join('\n');
-    const keyboard = new InlineKeyboard()
-      .text('👁 Xem toàn văn', `rv:v:${postId}`)
-      .row()
-      .text('✅ Duyệt đăng', `rv:a:${postId}`)
-      .text('❌ Từ chối', `rv:r:${postId}`);
-    if (urlButton) keyboard.row().url('🔗 Mở trang duyệt', url);
+    const compose = (url: string) => {
+      const urlButton = isPublicHttps(url);
+      const text = [
+        '📝 Có bài mới chờ duyệt',
+        `Tiêu đề: ${defang(post.title)}`,
+        `Tác giả: ${defang(post.author.fullName)}`,
+        `Chuyên mục: ${post.category ? defang(post.category.name) : 'chưa phân loại'}`,
+        `Gửi lúc: ${formatTime(new Date())} (giờ Việt Nam)`,
+        `Đính kèm: ${files}`,
+        ...(urlButton ? [] : [`Trang duyệt: ${url}`]),
+        '',
+        defang(excerptOf(post.content)) || '(bài chưa có chữ)',
+      ].join('\n');
+      const keyboard = new InlineKeyboard()
+        .text('👁 Xem toàn văn', `rv:v:${postId}`)
+        .row()
+        .text('✅ Duyệt đăng', `rv:a:${postId}`)
+        .text('❌ Từ chối', `rv:r:${postId}`);
+      if (urlButton) keyboard.row().url('🔗 Mở trang duyệt', url);
+      return { text, keyboard };
+    };
 
     let sent = 0;
     for (const user of recipients) {
       let error: string | undefined;
+      const { text, keyboard } = compose(this.webUrl(postId, user.roles.map((r) => r.role.code as Role)));
       try {
         await bot.bot!.api.sendMessage(user.telegramChatId!, text, {
           reply_markup: keyboard,

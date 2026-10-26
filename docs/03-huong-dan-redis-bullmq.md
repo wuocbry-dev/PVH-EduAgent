@@ -40,13 +40,13 @@ BULLMQ_PREFIX=pvh
 
 Để trống `REDIS_URL` thì **bộ lập lịch tự tắt** (API ghi cảnh báo lúc khởi động và vẫn chạy bình thường):
 duyệt, hẹn giờ vẫn lưu được nhưng bài chưa tự đăng. Khi bật lại Redis và khởi động API, các bài đã quá giờ
-được đăng bù và các job còn thiếu được dựng lại từ CSDL. Dashboard `/admin` và tool `get_system_status`
+được đăng bù và các job còn thiếu được dựng lại từ CSDL. Dashboard `/admin` (và tổng quan các cổng khác) và tool `get_system_status`
 của AI Agent hiển thị tình trạng hàng đợi.
 
 ## Kiểm tra bằng tay
 
 1. Đăng nhập biên tập viên, tạo bài, gửi duyệt, rồi **Duyệt & hẹn giờ** vào 1–2 phút sau.
-2. Chờ đến giờ: bài chuyển `Đã đăng` và có dòng `post.publish` (kênh Bộ lập lịch) ở `/admin/nhat-ky`.
+2. Chờ đến giờ: bài chuyển `Đã đăng` và có dòng `post.publish` (kênh Bộ lập lịch) ở trang Nhật ký hoạt động (`/admin/nhat-ky`).
 3. Thử tắt rồi bật lại API trước giờ đăng: lịch không mất vì job nằm trong Redis và được dựng lại từ CSDL.
 
 ## Chạy test

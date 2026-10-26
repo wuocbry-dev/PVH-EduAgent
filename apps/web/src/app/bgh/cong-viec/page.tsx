@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "Công việc" };
 export default function TasksPage() {
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Công việc và hạn chót</h1>
+      <h1 className="text-2xl font-bold">Giao việc và hạn chót</h1>
       <TaskManager />
     </div>
   );

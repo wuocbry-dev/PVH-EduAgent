@@ -4,12 +4,12 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { login } from "../api/auth-api";
-import { safeNext } from "../config";
+import { afterLoginPath } from "../config";
 import { buttonClass, errorClass, inputClass } from "@/shared/ui/form-styles";
 
 export function LoginForm() {
   const router = useRouter();
-  const next = safeNext(useSearchParams().get("next"));
+  const next = useSearchParams().get("next");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -19,8 +19,8 @@ export function LoginForm() {
     setPending(true);
     setError(null);
     try {
-      await login({ identifier: String(form.get("identifier")).trim(), password: String(form.get("password")) });
-      router.replace(next);
+      const me = await login({ identifier: String(form.get("identifier")).trim(), password: String(form.get("password")) });
+      router.replace(afterLoginPath(me.roles, next));
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

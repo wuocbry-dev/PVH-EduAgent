@@ -1,9 +1,9 @@
-import { ROLE_NAMES } from "@pvh/shared";
+import { PORTAL_INFO, ROLE_NAMES, type Portal } from "@pvh/shared";
 import Link from "next/link";
 import { getCurrentUser } from "../api/get-current-user";
 
-// Thông tin tài khoản đang đăng nhập (trang /admin/tai-khoan). Đọc phiên nên phải đặt trong <Suspense>.
-export async function AccountInfo() {
+// Thông tin tài khoản đang đăng nhập (trang tài khoản của từng cổng). Đọc phiên nên phải đặt trong <Suspense>.
+export async function AccountInfo({ portal }: { portal: Portal }) {
   const user = await getCurrentUser();
 
   return (
@@ -16,7 +16,7 @@ export async function AccountInfo() {
         <dt className="opacity-70">Vai trò</dt>
         <dd>{user.roles.map((r) => ROLE_NAMES[r]).join(", ")}</dd>
       </dl>
-      <Link href="/admin/doi-mat-khau" className="inline-block text-sm underline">
+      <Link href={`${PORTAL_INFO[portal].path}/doi-mat-khau`} className="inline-block text-sm underline">
         Đổi mật khẩu
       </Link>
     </section>

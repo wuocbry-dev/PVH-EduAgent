@@ -13,6 +13,7 @@ import type {
   SchoolYearDto,
   SemesterDto,
   SubjectDto,
+  MyAcademicDto,
   TeacherOptionDto,
 } from '@pvh/shared';
 import { assertPermission, can } from '../../common/guards/permission.js';
@@ -461,6 +462,37 @@ export class AcademicService {
       ok: true,
       ip,
     });
+  }
+
+  // Thông tin học vụ của chính mình: ai đăng nhập cũng gọi được, chỉ trả dữ liệu của bản thân.
+  async me(actor: AuthUser): Promise<MyAcademicDto> {
+    const userId = BigInt(actor.id);
+    const year = await this.currentYear();
+    const [student, teacher, enrollment, homerooms] = await Promise.all([
+      this.prisma.studentProfile.findUnique({ where: { userId } }),
+      this.prisma.teacherProfile.findUnique({ where: { userId } }),
+      year
+        ? this.prisma.classEnrollment.findUnique({
+            where: { studentId_schoolYearId: { studentId: userId, schoolYearId: year.id } },
+            include: { class: { include: { homeroomTeacher: { select: { fullName: true } } } } },
+          })
+        : null,
+      year
+        ? this.prisma.schoolClass.findMany({
+            where: { homeroomTeacherId: userId, schoolYearId: year.id },
+            include: { _count: { select: { enrollments: true } } },
+            orderBy: { name: 'asc' },
+          })
+        : [],
+    ]);
+    return {
+      studentCode: student?.studentCode ?? null,
+      teacherCode: teacher?.teacherCode ?? null,
+      schoolYearName: year?.name ?? null,
+      className: enrollment?.class.name ?? null,
+      homeroomTeacherName: enrollment?.class.homeroomTeacher?.fullName ?? null,
+      homeroomClasses: homerooms.map((c) => ({ id: c.id.toString(), name: c.name, studentCount: c._count.enrollments })),
+    };
   }
 
   // ───────────── Hỗ trợ ─────────────

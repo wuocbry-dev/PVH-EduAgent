@@ -54,8 +54,15 @@ export class TokenService {
         userAgent: meta.userAgent?.slice(0, 255),
       },
     });
+    // Claim `roles` chỉ để proxy của web chọn cổng giao diện. Không dùng để cấp quyền: API luôn đọc lại quyền từ CSDL.
+    const roles = await this.prisma.userRole.findMany({
+      where: { userId: BigInt(userId) },
+      select: { role: { select: { code: true } } },
+    });
     return {
-      accessToken: await this.sign(userId, 'access', ACCESS_TOKEN_TTL_SECONDS),
+      accessToken: await this.sign(userId, 'access', ACCESS_TOKEN_TTL_SECONDS, {
+        roles: roles.map((r) => r.role.code),
+      }),
       refreshToken,
     };
   }
@@ -134,7 +141,7 @@ export class TokenService {
     userId: string,
     typ: TokenType,
     ttlSeconds: number,
-    claims: Record<string, string> = {},
+    claims: Record<string, string | string[]> = {},
   ): Promise<string> {
     return new SignJWT({ ...claims, typ })
       .setProtectedHeader({ alg: 'HS256' })

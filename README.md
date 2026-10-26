@@ -38,11 +38,11 @@ apps/api/src/
     └── scheduler/               # (khung) BullMQ: đăng bài hẹn giờ, nhắc hạn
 
 apps/web/src/
-├── proxy.ts                     # chặn /admin khi chưa đăng nhập, tự refresh token
+├── proxy.ts                     # chặn mọi cổng khi chưa đăng nhập, chọn cổng theo vai trò, tự refresh token
 ├── app/                         # chỉ định tuyến, trang mỏng
 │   ├── (public)/                #   /, /tin-tuc
 │   ├── (auth)/                  #   /dang-nhap, /quen-mat-khau, /dat-lai-mat-khau
-│   └── admin/                   #   /admin, /admin/tro-ly-ai, /admin/doi-mat-khau
+│   └── admin/ bgh/ bien-tap/ giao-vien/ hoc-sinh/   #   5 cổng theo vai trò, mỗi cổng layout + menu riêng
 ├── features/
 │   ├── auth/    {api, components, proxy.ts, index.ts}
 │   ├── posts/   {api, components, index.ts}
@@ -73,7 +73,7 @@ Trong `apps/api/.env`: điền `JWT_ACCESS_SECRET` (chuỗi ngẫu nhiên ≥ 32
 pnpm dev
 ```
 
-- Web: http://localhost:3000 · Quản trị: http://localhost:3000/admin (đăng nhập bằng tài khoản mẫu, mật khẩu `Pvh@2026`) · Trợ lý AI: http://localhost:3000/admin/tro-ly-ai
+- Web: http://localhost:3000 · Đăng nhập: http://localhost:3000/dang-nhap (tài khoản mẫu, mật khẩu `Pvh@2026`), tự vào cổng của vai trò (xem mục Các cổng giao diện) · Trợ lý AI: trang `tro-ly-ai` trong cổng BGH/biên tập/giáo viên
 - API: http://localhost:4000/api (vd. `/api/system/health`)
 
 ### Cơ sở dữ liệu (PostgreSQL + Prisma)
@@ -104,12 +104,25 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
 
 - Cookie `httpOnly`, `SameSite=Lax`, `Secure` khi production; refresh token chỉ lưu bản băm (bảng `refresh_tokens`).
 - Sai mật khẩu 5 lần/phút (theo IP + email) thì bị chặn tạm thời (429). Đăng nhập thành công/thất bại đều ghi `audit_logs`.
-- Web: `src/proxy.ts` chuyển `/admin/*` về `/dang-nhap` khi chưa đăng nhập và tự refresh khi access token hết hạn. Web và API phải cùng tên miền gốc để dùng chung cookie (dev: cùng `localhost`).
+- Web: `src/proxy.ts` chuyển mọi cổng (`/admin`, `/bgh`, `/bien-tap`, `/giao-vien`, `/hoc-sinh`) về `/dang-nhap` khi chưa đăng nhập và tự refresh khi access token hết hạn. Web và API phải cùng tên miền gốc để dùng chung cookie (dev: cùng `localhost`).
 - Chế độ thử nghiệm: `DEV_AUTH=true` (API, chỉ khi `NODE_ENV=development`) + `NEXT_PUBLIC_DEV_AUTH=true` (web) → trang Trợ lý AI có ô chọn vai trò (header `x-dev-user-email`).
+
+## Các cổng giao diện theo vai trò (bước 15)
+
+| Cổng | Vai trò | Nội dung |
+|---|---|---|
+| `/admin` | ADMIN | tình trạng hệ thống, người dùng, nhập Excel và phiếu tài khoản, vai trò và quyền, cấu hình, nhật ký |
+| `/bgh` | PRINCIPAL | tổng quan toàn trường, học vụ, bài viết và duyệt bài, giao việc, lịch sự kiện, Trợ lý AI |
+| `/bien-tap` | EDITOR | bài viết, chuyên mục, liên hệ, lịch sự kiện, Trợ lý AI |
+| `/giao-vien` | TEACHER | tổng quan (lớp chủ nhiệm, việc của tôi), bài viết của tôi, việc của tôi, Trợ lý AI; thời khoá biểu và nhập điểm ghi "sắp có" |
+| `/hoc-sinh` | STUDENT | trang của em (họ tên, lớp, năm học), đổi mật khẩu; chỗ trống cho thời khoá biểu, điểm, thông báo |
+
+- Sau đăng nhập/kích hoạt tự vào cổng chính (ADMIN → PRINCIPAL → EDITOR → TEACHER → STUDENT); `next` hợp lệ và thuộc cổng của người đó thì ưu tiên. Người nhiều vai trò có nút **Đổi cổng**. Vào cổng không thuộc mình, hoặc dùng đường dẫn cũ `/admin/bai-viet…`, thì `src/proxy.ts` chuyển hướng (308) sang trang tương ứng của cổng mình.
+- **Ẩn menu/chuyển hướng không phải bảo mật:** API luôn kiểm tra quyền trong service. Proxy chọn cổng theo claim `roles` trong access token (chỉ để định tuyến); đổi vai trò người dùng thì thu hồi mọi phiên đăng nhập của họ.
 
 ## Học vụ, nhập danh sách và phiếu tài khoản (bước 14)
 
-- Trang `/admin/hoc-vu` (quyền `academic:manage`: ADMIN, BGH): năm học (chỉ một năm hiện hành), học kỳ, lớp (chủ nhiệm, sĩ số, chuyển lớp), môn, tổ chuyên môn, phòng bộ môn. Giáo viên chủ nhiệm **không phải vai trò**: suy từ `classes.homeroom_teacher_id`.
+- Trang `/bgh/hoc-vu` (quyền `academic:manage`: ADMIN, BGH): năm học (chỉ một năm hiện hành), học kỳ, lớp (chủ nhiệm, sĩ số, chuyển lớp), môn, tổ chuyên môn, phòng bộ môn. Giáo viên chủ nhiệm **không phải vai trò**: suy từ `classes.homeroom_teacher_id`.
 - **Nhập danh sách bằng Excel** (`/admin/nhap-danh-sach`, quyền `student:import`: ADMIN): tải file mẫu (hoặc dùng `docs/mau/mau-nhap-hoc-sinh.xlsx`, `mau-nhap-giao-vien.xlsx`, dữ liệu giả) → **Xem trước** (từng dòng: hợp lệ / bỏ qua vì đã có / lỗi kèm lý do, tô màu) → **Xác nhận** tạo trong một transaction → **In phiếu tài khoản** theo lớp (mỗi lớp một trang). Giới hạn 2 MB, 3000 dòng; công thức Excel không được đánh giá. Cần Redis (bản xem trước lưu 30 phút). Tạo lại file mẫu: `pnpm --filter api roster:templates`.
 - Tài khoản nhập hàng loạt ở trạng thái **chờ kích hoạt**; mỗi tài khoản có **một mã kích hoạt dùng một lần** (dạng `XXXXX-XXXXX`, hạn 14 ngày, chỉ lưu bản băm) in trên phiếu. **Mã gốc chỉ hiện một lần lúc phát hành**, không xem lại được. Người dùng vào `/kich-hoat`, nhập mã học sinh (hoặc email với giáo viên) + mã kích hoạt + mật khẩu mới là đăng nhập luôn. Sau đó đăng nhập bằng mã học sinh/giáo viên hoặc email ở `/dang-nhap`.
 - Mất phiếu / quên mật khẩu: ADMIN hoặc **giáo viên chủ nhiệm của đúng lớp** cấp lại mã (`POST /api/roster/users/:id/activation-code`, nút "Cấp lại mã kích hoạt" ở trang Người dùng); mã cũ và mọi phiên đăng nhập của học sinh bị thu hồi.
@@ -180,7 +193,7 @@ TELEGRAM_WEBHOOK_URL=                   # vd. https://pvh.edu.vn/api/telegram/we
 
 ### Sử dụng
 
-1. Đăng nhập trang quản trị → **Tài khoản** (`/admin/tai-khoan`) → **Liên kết Telegram** → nhận mã 6 số.
+1. Đăng nhập trang quản trị → **Tài khoản** (trang **Tài khoản** của cổng bạn, vd. `/bgh/tai-khoan`) → **Liên kết Telegram** → nhận mã 6 số.
 2. Gửi cho bot `/link <mã>` (hoặc bấm **Mở bot trên Telegram**). Sai/hết hạn bị từ chối; sai 5 lần thì khoá 10 phút.
 3. Lệnh: `/status` (A03), `/deadline` (A04), `/unlink`, `/help`. Nhắn tự do thì trợ lý AI trả lời và thao tác **đúng quyền** của tài khoản đã liên kết.
 4. Thông báo của bộ lập lịch (nhắc hạn, báo cáo ngày, kết quả đăng bài) được gửi qua bot cho người đã liên kết.

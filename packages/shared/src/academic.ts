@@ -136,3 +136,21 @@ export interface RosterConfirmDto {
   skipped: number;
   slips: AccountSlipDto[];
 }
+
+// GET /api/academic/me – thông tin học vụ của chính người đăng nhập (trang tổng quan cổng học sinh/giáo viên).
+export interface MyAcademicDto {
+  studentCode: string | null;
+  teacherCode: string | null;
+  schoolYearName: string | null; // năm học hiện hành
+  className: string | null; // học sinh: lớp đang học
+  homeroomTeacherName: string | null; // học sinh: giáo viên chủ nhiệm lớp mình
+  homeroomClasses: { id: string; name: string; studentCount: number }[]; // giáo viên: lớp chủ nhiệm (năm hiện hành)
+}
+
+// GET /api/system/overview – số liệu toàn trường cho trang tổng quan của Ban giám hiệu.
+export interface SchoolOverviewDto {
+  schoolYearName: string | null;
+  classes: number;
+  students: number;
+  teachers: number;
+}

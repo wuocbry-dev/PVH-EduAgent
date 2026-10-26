@@ -10,7 +10,7 @@ export default function AccountPage() {
     <div className="max-w-xl space-y-4">
       <h1 className="text-2xl font-bold">Tài khoản</h1>
       <Suspense fallback={<p className="text-sm opacity-70">Đang tải…</p>}>
-        <AccountInfo />
+        <AccountInfo portal="admin" />
       </Suspense>
       <TelegramLinkCard />
     </div>
