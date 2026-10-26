@@ -29,6 +29,7 @@ import { TelegramContextService } from './telegram-context.service.js';
 import { TelegramFileService } from './telegram-file.service.js';
 import { TelegramLinkService, type LinkResult } from './telegram-link.service.js';
 import { TelegramRateLimiter } from './telegram-rate-limiter.js';
+import { TelegramReviewService } from './telegram-review.service.js';
 
 // Mỗi chat tối đa 20 tin / phút; tin vượt hạn mức bị bỏ qua (chỉ cảnh báo một lần).
 const MESSAGE_LIMIT = 20;
@@ -144,6 +145,7 @@ export class TelegramBotService implements OnApplicationBootstrap, OnModuleDestr
     private readonly context: TelegramContextService,
     private readonly albums: TelegramAlbumService,
     private readonly files: TelegramFileService,
+    private readonly review: TelegramReviewService,
   ) {
     this.mode = config.get('TELEGRAM_MODE', { infer: true });
     const token = config.get('TELEGRAM_BOT_TOKEN', { infer: true });
@@ -280,6 +282,10 @@ export class TelegramBotService implements OnApplicationBootstrap, OnModuleDestr
     bot.callbackQuery(/^aa:([cx]):(\d{1,18})$/, (ctx) =>
       this.onActionButton(ctx, ctx.match[1] === 'c' ? 'confirm' : 'cancel', ctx.match[2]),
     );
+    // Báo người duyệt có bài mới: nút Xem toàn văn / Duyệt đăng / Từ chối. callback_data: rv:v|a|r:<id>.
+    bot.callbackQuery(/^rv:([var]):(\d{1,18})$/, (ctx) =>
+      this.review.onButton(ctx, ctx.match[1] as 'v' | 'a' | 'r', ctx.match[2]),
+    );
     bot.on('callback_query:data', (ctx) => ctx.answerCallbackQuery().catch(() => undefined));
 
     bot.command('start', async (ctx) => {
@@ -314,6 +320,7 @@ export class TelegramBotService implements OnApplicationBootstrap, OnModuleDestr
       const user = await this.links.findUserByChat(this.chatId(ctx));
       if (!user) return this.reject(ctx, 'huy');
       await this.context.clear(this.chatId(ctx));
+      const wasRejecting = await this.review.clearReject(this.chatId(ctx));
       let cancelled = 0;
       for (const action of await this.actions.listPending(user)) {
         await this.actions.cancel(user, action.id, 'telegram').then(() => cancelled++, () => undefined);
@@ -327,7 +334,7 @@ export class TelegramBotService implements OnApplicationBootstrap, OnModuleDestr
       });
       await this.reply(
         ctx,
-        `Đã bỏ bản nháp đang soạn (tin nhắn và tệp đã gửi chưa gắn vào bài).${cancelled ? ` Đã huỷ ${cancelled} yêu cầu đang chờ xác nhận.` : ''}`,
+        `Đã bỏ bản nháp đang soạn (tin nhắn và tệp đã gửi chưa gắn vào bài).${cancelled ? ` Đã huỷ ${cancelled} yêu cầu đang chờ xác nhận.` : ''}${wasRejecting ? ' Đã thôi nhập lý do từ chối bài.' : ''}`,
       );
     });
 
@@ -353,6 +360,8 @@ export class TelegramBotService implements OnApplicationBootstrap, OnModuleDestr
       const user = await this.links.findUserByChat(chatId);
       if (!user) return this.reject(ctx, 'chat');
       if (text.startsWith('/')) return this.reply(ctx, `Không có lệnh này.\n\n${HELP}`);
+      // Đang chờ lý do từ chối bài thì tin này là lý do, không chuyển cho AI Agent.
+      if (await this.review.consumeRejectReason(ctx, user, text)) return;
       this.track(this.afterFiles(chatId).then(() => this.chatWithAgent(ctx, user, text)));
     });
   }

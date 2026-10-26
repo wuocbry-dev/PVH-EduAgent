@@ -30,6 +30,7 @@ export const settingValueSchemas: Record<SettingKey, z.ZodType<string>> = {
     .string()
     .regex(/^\d{1,3}$/, 'Phải là số nguyên từ 1 đến 168')
     .refine((v) => Number(v) >= 1 && Number(v) <= 168, 'Phải từ 1 đến 168 giờ'),
+  'telegram.review_notify': z.enum(['true', 'false'], { error: 'Chỉ nhận true hoặc false' }),
 };
 
 // Chỉ nhận các khóa trong danh sách cho phép: khóa lạ (kể cả tên giống bí mật như

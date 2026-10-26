@@ -74,16 +74,23 @@ export function SettingsForm() {
       {settings.map((s) => (
         <label key={s.key} className="block space-y-1 text-sm">
           <span className="font-medium">{s.label}</span>
-          <input
-            name={s.key}
-            type={s.input}
-            defaultValue={s.value ?? ""}
-            placeholder={s.defaultValue ? `Mặc định: ${s.defaultValue}` : "Chưa cấu hình"}
-            disabled={!canEdit}
-            min={s.input === "number" ? 1 : undefined}
-            max={s.input === "number" ? 168 : undefined}
-            className={`${inputClass} disabled:opacity-70`}
-          />
+          {s.input === "toggle" ? (
+            <select name={s.key} defaultValue={s.value ?? s.defaultValue} disabled={!canEdit} className={`${inputClass} disabled:opacity-70`}>
+              <option value="true">Bật</option>
+              <option value="false">Tắt</option>
+            </select>
+          ) : (
+            <input
+              name={s.key}
+              type={s.input}
+              defaultValue={s.value ?? ""}
+              placeholder={s.defaultValue ? `Mặc định: ${s.defaultValue}` : "Chưa cấu hình"}
+              disabled={!canEdit}
+              min={s.input === "number" ? 1 : undefined}
+              max={s.input === "number" ? 168 : undefined}
+              className={`${inputClass} disabled:opacity-70`}
+            />
+          )}
           <span className="block text-xs opacity-70">{s.description}</span>
           {s.updatedAt && (
             <span className="block text-xs opacity-50">

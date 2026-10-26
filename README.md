@@ -177,6 +177,13 @@ TELEGRAM_WEBHOOK_URL=                   # vd. https://pvh.edu.vn/api/telegram/we
 
 Chat chưa liên kết chỉ nhận hướng dẫn liên kết; tin trong nhóm bị bỏ qua; mỗi chat tối đa 20 tin/phút. Liên kết, huỷ liên kết, lệnh và chat đều ghi `audit_logs` (kênh `telegram`).
 
+### Báo người duyệt khi có bài gửi duyệt (bước 13)
+
+- Khi một bài chuyển sang **Chờ duyệt** (gửi từ web hoặc qua Telegram/AI Agent), mọi tài khoản đang hoạt động có **cả** `post:approve` và `post:schedule`, đã liên kết Telegram và **không phải tác giả** nhận một tin gồm tiêu đề, tác giả, chuyên mục, giờ gửi, số ảnh/video và đoạn đầu nội dung (~700 ký tự, văn bản thuần, đã vô hiệu hoá liên kết/mention giả). Gửi nền: lỗi Telegram không làm hỏng việc gửi duyệt (có `audit_logs` `post.review_notify`); mỗi lần gửi duyệt chỉ báo một lần.
+- Nút: **👁 Xem toàn văn** (chia nhỏ ≤ 4096 ký tự, video kèm liên kết), **✅ Duyệt đăng** (không đăng ngay: hiện thẻ ✅ Xác nhận / ❌ Huỷ như bước 9, hết hạn 10 phút), **❌ Từ chối** (bot hỏi lý do trong 5 phút, `/huy` để thoát; lý do không chuyển cho AI Agent). Mỗi lần bấm kiểm tra lại quyền và trạng thái; bài đã được người khác xử lý thì tin sửa thành "đã được … xử lý lúc …". Nút **🔗 Mở trang duyệt** chỉ có khi `WEB_ORIGIN` là địa chỉ `https` công khai (Telegram từ chối nút URL tới `localhost`; khi đó tin hiện đường dẫn dạng văn bản).
+- Tác giả nhận thông báo Telegram khi bài được duyệt hoặc bị từ chối (kèm lý do) bởi người khác.
+- Bật/tắt ở **Cấu hình hệ thống** (`telegram.review_notify`, mặc định bật).
+
 ### Soạn và đăng bài qua Telegram (bước 12)
 
 - Gửi **ảnh, video hoặc tệp** (JPEG/PNG/WebP/GIF, MP4/WebM) kèm nội dung, ví dụ "Viết bài về lễ khai giảng, kèm các ảnh này". Nhiều ảnh gửi cùng lúc (album) được gom thành một lượt. Bot lưu thành media của **chính người gửi** qua `StorageService`, kiểm tra loại bằng magic bytes, rồi chuyển cho agent (agent chỉ biết loại, dung lượng, tên và `mediaId`, không nhận nội dung hay URL).

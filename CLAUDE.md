@@ -51,6 +51,11 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 - Agent chỉ nhận mô tả tệp (`AgentContext.attachments`: id, loại, dung lượng, tên) và lịch sử dạng **dữ liệu** trong khối được đánh dấu (`prompts/system-prompt.ts`); chú thích ảnh, nội dung tin, kết quả tool không bao giờ là chỉ dẫn. Tool tạo bài: `create_post_with_media`, `submit_post_for_review`, `list_categories`; "viết bài và đăng" là tool nhạy cảm `create_and_publish_post` (`agent-actions`): **một** yêu cầu xác nhận, bài chỉ được tạo khi xác nhận (`PostsService.createDraftWithMedia` → `submit` → `approve`, quyền kiểm tra lại từng bước).
 - `posts.source` (`WEB`/`TELEGRAM`) đặt theo `meta.channel` khi tạo bài.
 
+## Báo người duyệt qua Telegram (bước 13)
+
+- `PostsService.transition` (nhánh `submit`) gọi các listener đăng ký bằng `onSubmitted` (chạy nền, lỗi chỉ ghi log) nên mọi đường gửi duyệt đều được báo; `TelegramReviewService` (`features/telegram`) đăng ký listener, chọn người nhận theo `role_permissions` (cả `post:approve` và `post:schedule`, không phải tác giả), chống báo trùng theo (bài, số lần gửi duyệt) trong Redis, tắt được bằng khoá `telegram.review_notify`. Tin là **văn bản thuần** (không `parse_mode`) và mọi giá trị người dùng nhập đi qua `defang()`; nút URL chỉ khi `isPublicHttps`.
+- Nút `rv:v|a|r:<id>`: kiểm tra lại quyền + trạng thái `PENDING_REVIEW` mỗi lần bấm; Duyệt đăng chỉ gọi `AgentActionsService.propose` (xác nhận 2 bước); Từ chối giữ trạng thái chờ lý do trong Redis 5 phút rồi gọi `PostsService.transition('reject')`. `PostsService` cũng báo tác giả (bảng `notifications` → Telegram) khi bài được duyệt/từ chối bởi người khác.
+
 ## Lệnh kiểm tra (chạy ở thư mục gốc)
 
 | Lệnh | Việc |

@@ -48,6 +48,7 @@ export const SETTING_KEYS = [
   'school.map_url',
   'report.daily_time',
   'reminder.hours_before',
+  'telegram.review_notify',
 ] as const;
 export type SettingKey = (typeof SETTING_KEYS)[number];
 
@@ -59,7 +60,8 @@ export interface SettingMeta {
   // true = được để trống (xóa cấu hình, quay về mặc định/"Đang cập nhật").
   optional: boolean;
   // Kiểu ô nhập trên giao diện.
-  input: 'text' | 'tel' | 'email' | 'url' | 'time' | 'number';
+  // toggle = công tắc bật/tắt, giá trị lưu là 'true' hoặc 'false'.
+  input: 'text' | 'tel' | 'email' | 'url' | 'time' | 'number' | 'toggle';
 }
 
 export const SETTING_META: Record<SettingKey, SettingMeta> = {
@@ -111,6 +113,13 @@ export const SETTING_META: Record<SettingKey, SettingMeta> = {
     defaultValue: '24',
     optional: false,
     input: 'number',
+  },
+  'telegram.review_notify': {
+    label: 'Báo người duyệt qua Telegram khi có bài gửi duyệt',
+    description: 'Bật: người có quyền duyệt đã liên kết Telegram nhận ngay tin kèm nội dung bài (và nút Xem toàn văn, Duyệt đăng, Từ chối).',
+    defaultValue: 'true',
+    optional: false,
+    input: 'toggle',
   },
 };
 

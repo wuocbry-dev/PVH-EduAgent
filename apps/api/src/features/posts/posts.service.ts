@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import type { PostAction, PostDto, PostStatus } from '@pvh/shared';
@@ -58,9 +59,15 @@ export interface ActionInput {
 
 const MAX_LIST = 100;
 
+// Người nghe sự kiện "bài vừa chuyển sang chờ duyệt" (bot Telegram báo người duyệt). Chạy nền, lỗi không ảnh hưởng.
+export type SubmittedListener = (postId: string) => Promise<unknown>;
+
 // F12 – vòng đời bài viết. Luật chuyển trạng thái nằm ở posts.state-machine.ts.
 @Injectable()
 export class PostsService {
+  private readonly logger = new Logger(PostsService.name);
+  private readonly submittedListeners: SubmittedListener[] = [];
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService,
@@ -70,6 +77,10 @@ export class PostsService {
     private readonly storage: StorageService,
     private readonly media: MediaService,
   ) {}
+
+  onSubmitted(listener: SubmittedListener): void {
+    this.submittedListeners.push(listener);
+  }
 
   // Người có post:approve thấy mọi bài; người còn lại chỉ thấy bài của mình.
   async list(
@@ -297,6 +308,9 @@ export class PostsService {
       publishAt: input.publishAt?.toISOString(),
       reason: input.reason,
     });
+    // Mọi đường gửi duyệt (web, AI Agent) đi qua đây: báo người duyệt (nền), báo tác giả khi bài được duyệt/từ chối.
+    if (action === 'submit') this.emitSubmitted(updated.id.toString());
+    if (action === 'approve' || action === 'reject') await this.notifyAuthorOfReview(user, updated, action);
     // A05: job đăng bài theo lịch. Hẹn giờ/dời lịch thì tạo (hoặc thay) job; hủy lịch hoặc đăng ngay thì gỡ job cũ.
     if (to === 'SCHEDULED' && updated.publishAt) {
       await this.queue.schedulePublish(updated.id.toString(), updated.publishAt);
@@ -308,6 +322,33 @@ export class PostsService {
       await this.revalidate.revalidate('posts');
     }
     return toPostDto(updated, user);
+  }
+
+  private emitSubmitted(postId: string): void {
+    for (const listener of this.submittedListeners) {
+      listener(postId).catch((err) => this.logger.error(`Không báo được người duyệt bài ${postId}: ${String(err)}`));
+    }
+  }
+
+  // Tác giả nhận thông báo (hộp thông báo → Telegram) khi bài của mình được duyệt hoặc bị từ chối bởi người khác.
+  private async notifyAuthorOfReview(user: AuthUser, post: PostRow, action: 'approve' | 'reject'): Promise<void> {
+    if (post.authorId.toString() === user.id) return;
+    try {
+      const at = post.publishAt?.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour12: false });
+      const entry =
+        action === 'reject'
+          ? { title: 'Bài viết bị từ chối', body: `Bài "${post.title}" bị từ chối.\nLý do: ${post.rejectReason ?? '(không có)'}` }
+          : {
+              title: 'Bài viết đã được duyệt',
+              body:
+                post.status === 'PUBLISHED'
+                  ? `Bài "${post.title}" đã được duyệt và đăng lên website.`
+                  : `Bài "${post.title}" đã được duyệt, hẹn đăng lúc ${at}.`,
+            };
+      await this.notifications.notify([{ userId: post.authorId, ...entry }]);
+    } catch (err) {
+      this.logger.error(`Không báo được tác giả bài ${post.id}: ${String(err)}`);
+    }
   }
 
   // A08: kiểm tra trước (quyền, luật chuyển trạng thái) mà chưa thay đổi gì; dùng khi agent đề xuất thao tác
