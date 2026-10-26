@@ -57,9 +57,14 @@ body {
 .rich-content a {
   text-decoration: underline;
 }
-.rich-content img {
+.rich-content img,
+.rich-content video {
   max-width: 100%;
   height: auto;
+}
+.rich-content video {
+  display: block;
+  background: #000;
 }
 .rich-content pre {
   overflow-x: auto;

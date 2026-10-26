@@ -58,8 +58,11 @@ const ROUTES: Record<string, Access> = {
   'PATCH /events/:id': ['post:approve'],
   'DELETE /events/:id': ['post:approve'],
 
-  'POST /media': ['post:create'],
+  'POST /media/presign': ['post:create'],
+  'POST /media/:id/complete': ['post:create'],
   'GET /media': ['post:create'],
+  'DELETE /media/:id': ['post:create'],
+  'PUT /media/local-upload/:id': 'public', // xác thực bằng token HMAC trong query
   'GET /media/files/:name': 'public',
 
   'GET /posts/manage': ['post:create'],

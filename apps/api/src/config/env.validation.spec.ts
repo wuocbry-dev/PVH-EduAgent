@@ -45,3 +45,34 @@ describe('validateEnv – cấu hình bảo mật', () => {
     expect(validateEnv({ ...webhook, TELEGRAM_WEBHOOK_SECRET: 'a'.repeat(32) }).TELEGRAM_MODE).toBe('webhook');
   });
 });
+
+describe('validateEnv – lưu trữ ảnh/video (bước 11)', () => {
+  const r2 = {
+    STORAGE_DRIVER: 'r2',
+    R2_ACCOUNT_ID: 'a'.repeat(32),
+    R2_ACCESS_KEY_ID: 'key',
+    R2_SECRET_ACCESS_KEY: 'secret',
+    R2_BUCKET: 'pvh',
+    R2_PUBLIC_BASE_URL: 'https://media.pvh.edu.vn/',
+  };
+
+  it('mặc định là local và không cần biến R2 (để trống cũng được)', () => {
+    expect(validateEnv(base).STORAGE_DRIVER).toBe('local');
+    expect(validateEnv({ ...base, STORAGE_DRIVER: '', R2_BUCKET: '' }).STORAGE_DRIVER).toBe('local');
+    expect(() => validateEnv({ ...base, STORAGE_DRIVER: 's3' })).toThrow(/STORAGE_DRIVER/);
+  });
+
+  it('driver r2 bắt buộc đủ 5 biến; địa chỉ công khai bỏ dấu / cuối', () => {
+    expect(validateEnv({ ...base, ...r2 }).R2_PUBLIC_BASE_URL).toBe('https://media.pvh.edu.vn');
+    for (const key of ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET', 'R2_PUBLIC_BASE_URL']) {
+      expect(() => validateEnv({ ...base, ...r2, [key]: '' })).toThrow(new RegExp(key));
+    }
+    expect(() => validateEnv({ ...base, ...r2, R2_ACCOUNT_ID: 'khong-phai-hex' })).toThrow(/Account ID/);
+  });
+
+  it('production với r2 phải dùng địa chỉ công khai https', () => {
+    expect(() => validateEnv({ ...prod, ...r2, R2_PUBLIC_BASE_URL: 'http://pub-x.r2.dev' })).toThrow(/https/);
+    expect(validateEnv({ ...prod, ...r2 }).STORAGE_DRIVER).toBe('r2');
+  });
+});
+

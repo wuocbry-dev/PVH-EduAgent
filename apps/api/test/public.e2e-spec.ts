@@ -10,18 +10,13 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { PrismaService } from './../src/infrastructure/database/prisma.service.js';
+import { MP4, PNG, uploadMedia } from './media-helper.js';
 import { resetLimits } from './reset-limits.js';
 
 const PASSWORD = 'Pvh@2026';
 const EDITOR = 'bientap@pvh.edu.vn';
 const TEACHER = 'gv.toan@pvh.edu.vn';
 const SECRET = 'bi-mat-revalidate-test-0123456789';
-
-// Ảnh PNG 1×1 hợp lệ.
-const PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-  'base64',
-);
 
 const TAG = `F01-${Date.now()}`;
 const inHours = (h: number) => new Date(Date.now() + h * 3_600_000).toISOString();
@@ -228,13 +223,7 @@ describe('Website công khai & liên hệ (F01–F07, e2e)', () => {
       expect(JSON.stringify(settings.body)).not.toContain('khong-duoc-lo');
 
       const editor = await loginAs(EDITOR);
-      const upload = async () =>
-        (
-          await editor
-            .post('/media')
-            .attach('file', PNG, { filename: 'a.png', contentType: 'image/png' })
-            .expect(201)
-        ).body.url as string;
+      const upload = async () => (await uploadMedia(app, editor, PNG, 'image/png')).body.url as string;
       const publicImage = await upload();
       const draftImage = await upload();
       const live = await createPost(editor, 'thư viện', 'PUBLISHED', { thumbnailUrl: publicImage });
@@ -246,7 +235,22 @@ describe('Website công khai & liên hệ (F01–F07, e2e)', () => {
       expect(urls).not.toContain(draftImage);
       expect(gallery.body.find((g: { url: string }) => g.url === publicImage)).toMatchObject({
         postSlug: live.slug,
+        kind: 'IMAGE',
       });
+
+      // Video chèn trong bài đã đăng cũng có trong thư viện; video của bài nháp thì không.
+      const video = (await uploadMedia(app, editor, MP4, 'video/mp4')).body.url as string;
+      const draftVideo = (await uploadMedia(app, editor, MP4, 'video/mp4')).body.url as string;
+      const withVideo = await createPost(editor, 'thư viện video', 'PUBLISHED', {
+        content: `<p>Có video</p><video src="${video}" controls></video>`,
+      });
+      await createPost(editor, 'thư viện video nháp', 'DRAFT', { content: `<p>Nháp</p><video src="${draftVideo}"></video>` });
+      const after = await http().get('/public/gallery').expect(200);
+      expect(after.body.find((g: { url: string }) => g.url === video)).toMatchObject({
+        postSlug: withVideo.slug,
+        kind: 'VIDEO',
+      });
+      expect(after.body.some((g: { url: string }) => g.url === draftVideo)).toBe(false);
     });
   });
 

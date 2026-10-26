@@ -153,16 +153,32 @@ model Post {
   @@map("posts")
 }
 
-model Media {
-  id         BigInt  @id @default(autoincrement())
-  postId     BigInt? @map("post_id")
-  uploadedBy BigInt  @map("uploaded_by")
-  url        String  @db.VarChar(500)
-  mimeType   String  @map("mime_type") @db.VarChar(80)
-  size       Int
-  post       Post?   @relation(fields: [postId], references: [id], onDelete: SetNull)
-  uploader   User    @relation(fields: [uploadedBy], references: [id])
+enum MediaStatus {
+  PENDING
+  READY
+}
 
+enum MediaKind {
+  IMAGE
+  VIDEO
+}
+
+model Media {
+  id         BigInt      @id @default(autoincrement())
+  postId     BigInt?     @map("post_id")
+  uploadedBy BigInt      @map("uploaded_by")
+  url        String      @db.VarChar(500)
+  // Khoá object trong kho lưu trữ (R2: tên object; local: tên file trong uploads/). Sinh ngẫu nhiên, không dùng tên file người dùng.
+  storageKey String      @unique @map("storage_key") @db.VarChar(120)
+  status     MediaStatus @default(PENDING)
+  kind       MediaKind   @default(IMAGE)
+  mimeType   String      @map("mime_type") @db.VarChar(80)
+  size       Int
+  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  post       Post?       @relation(fields: [postId], references: [id], onDelete: SetNull)
+  uploader   User        @relation(fields: [uploadedBy], references: [id])
+
+  @@index([status, createdAt])
   @@map("media")
 }
 

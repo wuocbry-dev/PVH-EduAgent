@@ -4,7 +4,8 @@ import { z } from 'zod';
 const optional = <T extends z.ZodType>(schema: T) =>
   z.preprocess((v) => (v === '' ? undefined : v), schema.optional());
 
-const envSchema = z.object({
+const envSchema = z
+  .object({
   NODE_ENV: z
     .enum(['development', 'production', 'test'])
     .default('development'),
@@ -57,8 +58,19 @@ const envSchema = z.object({
   // (phải trùng REVALIDATE_SECRET của apps/web). Bỏ trống = không gọi web.
   REVALIDATE_SECRET: optional(z.string().min(16)),
 
-  // F13 – thư mục lưu ảnh tải lên (tương đối so với thư mục chạy API, hoặc đường dẫn tuyệt đối).
+  // F13 – nơi lưu ảnh/video tải lên. local: thư mục UPLOAD_DIR (dev, e2e); r2: Cloudflare R2 (API tương thích S3).
+  STORAGE_DRIVER: z.preprocess((v) => (v === '' ? undefined : v), z.enum(['local', 'r2']).default('local')),
+  // Thư mục lưu file của driver local (tương đối so với thư mục chạy API, hoặc đường dẫn tuyệt đối).
   UPLOAD_DIR: z.string().trim().min(1).default('uploads'),
+  // Địa chỉ công khai của API (vd. https://api.pvh.edu.vn); dùng để nhận diện ảnh/video của hệ thống trong nội dung bài.
+  // Bỏ trống = http://localhost:<API_PORT>.
+  API_PUBLIC_URL: optional(z.url()),
+  // Bắt buộc đủ khi STORAGE_DRIVER=r2. R2_PUBLIC_BASE_URL: địa chỉ công khai của bucket, không có dấu / cuối.
+  R2_ACCOUNT_ID: optional(z.string().trim().regex(/^[0-9a-f]{32}$/i, 'Account ID gồm 32 ký tự hex')),
+  R2_ACCESS_KEY_ID: optional(z.string().trim()),
+  R2_SECRET_ACCESS_KEY: optional(z.string().trim()),
+  R2_BUCKET: optional(z.string().trim()),
+  R2_PUBLIC_BASE_URL: optional(z.url().transform((v) => v.replace(/\/+$/, ''))),
 
   DATABASE_URL: z
     .string()
@@ -86,7 +98,13 @@ const envSchema = z.object({
   TELEGRAM_AUTO_NOTIFY: z.preprocess((v) => (v === '' ? undefined : v), z.stringbool().default(true)),
   // URL public của webhook (vd. https://pvh.edu.vn/api/telegram/webhook); có thì API tự gọi setWebhook.
   TELEGRAM_WEBHOOK_URL: optional(z.url()),
-});
+  })
+  .superRefine((env, ctx) => {
+    if (env.STORAGE_DRIVER !== 'r2') return;
+    for (const key of ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET', 'R2_PUBLIC_BASE_URL'] as const) {
+      if (!env[key]) ctx.addIssue({ code: 'custom', path: [key], message: `Cần có khi STORAGE_DRIVER=r2` });
+    }
+  });
 
 export type Env = z.infer<typeof envSchema>;
 
@@ -114,6 +132,9 @@ export function productionProblems(env: Env): string[] {
   if (env.DEV_AUTH) problems.push('DEV_AUTH phải là false (cho phép chọn tài khoản qua header)');
   if (env.THROTTLE_DISABLED) problems.push('THROTTLE_DISABLED phải là false (đang tắt giới hạn tần suất)');
   if (!env.WEB_ORIGIN.startsWith('https://')) problems.push('WEB_ORIGIN phải là địa chỉ https:// (cookie đăng nhập đặt cờ Secure)');
+  if (env.STORAGE_DRIVER === 'r2' && !env.R2_PUBLIC_BASE_URL?.startsWith('https://')) {
+    problems.push('R2_PUBLIC_BASE_URL phải là địa chỉ https:// (r2.dev chỉ để dev, production dùng tên miền riêng)');
+  }
   if (!env.REDIS_URL) problems.push('REDIS_URL cần có: giới hạn tần suất, OTP Telegram và bộ lập lịch dùng Redis');
   return problems;
 }

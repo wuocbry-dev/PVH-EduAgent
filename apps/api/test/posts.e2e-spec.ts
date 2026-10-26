@@ -8,18 +8,13 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { PrismaService } from './../src/infrastructure/database/prisma.service.js';
+import { MP4, PNG, uploadMedia } from './media-helper.js';
 
 const PASSWORD = 'Pvh@2026';
 const ADMIN = 'admin@pvh.edu.vn';
 const PRINCIPAL = 'bgh@pvh.edu.vn';
 const EDITOR = 'bientap@pvh.edu.vn';
 const TEACHER = 'gv.toan@pvh.edu.vn';
-
-// Ảnh PNG 1×1 hợp lệ.
-const PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-  'base64',
-);
 
 const uploadDir = mkdtempSync(join(tmpdir(), 'pvh-uploads-'));
 process.env.UPLOAD_DIR = uploadDir;
@@ -362,67 +357,27 @@ describe('Bài viết, chuyên mục, media (F12, F13, e2e)', () => {
     });
   });
 
-  describe('media (F13)', () => {
-    const upload = (agent: Agent, buffer: Buffer, filename: string, contentType: string) =>
-      agent.post('/media').attach('file', buffer, { filename, contentType });
-
-    it('ảnh đúng loại được nhận, lưu bảng media và phục vụ công khai', async () => {
+  describe('ảnh đại diện (F13)', () => {
+    it('chọn ảnh đại diện cho bài: chỉ nhận ảnh đã tải lên và hoàn tất kiểm tra', async () => {
       const teacher = await loginAs(TEACHER);
-      const res = await upload(teacher, PNG, 'anh.png', 'image/png').expect(201);
-      expect(res.body.mimeType).toBe('image/png');
-      expect(res.body.size).toBe(PNG.length);
-      expect(res.body.url).toMatch(/^\/media\/files\/[0-9a-f-]{36}\.png$/);
-      expect(await prisma.media.count({ where: { id: BigInt(res.body.id) } })).toBe(1);
-      expect(await auditCount('media.upload', res.body.id)).toBe(1);
-
-      const file = await request(app.getHttpServer()).get(res.body.url).expect(200);
-      expect(file.headers['content-type']).toBe('image/png');
-      expect(file.headers['x-content-type-options']).toBe('nosniff');
-      expect(Buffer.from(file.body).equals(PNG)).toBe(true);
-
-      const list = await teacher.get('/media').expect(200);
-      expect(list.body.some((m: { id: string }) => m.id === res.body.id)).toBe(true);
-    });
-
-    it('chọn ảnh đại diện cho bài: chỉ nhận ảnh đã tải lên', async () => {
-      const teacher = await loginAs(TEACHER);
-      const media = (await upload(teacher, PNG, 'anh.png', 'image/png').expect(201)).body;
+      const media = (await uploadMedia(app, teacher, PNG, 'image/png')).body;
       const post = await draft(teacher, 'có ảnh', { thumbnailUrl: media.url });
       expect(post).toMatchObject({ status: 'DRAFT' });
       expect((await teacher.get(`/posts/manage/${post.id}`)).body.thumbnailUrl).toBe(media.url);
 
       await teacher.patch(`/posts/${post.id}`).send({ thumbnailUrl: 'https://evil.example/a.png' }).expect(400);
       await teacher.patch(`/posts/${post.id}`).send({ thumbnailUrl: 'javascript:alert(1)' }).expect(400);
+      // Chưa hoàn tất (PENDING) thì chưa được dùng.
+      const pending = (
+        await teacher.post('/media/presign').send({ filename: 'a.png', mimeType: 'image/png', size: PNG.length }).expect(201)
+      ).body;
+      const pendingUrl = (await prisma.media.findUniqueOrThrow({ where: { id: BigInt(pending.id) } })).url;
+      await teacher.patch(`/posts/${post.id}`).send({ thumbnailUrl: pendingUrl }).expect(400);
+      // Video không làm ảnh đại diện.
+      const video = (await uploadMedia(app, teacher, MP4, 'video/mp4')).body;
+      await teacher.patch(`/posts/${post.id}`).send({ thumbnailUrl: video.url }).expect(400);
       const cleared = await teacher.patch(`/posts/${post.id}`).send({ thumbnailUrl: null }).expect(200);
       expect(cleared.body.thumbnailUrl).toBeNull();
-    });
-
-    it('sai loại file bị từ chối (đuôi/Content-Type giả mạo, SVG, văn bản)', async () => {
-      const teacher = await loginAs(TEACHER);
-      const text = Buffer.from('không phải ảnh');
-      await upload(teacher, text, 'anh.png', 'image/png').expect(400);
-      await upload(teacher, PNG, 'anh.png', 'image/jpeg').expect(400); // khai sai loại
-      await upload(teacher, Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>1</script></svg>'), 'a.svg', 'image/svg+xml').expect(400);
-      await upload(teacher, Buffer.from('<?php echo 1;'), 'a.php', 'application/x-php').expect(400);
-      await teacher.post('/media').expect(400); // không có file
-    });
-
-    it('ảnh quá dung lượng (5 MB) bị từ chối', async () => {
-      const teacher = await loginAs(TEACHER);
-      const big = Buffer.concat([PNG, Buffer.alloc(5 * 1024 * 1024)]);
-      await upload(teacher, big, 'lon.png', 'image/png').expect(413);
-    });
-
-    it('không đăng nhập hoặc không có quyền thì không tải lên được; tên file lạ → 404', async () => {
-      await request(app.getHttpServer())
-        .post('/media')
-        .attach('file', PNG, { filename: 'a.png', contentType: 'image/png' })
-        .expect(401);
-      await request(app.getHttpServer()).get('/media/files/..%2F.env').expect(404);
-      await request(app.getHttpServer()).get('/media/files/khong-co.png').expect(404);
-      await request(app.getHttpServer())
-        .get('/media/files/00000000-0000-0000-0000-000000000000.png')
-        .expect(404);
     });
   });
 });

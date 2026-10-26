@@ -19,6 +19,7 @@ import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
 import { QueueService } from '../../infrastructure/queue/queue.service.js';
 import { RevalidateService } from '../../infrastructure/revalidate/revalidate.service.js';
+import { StorageService } from '../../infrastructure/storage/storage.service.js';
 import {
   AuditLogService,
   type AuditChannel,
@@ -65,6 +66,7 @@ export class PostsService {
     private readonly revalidate: RevalidateService,
     private readonly queue: QueueService,
     private readonly notifications: NotificationsService,
+    private readonly storage: StorageService,
   ) {}
 
   // Người có post:approve thấy mọi bài; người còn lại chỉ thấy bài của mình.
@@ -108,12 +110,13 @@ export class PostsService {
     assertPermission(user, 'post:create');
     const content = this.cleanContent(input.content);
     const categoryId = await this.categoryIdOrThrow(input.categoryId);
+    const thumbnailUrl = await this.thumbnailOrThrow(input.thumbnailUrl);
     const post = await this.prisma.post.create({
       data: {
         title: stripHtml(input.title),
         summary: input.summary ? stripHtml(input.summary) : null,
         content,
-        thumbnailUrl: input.thumbnailUrl ?? null,
+        thumbnailUrl: thumbnailUrl ?? null,
         categoryId,
         slug: await this.uniqueSlug(input.title),
         authorId: BigInt(user.id),
@@ -143,7 +146,7 @@ export class PostsService {
     if (input.content !== undefined) {
       data.content = this.cleanContent(input.content);
     }
-    if (input.thumbnailUrl !== undefined) data.thumbnailUrl = input.thumbnailUrl;
+    if (input.thumbnailUrl !== undefined) data.thumbnailUrl = await this.thumbnailOrThrow(input.thumbnailUrl);
     if (input.categoryId !== undefined) {
       data.categoryId = await this.categoryIdOrThrow(input.categoryId);
     }
@@ -389,11 +392,22 @@ export class PostsService {
 
   // HTML từ trình soạn thảo: lọc XSS ở server trước khi lưu.
   private cleanContent(html: string): string {
-    const content = sanitizeContent(html);
+    const content = sanitizeContent(html, (url) => this.storage.mediaKindOfUrl(url));
     if (isBlankContent(content)) {
       throw new BadRequestException('Nội dung bài viết đang trống');
     }
     return content;
+  }
+
+  // Ảnh đại diện phải là ảnh đã tải lên và hoàn tất kiểm tra (bản ghi media READY), không nhận địa chỉ tùy ý.
+  private async thumbnailOrThrow(url: string | null | undefined): Promise<string | null | undefined> {
+    if (!url) return url;
+    const media = await this.prisma.media.findFirst({
+      where: { url, kind: 'IMAGE', status: 'READY' },
+      select: { id: true },
+    });
+    if (!media) throw new BadRequestException('Ảnh đại diện phải là ảnh đã tải lên');
+    return url;
   }
 
   private async categoryIdOrThrow(

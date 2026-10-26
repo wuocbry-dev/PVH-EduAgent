@@ -12,6 +12,7 @@ import { RateLimitService } from '../../infrastructure/rate-limit/rate-limit.ser
 import { stripHtml } from '../../common/utils/sanitize-content.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
+import { StorageService } from '../../infrastructure/storage/storage.service.js';
 import type { ListPublicPostsQuery } from './dto/public.dto.js';
 
 const WITH_RELATIONS = {
@@ -23,8 +24,8 @@ type PublishedPost = Prisma.PostGetPayload<{ include: typeof WITH_RELATIONS }>;
 
 const EXCERPT_LENGTH = 160;
 const GALLERY_LIMIT = 60;
-// Ảnh do hệ thống lưu: /media/files/<uuid>.<đuôi>
-const MEDIA_PATH = /\/media\/files\/[0-9a-f-]{36}\.(?:jpg|png|webp|gif)/g;
+// Địa chỉ trong thuộc tính src của nội dung bài (đã được lọc phía server khi lưu).
+const SRC_ATTR = /\bsrc="([^"]+)"/g;
 
 // F01–F07 – dữ liệu cho website công khai. Chỉ trả bài PUBLISHED và không lộ thông tin cá nhân.
 @Injectable()
@@ -33,6 +34,7 @@ export class PublicSiteService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly limits: RateLimitService,
+    private readonly storage: StorageService,
   ) {}
 
   async listPosts(query: ListPublicPostsQuery): Promise<PublicPostListDto> {
@@ -113,7 +115,8 @@ export class PublicSiteService {
     return Object.fromEntries(rows.map((r) => [r.key, r.value]));
   }
 
-  // Ảnh đại diện và ảnh chèn trong các bài đã đăng (ảnh của bài nháp không lộ ra).
+  // Ảnh/video đại diện và chèn trong các bài đã đăng (media của bài nháp không lộ ra). Chỉ trả file của hệ thống
+  // đã hoàn tất kiểm tra (bản ghi media READY).
   async gallery(): Promise<GalleryItemDto[]> {
     const posts = await this.prisma.post.findMany({
       where: { status: 'PUBLISHED' },
@@ -121,21 +124,30 @@ export class PublicSiteService {
       take: 100,
       select: { slug: true, title: true, thumbnailUrl: true, content: true },
     });
-    const seen = new Set<string>();
-    const items: GalleryItemDto[] = [];
+    const firstPostOfKey = new Map<string, { slug: string; title: string }>();
     for (const post of posts) {
       const urls = [
         ...(post.thumbnailUrl ? [post.thumbnailUrl] : []),
-        ...(post.content.match(MEDIA_PATH) ?? []),
+        ...[...post.content.matchAll(SRC_ATTR)].map((m) => m[1].replaceAll('&amp;', '&')),
       ];
       for (const url of urls) {
-        if (seen.has(url)) continue;
-        seen.add(url);
-        items.push({ url, postSlug: post.slug, postTitle: post.title });
+        const key = this.storage.keyFromUrl(url);
+        if (key && !firstPostOfKey.has(key)) firstPostOfKey.set(key, { slug: post.slug, title: post.title });
       }
+    }
+    if (firstPostOfKey.size === 0) return [];
+    const rows = await this.prisma.media.findMany({
+      where: { storageKey: { in: [...firstPostOfKey.keys()] }, status: 'READY' },
+      select: { storageKey: true, url: true, kind: true },
+    });
+    const byKey = new Map(rows.map((r) => [r.storageKey, r]));
+    const items: GalleryItemDto[] = [];
+    for (const [key, post] of firstPostOfKey) {
+      const row = byKey.get(key);
+      if (row) items.push({ url: row.url, kind: row.kind, postSlug: post.slug, postTitle: post.title });
       if (items.length >= GALLERY_LIMIT) break;
     }
-    return items.slice(0, GALLERY_LIMIT);
+    return items;
   }
 
   // Chuyên mục theo slug cùng mọi chuyên mục con cháu; không có → danh sách rỗng (kết quả rỗng).

@@ -135,6 +135,7 @@ function PostForm({ post, onPost }: { post: PostDto | null; onPost: (post: PostD
           </div>
           {pickingThumbnail && (
             <MediaLibrary
+              kind="IMAGE"
               onClose={() => setPickingThumbnail(false)}
               onSelect={(media) => {
                 setThumbnailUrl(media.url);

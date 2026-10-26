@@ -6,6 +6,7 @@ import { EditorContent, useEditor, useEditorState } from "@tiptap/react";
 import { useState, type ReactNode } from "react";
 import { MediaLibrary } from "@/features/media";
 import { mediaSrc } from "@/shared/lib/media-url";
+import { Video } from "./video-extension";
 
 interface Props {
   // HTML ban đầu; chỉ đọc một lần, sau đó trình soạn thảo tự giữ nội dung.
@@ -15,10 +16,10 @@ interface Props {
 
 // Trình soạn thảo rich text (Tiptap). HTML xuất ra luôn được server lọc lại trước khi lưu.
 export function RichTextEditor({ initialHtml, onChange }: Props) {
-  const [pickingImage, setPickingImage] = useState(false);
+  const [pickingMedia, setPickingMedia] = useState(false);
 
   const editor = useEditor({
-    extensions: [StarterKit.configure({ link: { openOnClick: false } }), Image],
+    extensions: [StarterKit.configure({ link: { openOnClick: false } }), Image, Video],
     content: initialHtml,
     // Next.js render phía server: chỉ dựng editor sau khi hydrate.
     immediatelyRender: false,
@@ -76,18 +77,20 @@ export function RichTextEditor({ initialHtml, onChange }: Props) {
           {button("1. Danh sách", (active?.ordered ?? false), () => chain().toggleOrderedList().run(), "Danh sách số")}
           {button("❝", (active?.quote ?? false), () => chain().toggleBlockquote().run(), "Trích dẫn")}
           {button("Liên kết", (active?.link ?? false), setLink, "Chèn liên kết")}
-          {button("Ảnh", false, () => setPickingImage(true), "Chèn ảnh từ thư viện")}
+          {button("Ảnh / Video", false, () => setPickingMedia(true), "Chèn ảnh hoặc video từ thư viện")}
           {button("↶", false, () => chain().undo().run(), "Hoàn tác")}
           {button("↷", false, () => chain().redo().run(), "Làm lại")}
         </div>
         <EditorContent editor={editor} />
       </div>
-      {pickingImage && (
+      {pickingMedia && (
         <MediaLibrary
-          onClose={() => setPickingImage(false)}
+          onClose={() => setPickingMedia(false)}
           onSelect={(media) => {
-            chain().setImage({ src: mediaSrc(media.url) }).run();
-            setPickingImage(false);
+            const src = mediaSrc(media.url);
+            if (media.kind === "VIDEO") chain().setVideo(src).run();
+            else chain().setImage({ src }).run();
+            setPickingMedia(false);
           }}
         />
       )}

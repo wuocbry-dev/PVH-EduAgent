@@ -59,8 +59,12 @@ Ký hiệu: **Công khai** = không cần đăng nhập; **Tự phục vụ** = 
 | `POST /posts/:id/unpublish`, `/restore` | `post:unpublish` | |
 | `GET /categories`, `GET /events` | Công khai | |
 | `POST/PATCH/DELETE /categories…`, `POST/PATCH/DELETE /events…` | `post:approve` | |
-| `POST /media`, `GET /media` | `post:create` | nhận JPEG/PNG/WebP/GIF theo nội dung file, tối đa 5 MB; danh sách chỉ ảnh của mình (trừ `post:approve`) |
-| `GET /media/files/:name` | Công khai | tên file phải khớp `<uuid>.<đuôi>`; `nosniff` |
+| `POST /media/presign` | `post:create` | xin URL ký sẵn để PUT file lên kho; ảnh JPEG/PNG/WebP/GIF ≤ 10 MB, video MP4/WebM ≤ 100 MB; 30 lượt/phút; tối đa 20 yêu cầu chờ/người |
+| `POST /media/:id/complete` | `post:create` | chỉ người tạo (hoặc `post:approve`); kiểm tra object có thật, đúng kích thước và đúng loại theo magic bytes, sai thì xoá object |
+| `GET /media` | `post:create` | chỉ file đã hoàn tất; danh sách chỉ file của mình (trừ `post:approve`); lọc `?kind=IMAGE\|VIDEO` |
+| `DELETE /media/:id` | `post:create` | chỉ người tạo (hoặc `post:approve`); 409 nếu đang dùng trong bài đã đăng/hẹn giờ |
+| `PUT /media/local-upload/:id` | Công khai (token) | chỉ driver `local` (404 với `r2`); token HMAC trong query ràng buộc id + MIME + kích thước, hết hạn 10 phút |
+| `GET /media/files/:name` | Công khai | chỉ driver `local` (404 với `r2`); tên file phải khớp `<uuid>.<đuôi>` và là file đã hoàn tất; `nosniff` |
 | `GET /public/posts`, `/public/posts/:slug`, `/public/admission`, `/public/settings`, `/public/gallery` | Công khai | chỉ bài `PUBLISHED`, không lộ thông tin cá nhân |
 | `POST /public/posts/:slug/view` | Công khai | mỗi IP một lượt/bài/30 phút |
 | `POST /contacts` | Công khai | ô ẩn chống bot; 3 liên hệ/10 phút/IP |

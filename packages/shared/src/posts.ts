@@ -84,14 +84,46 @@ export interface SaveCategoryRequest {
 
 // ───────────────────────────── Media (F13) ─────────────────────────────
 
+export type MediaKind = 'IMAGE' | 'VIDEO';
+
 export interface MediaDto {
   id: string;
-  // Đường dẫn tương đối so với địa chỉ API, vd. /media/files/<tên>.png
+  // URL công khai: đầy đủ (https://…) với driver r2; đường dẫn tương đối so với địa chỉ API (/media/files/<tên>)
+  // với driver local.
   url: string;
+  kind: MediaKind;
   mimeType: string;
   size: number;
   uploadedBy: string;
 }
 
-export const MEDIA_MAX_BYTES = 5 * 1024 * 1024;
-export const MEDIA_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const;
+// Yêu cầu xin URL tải lên (POST /media/presign).
+export interface MediaPresignRequest {
+  filename: string;
+  mimeType: string;
+  size: number;
+}
+
+// Trình duyệt PUT thẳng file tới uploadUrl kèm đúng `headers`, rồi gọi POST /media/:id/complete.
+export interface MediaPresignDto {
+  id: string;
+  uploadUrl: string;
+  headers: Record<string, string>;
+  expiresAt: string;
+}
+
+export const MEDIA_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+export const MEDIA_VIDEO_MAX_BYTES = 100 * 1024 * 1024;
+export const MEDIA_IMAGE_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const;
+export const MEDIA_VIDEO_MIME_TYPES = ['video/mp4', 'video/webm'] as const;
+export const MEDIA_MIME_TYPES = [...MEDIA_IMAGE_MIME_TYPES, ...MEDIA_VIDEO_MIME_TYPES] as const;
+
+export function mediaKindOf(mimeType: string): MediaKind | null {
+  if ((MEDIA_IMAGE_MIME_TYPES as readonly string[]).includes(mimeType)) return 'IMAGE';
+  if ((MEDIA_VIDEO_MIME_TYPES as readonly string[]).includes(mimeType)) return 'VIDEO';
+  return null;
+}
+
+export function mediaMaxBytes(kind: MediaKind): number {
+  return kind === 'IMAGE' ? MEDIA_IMAGE_MAX_BYTES : MEDIA_VIDEO_MAX_BYTES;
+}

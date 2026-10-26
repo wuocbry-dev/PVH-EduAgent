@@ -15,6 +15,8 @@ export default defineConfig({
     // (kể cả khi .env của máy dev có token và đang polling); test chặn mọi lệnh gọi Bot API (telegram.e2e-spec.ts).
     env: {
       BULLMQ_PREFIX: prefix,
+      // e2e không bao giờ gọi Cloudflare R2 thật (kể cả khi .env của máy dev đặt STORAGE_DRIVER=r2).
+      STORAGE_DRIVER: 'local',
       TELEGRAM_BOT_TOKEN: '123456789:pvh-e2e-fake-token',
       TELEGRAM_MODE: 'webhook',
       TELEGRAM_WEBHOOK_SECRET: 'pvh-e2e-webhook-secret',
@@ -24,6 +26,8 @@ export default defineConfig({
       THROTTLE_DISABLED: 'true',
     },
     globalSetup: ['./test/global-setup.ts'],
+    // Xoá bộ đếm tần suất trong Redis trước mỗi file để không phụ thuộc thứ tự chạy các file.
+    setupFiles: ['./test/setup-e2e.ts'],
     // Các file dùng chung một CSDL và tài khoản seed (có test tạm đổi mật khẩu, quyền vai trò) nên chạy tuần tự.
     fileParallelism: false,
   },

@@ -32,6 +32,13 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 - `id` là `BigInt` → DTO trả ra luôn là **string** (`id.toString()`); nhận vào thì `BigInt(id)`. Kiểu DTO đặt ở `packages/shared`.
 - Mọi thay đổi CSDL phải qua migration có tên mô tả: `pnpm --filter api db:migrate --name <ten>`; cập nhật `apps/api/prisma/seed.ts` nếu cần. Không sửa migration đã có.
 
+## Lưu trữ ảnh/video (bước 11)
+
+- Mọi file người dùng tải lên (ảnh, video) **phải đi qua `StorageService`** (`src/infrastructure/storage`, chọn driver bằng `STORAGE_DRIVER=local|r2`, mặc định `local`): không ghi thẳng đĩa, không tự ghép URL (dùng `publicUrl`/`keyFromUrl`). Khoá object sinh ngẫu nhiên (`newStorageKey`), không dùng tên file người dùng.
+- Một đường tải lên duy nhất: `POST /media/presign` → trình duyệt `PUT` thẳng lên `uploadUrl` (R2, hoặc `PUT /media/local-upload/:id?token=` với driver local) → `POST /media/:id/complete` (HEAD + nhận dạng magic bytes, sai thì xoá object). Không tin Content-Type do client gửi. Từ phía server (bot Telegram…) dùng `MediaService.createFromBuffer`.
+- Nội dung bài chỉ giữ `<img>`/`<video>` có URL thuộc kho của hệ thống (`sanitizeContent(html, storage.mediaKindOfUrl)`). Hằng số giới hạn/loại file ở `@pvh/shared` (`MEDIA_*`).
+- e2e luôn ép `STORAGE_DRIVER=local` (`vitest.config.e2e.ts`), không bao giờ gọi Cloudflare thật. Khoá R2 chỉ ở `apps/api/.env`, không ghi vào log, `system_settings`, phản hồi API. Hướng dẫn: `docs/05-huong-dan-cloudflare-r2.md`.
+
 ## AI Agent (Claude Agent SDK)
 
 - Tool nghiệp vụ đặt trong `features/<tên>/<tên>.agent-tools.ts` (implement `AgentToolProvider`, xem `posts.agent-tools.ts`), gọi service để service tự kiểm tra quyền; thêm vào `providers`/`exports` của module feature và vào `toolProviders` + `imports` trong `features/agent/agent.module.ts`.

@@ -133,6 +133,11 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
 - Cấu hình `apps/api/.env`: `TRUST_PROXY` (số lớp reverse proxy, để lấy IP thật), `BODY_LIMIT`, `THROTTLE_LIMIT`/`THROTTLE_TTL_SEC`. Production từ chối khởi động nếu `DEV_AUTH=true`, `WEB_ORIGIN` không phải `https://` hoặc thiếu `REDIS_URL`.
 - Cookie đăng nhập `HttpOnly` + `SameSite=Lax` (+ `Secure` ở production); request ghi mang `Origin` lạ bị từ chối (chống CSRF). Nội dung bài viết được lọc bằng `sanitize-html` trước khi lưu.
 
+## Ảnh và video (F13, bước 11)
+
+- Ảnh JPEG/PNG/WebP/GIF (≤ 10 MB) và video MP4/WebM (≤ 100 MB) tải lên từ trang soạn bài; trình duyệt `PUT` thẳng lên kho lưu trữ, API chỉ cấp URL ký sẵn rồi kiểm tra lại loại file thật (magic bytes).
+- `STORAGE_DRIVER=local` (mặc định, dev/e2e): lưu ở `UPLOAD_DIR`. `STORAGE_DRIVER=r2`: Cloudflare R2, cần `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_PUBLIC_BASE_URL` trong `apps/api/.env`. Hướng dẫn từng bước và chuyển dữ liệu cũ: [docs/05-huong-dan-cloudflare-r2.md](docs/05-huong-dan-cloudflare-r2.md).
+
 ## Bot Telegram (A01–A04)
 
 ### Tạo bot bằng BotFather

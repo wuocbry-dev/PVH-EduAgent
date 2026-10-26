@@ -23,6 +23,7 @@ import { UsersModule } from './features/users/users.module.js';
 import { DatabaseModule } from './infrastructure/database/database.module.js';
 import { NotificationsModule } from './features/notifications/notifications.module.js';
 import { QueueModule } from './infrastructure/queue/queue.module.js';
+import { StorageModule } from './infrastructure/storage/storage.module.js';
 import { RateLimitModule } from './infrastructure/rate-limit/rate-limit.module.js';
 import { RevalidateModule } from './infrastructure/revalidate/revalidate.module.js';
 
@@ -31,6 +32,7 @@ import { RevalidateModule } from './infrastructure/revalidate/revalidate.module.
     ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     DatabaseModule,
     RevalidateModule,
+    StorageModule,
     QueueModule,
     NotificationsModule,
     AuditLogModule,

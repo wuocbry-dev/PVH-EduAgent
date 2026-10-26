@@ -9,7 +9,7 @@ export async function GalleryGrid() {
   if (items === null) {
     return <p className="text-sm opacity-70">Không tải được thư viện ảnh lúc này, vui lòng thử lại sau.</p>;
   }
-  if (items.length === 0) return <p className="text-sm opacity-70">Chưa có ảnh nào trong thư viện.</p>;
+  if (items.length === 0) return <p className="text-sm opacity-70">Chưa có ảnh hay video nào trong thư viện.</p>;
 
   return (
     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -19,13 +19,28 @@ export async function GalleryGrid() {
             href={`/tin-tuc/${item.postSlug}`}
             className="group block overflow-hidden rounded-lg border border-black/10 dark:border-white/15"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={mediaSrc(item.url)}
-              alt={`Ảnh trong bài: ${item.postTitle}`}
-              loading="lazy"
-              className="aspect-square w-full object-cover transition group-hover:scale-105"
-            />
+            {item.kind === "VIDEO" ? (
+              <span className="relative block">
+                {/* Chỉ tải siêu dữ liệu để hiện khung hình đầu; bấm vào để mở bài và xem video. */}
+                <video
+                  src={mediaSrc(item.url)}
+                  preload="metadata"
+                  muted
+                  playsInline
+                  aria-label={`Video trong bài: ${item.postTitle}`}
+                  className="aspect-square w-full bg-black object-cover"
+                />
+                <span className="absolute left-2 top-2 rounded bg-black/70 px-1.5 text-xs text-white">▶ Video</span>
+              </span>
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={mediaSrc(item.url)}
+                alt={`Ảnh trong bài: ${item.postTitle}`}
+                loading="lazy"
+                className="aspect-square w-full object-cover transition group-hover:scale-105"
+              />
+            )}
             <span className="block truncate px-2 py-1 text-xs opacity-80">{item.postTitle}</span>
           </Link>
         </li>

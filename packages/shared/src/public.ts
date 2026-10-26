@@ -46,8 +46,9 @@ export type PublicSettingKey = (typeof PUBLIC_SETTING_KEYS)[number];
 export type PublicSettingsDto = Partial<Record<PublicSettingKey, string>>;
 
 export interface GalleryItemDto {
-  // Đường dẫn tương đối so với địa chỉ API, vd. /media/files/<tên>.png
+  // URL đầy đủ (driver r2) hoặc đường dẫn tương đối so với địa chỉ API, vd. /media/files/<tên>.png (driver local)
   url: string;
+  kind: 'IMAGE' | 'VIDEO';
   postSlug: string;
   postTitle: string;
 }

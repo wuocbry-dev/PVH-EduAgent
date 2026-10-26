@@ -11,13 +11,8 @@ export const createPostSchema = z.object({
 export type CreatePostInput = z.infer<typeof createPostSchema>;
 
 const id = z.string().regex(/^\d{1,18}$/, 'Mã không hợp lệ');
-// Ảnh đại diện phải là ảnh đã tải lên qua /media, không nhận địa chỉ tùy ý.
-const thumbnailUrl = z
-  .string()
-  .regex(
-    /^\/media\/files\/[0-9a-f-]{36}\.(jpg|png|webp|gif)$/,
-    'Ảnh đại diện phải là ảnh đã tải lên',
-  );
+// Ảnh đại diện phải là ảnh đã tải lên qua /media (PostsService đối chiếu với bảng media), không nhận địa chỉ tùy ý.
+const thumbnailUrl = z.string().trim().max(500);
 
 // Dùng cho trang soạn bài trên web.
 export const createPostFormSchema = createPostSchema.extend({
