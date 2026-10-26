@@ -448,6 +448,13 @@ export class AcademicService {
       where: { classId: cls.id },
       include: { student: { include: { studentProfile: true } } },
     });
+    // Lần đăng nhập thành công gần nhất (nhật ký auth.login) để chủ nhiệm biết em nào chưa vào hệ thống.
+    const logins = await this.prisma.auditLog.groupBy({
+      by: ['userId'],
+      where: { action: 'auth.login', userId: { in: rows.map((r) => r.studentId) }, payload: { path: ['ok'], equals: true } },
+      _max: { createdAt: true },
+    });
+    const lastLogin = new Map(logins.map((l) => [l.userId?.toString(), l._max.createdAt]));
     return rows
       .filter((r) => r.student.studentProfile)
       .map((r) => {
@@ -459,6 +466,7 @@ export class AcademicService {
           birthDate: profile.birthDate ? day(profile.birthDate) : null,
           gender: profile.gender,
           status: r.student.status,
+          lastLoginAt: lastLogin.get(r.student.id.toString())?.toISOString() ?? null,
         };
       })
       .sort((a, b) => a.studentCode.localeCompare(b.studentCode));

@@ -1,11 +1,18 @@
+import { AUDIENCES } from '@pvh/shared';
 import { z } from 'zod';
 
 const isoDate = z.iso.datetime({ offset: true }).transform((v) => new Date(v));
 const title = z.string().trim().min(1, 'Chưa nhập tên sự kiện').max(255);
 const location = z.string().trim().max(255).nullish();
+// Bước 20: đối tượng xem (mặc định toàn trường); khối/lớp/chỉ nhân sự chỉ hiện trong cổng.
+const audience = {
+  audience: z.enum(AUDIENCES).optional(),
+  gradeLevel: z.number().int().min(10).max(12).nullish(),
+  classId: z.string().regex(/^\d{1,18}$/, 'Mã lớp không hợp lệ').nullish(),
+};
 
 export const createEventSchema = z
-  .object({ title, location, startAt: isoDate, endAt: isoDate })
+  .object({ title, location, startAt: isoDate, endAt: isoDate, ...audience })
   .refine((v) => v.endAt > v.startAt, {
     message: 'Thời điểm kết thúc phải sau thời điểm bắt đầu',
     path: ['endAt'],
@@ -18,6 +25,7 @@ export const updateEventSchema = z.object({
   location,
   startAt: isoDate.optional(),
   endAt: isoDate.optional(),
+  ...audience,
 });
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;
 

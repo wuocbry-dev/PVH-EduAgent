@@ -3,14 +3,15 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { EventDto } from '@pvh/shared';
-import { assertPermission } from '../../common/guards/permission.js';
+import type { AudienceTargetsDto, EventDto } from '@pvh/shared';
+import { assertPermission, can } from '../../common/guards/permission.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { parseId } from '../../common/utils/parse-id.js';
 import { stripHtml } from '../../common/utils/sanitize-content.js';
-import type { Event } from '../../generated/prisma/client.js';
+import type { Event, Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
 import { RevalidateService } from '../../infrastructure/revalidate/revalidate.service.js';
+import { audienceTargets, resolveTarget, viewerScope, visibleWhere } from '../announcements/audience.js';
 import { AuditLogService } from '../audit-log/audit-log.service.js';
 import type {
   CreateEventInput,
@@ -19,8 +20,11 @@ import type {
 } from './dto/events.dto.js';
 
 const MAX_LIST = 300;
+const WITH_CLASS = { class: { select: { name: true } } } satisfies Prisma.EventInclude;
+type EventRow = Event & { class: { name: string } | null };
 
-// F15 – lịch sự kiện của trường. Xem: công khai. Thêm/sửa/xóa: cần post:approve (biên tập).
+// F15 – lịch sự kiện của trường. Xem: công khai (chỉ sự kiện toàn trường); trong cổng thêm sự kiện theo khối/lớp/chỉ
+// nhân sự đúng đối tượng (bước 20). Thêm/sửa/xóa: cần post:approve (biên tập, BGH).
 @Injectable()
 export class EventsService {
   constructor(
@@ -30,17 +34,40 @@ export class EventsService {
   ) {}
 
   async list(query: ListEventsQuery): Promise<EventDto[]> {
+    return this.find(query, { audience: 'SCHOOL' });
+  }
+
+  async mine(user: AuthUser, query: ListEventsQuery): Promise<EventDto[]> {
+    const scope = await viewerScope(this.prisma, user, can(user, 'post:approve'));
+    return this.find(query, visibleWhere<Prisma.EventWhereInput>(scope, user.id));
+  }
+
+  async targets(user: AuthUser): Promise<AudienceTargetsDto> {
+    assertPermission(user, 'post:approve');
+    return audienceTargets(this.prisma, user, true);
+  }
+
+  private async find(query: ListEventsQuery, where: Prisma.EventWhereInput): Promise<EventDto[]> {
     const from = query.from ? new Date(query.from) : new Date();
     const events = await this.prisma.event.findMany({
       where: {
-        // Giao với khoảng [from, to]: chưa kết thúc trước from và đã bắt đầu trước to.
-        endAt: { gte: from },
-        startAt: query.to ? { lte: new Date(query.to) } : undefined,
+        AND: [
+          where,
+          // Giao với khoảng [from, to]: chưa kết thúc trước from và đã bắt đầu trước to.
+          { endAt: { gte: from }, startAt: query.to ? { lte: new Date(query.to) } : undefined },
+        ],
       },
+      include: WITH_CLASS,
       orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
       take: MAX_LIST,
     });
     return events.map(toEventDto);
+  }
+
+  // Người có post:approve đặt được mọi đối tượng (lớp phải thuộc năm học hiện hành).
+  private async target(user: AuthUser, input: { audience?: EventDto['audience']; gradeLevel?: number | null; classId?: string | null }) {
+    const t = resolveTarget({ ...input, audience: input.audience ?? 'SCHOOL' }, await audienceTargets(this.prisma, user, true));
+    return { audience: t.audience, gradeLevel: t.gradeLevel, classId: t.classId };
   }
 
   async create(
@@ -56,7 +83,9 @@ export class EventsService {
         startAt: input.startAt,
         endAt: input.endAt,
         createdBy: BigInt(user.id),
+        ...(await this.target(user, input)),
       },
+      include: WITH_CLASS,
     });
     await this.record(user, 'create', event, ip, { title: event.title });
     return toEventDto(event);
@@ -89,7 +118,9 @@ export class EventsService {
               : null,
         startAt,
         endAt,
+        ...(input.audience === undefined ? {} : await this.target(user, input)),
       },
+      include: WITH_CLASS,
     });
     await this.record(user, 'update', event, ip, { fields: Object.keys(input) });
     return toEventDto(event);
@@ -132,12 +163,16 @@ export class EventsService {
   }
 }
 
-function toEventDto(event: Event): EventDto {
+function toEventDto(event: EventRow): EventDto {
   return {
     id: event.id.toString(),
     title: event.title,
     location: event.location,
     startAt: event.startAt.toISOString(),
     endAt: event.endAt.toISOString(),
+    audience: event.audience,
+    gradeLevel: event.gradeLevel,
+    classId: event.classId?.toString() ?? null,
+    className: event.class?.name ?? null,
   };
 }

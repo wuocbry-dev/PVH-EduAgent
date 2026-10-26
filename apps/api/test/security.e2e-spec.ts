@@ -89,6 +89,8 @@ const ROUTES: Record<string, Access> = {
   'PATCH /contacts/:id/status': ['post:approve'],
 
   'GET /events': 'public',
+  'GET /events/mine': 'self', // sự kiện toàn trường + đúng đối tượng (bước 20)
+  'GET /events/targets': ['post:approve'],
   'POST /events': ['post:approve'],
   'PATCH /events/:id': ['post:approve'],
   'DELETE /events/:id': ['post:approve'],
@@ -216,6 +218,14 @@ const ROUTES: Record<string, Access> = {
   'POST /scores/adjustments/:id/approve': ['assessment:manage'],
   'POST /scores/adjustments/:id/reject': ['assessment:manage'],
   'POST /scores/adjustments/:id/cancel': ['score:enter'], // chính người gửi
+  // Bước 20 – thông báo theo đối tượng, hộp thông báo.
+  'GET /announcements/inbox': 'self', // thông báo đúng đối tượng của chính mình + thông báo hệ thống của mình
+  'GET /announcements/unread-count': 'self',
+  'POST /announcements/inbox/read': 'self', // chỉ mục mình thấy / của chính mình
+  'GET /announcements/targets': ['announcement:send'],
+  'GET /announcements/sent': ['announcement:send'],
+  'POST /announcements': ['announcement:send'], // giáo viên: lớp mình dạy/chủ nhiệm; announcement:manage: mọi đối tượng
+  'DELETE /announcements/:id': ['announcement:send'], // người gửi hoặc announcement:manage
 
   'GET /telegram/link': 'self',
   'POST /telegram/link-code': 'self',

@@ -1,6 +1,6 @@
 "use client";
 
-import type { AuthMeDto, EventDto } from "@pvh/shared";
+import { audienceLabel, type AuthMeDto, type EventDto } from "@pvh/shared";
 import { useEffect, useState } from "react";
 import { api } from "@/shared/lib/api-client";
 import { formatDateTime, toDateTimeLocal } from "@/shared/lib/format";
@@ -14,7 +14,10 @@ type Editing = { mode: "create"; start: string } | { mode: "edit"; event: EventD
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
 const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 
-// F15 – lịch tháng của trường. Ai đăng nhập cũng xem; người có post:approve thêm/sửa/xóa sự kiện.
+// Sự kiện dành cho khối/lớp/nhân sự ghi rõ đối tượng; sự kiện toàn trường không ghi.
+const audienceTag = (e: EventDto) => (e.audience === "SCHOOL" ? "" : `[${audienceLabel(e.audience, e.gradeLevel, e.className)}] `);
+
+// F15 – lịch tháng. Ai đăng nhập cũng xem (sự kiện toàn trường và sự kiện đúng đối tượng của mình); người có post:approve thêm/sửa/xóa.
 export function EventCalendar() {
   const [today] = useState(() => new Date());
   const [cursor, setCursor] = useState({ year: today.getFullYear(), month: today.getMonth() });
@@ -164,6 +167,7 @@ export function EventCalendar() {
                       onClick={() => setEditing({ mode: "edit", event: e })}
                       className="block w-full truncate rounded bg-brand px-1 py-0.5 text-left text-white disabled:cursor-default"
                     >
+                      {audienceTag(e)}
                       {e.title}
                     </button>
                   ))}
@@ -176,7 +180,10 @@ export function EventCalendar() {
           <ul className="space-y-2 sm:hidden">
             {monthEvents.map((e) => (
               <li key={e.id} className="rounded border border-black/10 p-3 dark:border-white/15">
-                <p className="font-medium">{e.title}</p>
+                <p className="font-medium">
+                  {audienceTag(e)}
+                  {e.title}
+                </p>
                 <p className="text-xs opacity-70">
                   {formatDateTime(e.startAt)} – {formatDateTime(e.endAt)}
                   {e.location ? ` · ${e.location}` : ""}

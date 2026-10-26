@@ -81,6 +81,7 @@ export interface ClassStudentDto {
   birthDate: string | null;
   gender: Gender | null;
   status: 'ACTIVE' | 'LOCKED' | 'PENDING';
+  lastLoginAt: string | null; // lần đăng nhập thành công gần nhất (từ nhật ký), cho giáo viên chủ nhiệm theo dõi
 }
 
 export interface TeacherOptionDto {

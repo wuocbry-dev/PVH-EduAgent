@@ -1,3 +1,5 @@
+import type { Audience } from './announcements.js';
+
 // Khớp enum TaskStatus / TaskPriority trong ERD / prisma/schema.prisma.
 export const TASK_STATUSES = ['TODO', 'IN_PROGRESS', 'DONE', 'OVERDUE'] as const;
 export type TaskStatus = (typeof TASK_STATUSES)[number];
@@ -65,6 +67,11 @@ export interface EventDto {
   location: string | null;
   startAt: string;
   endAt: string;
+  // Bước 20: đối tượng xem. Trang công khai chỉ có sự kiện toàn trường; khối/lớp/chỉ nhân sự chỉ hiện trong cổng.
+  audience: Audience;
+  gradeLevel: number | null;
+  classId: string | null;
+  className: string | null;
 }
 
 // POST /api/events, PATCH /api/events/:id
@@ -73,4 +80,7 @@ export interface SaveEventRequest {
   location?: string | null;
   startAt: string;
   endAt: string;
+  audience?: Audience;
+  gradeLevel?: number | null;
+  classId?: string | null;
 }

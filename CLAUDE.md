@@ -63,8 +63,8 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 | `/admin` | ADMIN | hệ thống: người dùng, nhập Excel, vai trò/quyền, cấu hình, nhật ký (không có duyệt bài/giao việc) |
 | `/bgh` | PRINCIPAL | tổng quan toàn trường, học vụ, bài viết + duyệt, giao việc, lịch, Trợ lý AI |
 | `/bien-tap` | EDITOR | bài viết, chuyên mục, liên hệ, lịch, Trợ lý AI |
-| `/giao-vien` | TEACHER | tổng quan, bài của tôi, việc của tôi, Trợ lý AI |
-| `/hoc-sinh` | STUDENT | trang của em, đổi mật khẩu |
+| `/giao-vien` | TEACHER | tổng quan, thời khoá biểu, nhập điểm, sổ điểm, lớp chủ nhiệm, thông báo, bài của tôi, việc của tôi, Trợ lý AI |
+| `/hoc-sinh` | STUDENT | trang của em, thời khoá biểu, điểm, thông báo, lịch, hồ sơ, đổi mật khẩu |
 
 - Bảng cổng nằm ở **một nơi**: `PORTAL_INFO` trong `packages/shared/src/portals.ts` (đường dẫn, tên, vai trò, menu `nav` theo `slug`, `portalRedirect`); proxy, menu và API (liên kết trong Telegram) đều dùng nó. **Thêm trang mới:** thêm mục vào `nav` của cổng cần có, tạo `apps/web/src/app/<cổng>/<slug>/page.tsx` (trang mỏng gọi component của feature; trang dùng ở nhiều cổng thì mỗi cổng một route gọi chung một component, không sao chép code), rồi chạy `portals.spec.ts` (kiểm mọi mục menu có trang). Component dùng chung giữa cổng dựng liên kết bằng `usePortalBase()` (client) hoặc prop `base` (server), không viết cứng `/admin`.
 - `src/proxy.ts` đọc claim `roles` trong access token (do `TokenService.issue` thêm) **chỉ để chọn cổng/chuyển hướng**; không bao giờ dùng claim làm bằng chứng quyền (API đọc lại quyền từ CSDL mỗi request). Đổi vai trò của người dùng thu hồi mọi refresh token (`UsersAdminService.update`).
@@ -75,6 +75,11 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 - `features/scores`: đợt thi `assessments` (**mã duy nhất**, sinh ở `score-rules.ts`), lớp áp dụng `assessment_classes` (nháp/công bố **theo từng lớp**), `scores` (CHECK 0–10, UNIQUE đợt–học sinh, `GRADED`/`ABSENT` vắng có lý do do giáo viên ghi/`EXEMPT` miễn chỉ BGH đặt), `score_history` (**chỉ thêm**, trigger CSDL chặn sửa/xoá; test dọn dữ liệu phải `SET LOCAL pvh.allow_score_history_purge = 'on'` trong transaction). Mọi thay đổi điểm phải đi qua `ScoresService.apply` (hoặc `setExemption`) để luôn sinh `score_history`.
 - **ADMIN không có quyền điểm nào** (`SCORE_PERMISSIONS` bị loại khỏi `ROLE_PERMISSIONS.ADMIN`, có unit test `common/permissions.spec.ts`). `score:enter` (giáo viên) chỉ trong **phạm vi phân công** lớp–môn–học kỳ (`assignmentCovers`, kiểm tra trong service, người ngoài phạm vi luôn 403 kể cả khi đoán id); `assessment:manage` + `score:read:all` (BGH) tạo đợt giữa kỳ/cuối kỳ cho khối, đặt hạn nhập, miễn, xem tiến độ; BGH không tự nhập điểm. Quá `entry_deadline` thì giáo viên không sửa được (điều chỉnh sau hạn: bước 19).
 - **AI Agent và Telegram không bao giờ đọc/gửi điểm**: không thêm tool hay thông báo nào dùng `scores`/`assessments` (test trong `security.e2e-spec.ts` quét mã nguồn agent/telegram). `audit_logs` chỉ ghi mã đợt, lớp, số lượng: **không bao giờ ghi giá trị điểm**. Ghi điểm giới hạn tần suất bằng `RateLimitService` (`score-write`). Nhập Excel dùng `readSheet` chung với bước 14 (xem trước → xác nhận). Ảnh biên bản chấm chưa làm vì kho hiện tại là công khai (chờ bucket riêng tư, bước 21).
+
+## Thông báo theo đối tượng (bước 20)
+
+- Đối tượng `Audience` (`SCHOOL`/`GRADE`/`CLASS`/`TEACHERS`) dùng chung cho `announcements` và `events`; ai thấy gì tính ở **một chỗ**: `features/announcements/audience.ts` (`viewerScope` → `visibleWhere`, `audienceTargets`, `resolveTarget`). Học sinh không bao giờ thấy `TEACHERS`; giáo viên chỉ gửi `CLASS` cho lớp mình dạy/chủ nhiệm (`announcement:send`), BGH mọi đối tượng (`announcement:manage`); ADMIN không có quyền thông báo. Nội dung qua `sanitizeContent`; gửi giới hạn `announcement-send` (20/giờ).
+- `GET /events` công khai chỉ trả sự kiện `SCHOOL`; lịch trong cổng dùng `GET /events/mine`. Hộp thông báo `GET /announcements/inbox` gộp thông báo đúng đối tượng và `notifications` của chính người dùng (mọi kênh). Thông báo hệ thống mới nên ghi kênh `web` nếu không muốn gửi Telegram.
 
 ## Xem điểm, khoá sổ, điều chỉnh (bước 19)
 

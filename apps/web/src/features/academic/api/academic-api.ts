@@ -1,4 +1,5 @@
 import type {
+  MyAcademicDto,
   ClassDto,
   ClassStudentDto,
   DepartmentDto,
@@ -43,6 +44,8 @@ export const updateClass = (id: string, body: { name?: string; subjectCombo?: st
   api<ClassDto>(`/academic/classes/${id}`, json("PATCH", body));
 export const deleteClass = (id: string) => api<void>(`/academic/classes/${id}`, json("DELETE"));
 export const listClassStudents = (id: string) => api<ClassStudentDto[]>(`/academic/classes/${id}/students`);
+// Thông tin học vụ của chính mình (dùng ở Client Component; Server Component dùng getMyAcademic).
+export const getMyAcademicClient = () => api<MyAcademicDto>("/academic/me");
 export const transferStudent = (userId: string, classId: string) =>
   api<void>(`/academic/students/${userId}/transfer`, json("POST", { classId }));
 

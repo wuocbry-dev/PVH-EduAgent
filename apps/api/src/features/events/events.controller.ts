@@ -29,13 +29,28 @@ import { EventsService } from './events.service.js';
 export class EventsController {
   constructor(private readonly events: EventsService) {}
 
-  // Công khai: sự kiện sắp tới, hoặc các sự kiện trong khoảng [from, to] (lịch tháng).
+  // Công khai: sự kiện TOÀN TRƯỜNG sắp tới, hoặc trong khoảng [from, to] (lịch tháng).
   @Public()
   @Get()
   list(
     @Query(new ZodValidationPipe(listEventsQuerySchema)) query: ListEventsQuery,
   ) {
     return this.events.list(query);
+  }
+
+  // Lịch trong cổng: sự kiện toàn trường + đúng đối tượng của người xem (biên tập/BGH thấy mọi sự kiện).
+  @Get('mine')
+  mine(
+    @CurrentUser() user: AuthUser,
+    @Query(new ZodValidationPipe(listEventsQuerySchema)) query: ListEventsQuery,
+  ) {
+    return this.events.mine(user, query);
+  }
+
+  // Các lớp/khối đặt được cho sự kiện (người có post:approve).
+  @Get('targets')
+  targets(@CurrentUser() user: AuthUser) {
+    return this.events.targets(user);
   }
 
   @Post()

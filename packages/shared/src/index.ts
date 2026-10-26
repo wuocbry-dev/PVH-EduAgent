@@ -12,3 +12,4 @@ export * from './portals.js';
 export * from './teaching.js';
 export * from './timetable.js';
 export * from './scores.js';
+export * from './announcements.js';

@@ -114,11 +114,18 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
 | `/admin` | ADMIN | tình trạng hệ thống, người dùng, nhập Excel và phiếu tài khoản, vai trò và quyền, cấu hình, nhật ký |
 | `/bgh` | PRINCIPAL | tổng quan toàn trường, học vụ, bài viết và duyệt bài, giao việc, lịch sự kiện, Trợ lý AI |
 | `/bien-tap` | EDITOR | bài viết, chuyên mục, liên hệ, lịch sự kiện, Trợ lý AI |
-| `/giao-vien` | TEACHER | tổng quan (lớp chủ nhiệm, việc của tôi), bài viết của tôi, việc của tôi, Trợ lý AI; thời khoá biểu và nhập điểm ghi "sắp có" |
-| `/hoc-sinh` | STUDENT | trang của em (họ tên, lớp, năm học), đổi mật khẩu; chỗ trống cho thời khoá biểu, điểm, thông báo |
+| `/giao-vien` | TEACHER | tổng quan (lớp chủ nhiệm, lối tắt, việc của tôi), thời khoá biểu, nhập điểm, sổ điểm, lớp chủ nhiệm, thông báo, bài viết của tôi, việc của tôi, Trợ lý AI |
+| `/hoc-sinh` | STUDENT | trang của em (hôm nay học gì, sự kiện, thông báo mới), thời khoá biểu, điểm, thông báo, lịch, hồ sơ, đổi mật khẩu |
 
 - Sau đăng nhập/kích hoạt tự vào cổng chính (ADMIN → PRINCIPAL → EDITOR → TEACHER → STUDENT); `next` hợp lệ và thuộc cổng của người đó thì ưu tiên. Người nhiều vai trò có nút **Đổi cổng**. Vào cổng không thuộc mình, hoặc dùng đường dẫn cũ `/admin/bai-viet…`, thì `src/proxy.ts` chuyển hướng (308) sang trang tương ứng của cổng mình.
 - **Ẩn menu/chuyển hướng không phải bảo mật:** API luôn kiểm tra quyền trong service. Proxy chọn cổng theo claim `roles` trong access token (chỉ để định tuyến); đổi vai trò người dùng thì thu hồi mọi phiên đăng nhập của họ.
+
+## Cổng học sinh và thông báo theo lớp/khối (bước 20)
+
+- **Học sinh** (`/hoc-sinh`): trang chủ có hôm nay học gì, sự kiện sắp tới, thông báo mới; các mục Thời khoá biểu, Điểm của em, Thông báo (đánh dấu đã đọc, đếm chưa đọc), Lịch (sự kiện của trường và của khối/lớp mình), Hồ sơ (chỉ đọc), Đổi mật khẩu. Không có Telegram, không có AI Agent.
+- **Thông báo**: BGH (`/bgh/thong-bao`) gửi cho toàn trường, một khối, một lớp hoặc chỉ giáo viên – nhân sự; giáo viên (`/giao-vien/thong-bao`) gửi cho lớp mình dạy hoặc chủ nhiệm. Có ghim, hạn hiển thị, xem số người đã đọc, xoá. Thông báo tự động (có điểm mới – không kèm điểm, thời khoá biểu đổi, nhắc việc) hiện chung trong hộp thông báo. Thông báo chỉ nằm trong cổng, không đăng lên website công khai.
+- **Sự kiện theo đối tượng**: biên tập viên/BGH đặt sự kiện cho khối, lớp hoặc chỉ nhân sự; website công khai `/lich-su-kien` chỉ hiện sự kiện toàn trường.
+- **Giáo viên chủ nhiệm** (`/giao-vien/lop-chu-nhiem`): danh sách lớp (trạng thái tài khoản, lần đăng nhập gần nhất), cấp lại mã kích hoạt và in phiếu ngay; lối tắt gửi thông báo cho lớp và xem bảng điểm lớp.
 
 ## Xem điểm, thống kê, khoá sổ và điều chỉnh (bước 19)
 

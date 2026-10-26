@@ -21,6 +21,8 @@ export const PERMISSIONS = [
   'score:enter',
   'assessment:manage',
   'score:read:all',
+  'announcement:send',
+  'announcement:manage',
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -34,13 +36,17 @@ const isScorePermission = (p: Permission) => (SCORE_PERMISSIONS as readonly Perm
 
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   // ADMIN chỉ xem phân công giảng dạy và thời khoá biểu (teaching:read, timetable:read); xếp và công bố là việc của Ban giám hiệu.
-  ADMIN: PERMISSIONS.filter((p) => p !== 'teaching:assign' && p !== 'timetable:manage' && !isScorePermission(p)),
+  // Thông báo cho học sinh/giáo viên (bước 20) là việc của BGH và giáo viên, không phải của quản trị hệ thống.
+  ADMIN: PERMISSIONS.filter(
+    (p) => p !== 'teaching:assign' && p !== 'timetable:manage' && !isScorePermission(p) && !p.startsWith('announcement:'),
+  ),
   // BGH tạo đợt thi chung và xem mọi điểm nhưng không tự nhập điểm (score:enter là của giáo viên được phân công).
   PRINCIPAL: PERMISSIONS.filter(
     (p) => p !== 'user:manage' && p !== 'setting:manage' && p !== 'student:import' && p !== 'score:enter',
   ),
   EDITOR: ['task:read:all', 'post:create', 'post:approve', 'post:schedule', 'post:unpublish'],
-  TEACHER: ['task:read:own', 'post:create', 'score:enter'],
+  // announcement:send của giáo viên chỉ cho lớp mình dạy/chủ nhiệm (kiểm tra trong service); announcement:manage = mọi đối tượng.
+  TEACHER: ['task:read:own', 'post:create', 'score:enter', 'announcement:send'],
   STUDENT: [],
 };
 

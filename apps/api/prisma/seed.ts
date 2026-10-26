@@ -37,6 +37,8 @@ const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   'score:enter': 'Nhập điểm cho lớp–môn được phân công (giáo viên)',
   'assessment:manage': 'Tạo đợt thi giữa kỳ/cuối kỳ chung, đặt hạn nhập điểm, miễn kiểm tra',
   'score:read:all': 'Xem điểm và tiến độ nhập điểm toàn trường',
+  'announcement:send': 'Gửi thông báo cho lớp mình dạy/chủ nhiệm (giáo viên) – trong cổng',
+  'announcement:manage': 'Gửi thông báo cho mọi đối tượng (toàn trường, khối, lớp, chỉ nhân sự) và quản lý mọi thông báo',
 };
 
 // Mật khẩu chung cho tài khoản mẫu, chỉ dùng trên máy phát triển.

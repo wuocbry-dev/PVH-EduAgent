@@ -115,6 +115,20 @@ Xem điểm theo đúng phạm vi: **học sinh** chỉ điểm của chính mì
 
 Thông báo về điểm (có điểm mới được công bố cho học sinh; có đề nghị điều chỉnh cho BGH; kết quả duyệt cho giáo viên) chỉ ghi vào bảng `notifications` kênh `web`, **không kèm giá trị điểm** và không bao giờ gửi qua Telegram (bộ gửi Telegram chỉ lấy kênh `telegram`). Hộp thông báo trong cổng thuộc bước 20.
 
+## Thông báo theo đối tượng – `/announcements` (bước 20)
+
+Đối tượng: toàn trường, một khối, một lớp, hoặc **chỉ nhân sự** (học sinh không bao giờ thấy). Học sinh thấy toàn trường + khối mình + lớp mình; nhân sự thấy toàn trường, chỉ nhân sự, lớp/khối mình dạy hoặc chủ nhiệm và thông báo mình gửi; `announcement:manage` (BGH) thấy tất cả. Thông báo hết hạn hiển thị không hiện. Nội dung làm sạch bằng `sanitizeContent` (chỉ ảnh/video thuộc kho của hệ thống). Gửi tối đa 20 thông báo/giờ/tài khoản (`RateLimitService`, khoá `announcement-send`) → 429. Không có tool AI Agent, không gửi qua Telegram.
+
+| Endpoint | Quyền | Ghi chú |
+|---|---|---|
+| `GET /announcements/inbox` | đăng nhập | tối đa 60 mục mới nhất: thông báo đúng đối tượng (ghim lên đầu) + thông báo hệ thống của **chính mình** (bảng `notifications`: có điểm mới, thời khoá biểu đổi, nhắc việc…), kèm số chưa đọc |
+| `GET /announcements/unread-count` | đăng nhập | số thông báo chưa đọc |
+| `POST /announcements/inbox/read` | đăng nhập | đánh dấu đã đọc theo id hoặc `all`; id thông báo ngoài đối tượng hoặc của người khác bị bỏ qua |
+| `GET /announcements/targets` | `announcement:send` | giáo viên: các lớp mình dạy/chủ nhiệm (năm hiện hành); BGH: mọi lớp, khối 10–12 |
+| `GET /announcements/sent` | `announcement:send` | giáo viên: thông báo của mình; BGH: mọi thông báo; kèm số người đã đọc |
+| `POST /announcements` | `announcement:send` | giáo viên chỉ `CLASS` cho lớp mình dạy/chủ nhiệm (khác → 403); BGH mọi đối tượng; thiếu khối/lớp, hạn hiển thị đã qua, nội dung rỗng sau khi làm sạch → 400 |
+| `DELETE /announcements/:id` | người gửi hoặc `announcement:manage` | |
+
 ## Phân công giảng dạy – `/teaching` (bước 16)
 
 | Endpoint | Quyền | Ghi chú |
@@ -152,8 +166,10 @@ Thông báo về điểm (có điểm mới được công bố cho học sinh; 
 | `POST /posts/:id/reject` | `post:approve` | |
 | `POST /posts/:id/reschedule`, `/publish`, `/cancel-schedule` | `post:schedule` | |
 | `POST /posts/:id/unpublish`, `/restore` | `post:unpublish` | |
-| `GET /categories`, `GET /events` | Công khai | |
-| `POST/PATCH/DELETE /categories…`, `POST/PATCH/DELETE /events…` | `post:approve` | |
+| `GET /categories`, `GET /events` | Công khai | `GET /events` chỉ trả sự kiện **toàn trường** (bước 20) |
+| `GET /events/mine` | đăng nhập | sự kiện toàn trường + đúng đối tượng của người xem (học sinh: khối/lớp mình; nhân sự: chỉ nhân sự, lớp/khối mình dạy hoặc chủ nhiệm); `post:approve` thấy mọi sự kiện |
+| `GET /events/targets` | `post:approve` | các lớp/khối của năm hiện hành để đặt đối tượng sự kiện |
+| `POST/PATCH/DELETE /categories…`, `POST/PATCH/DELETE /events…` | `post:approve` | sự kiện có `audience` (`SCHOOL`/`GRADE`/`CLASS`/`TEACHERS`); thiếu khối/lớp → 400, CHECK ở CSDL |
 | `POST /media/presign` | `post:create` | xin URL ký sẵn để PUT file lên kho; ảnh JPEG/PNG/WebP/GIF ≤ 10 MB, video MP4/WebM ≤ 100 MB; 30 lượt/phút; tối đa 20 yêu cầu chờ/người |
 | `POST /media/:id/complete` | `post:create` | chỉ người tạo (hoặc `post:approve`); kiểm tra object có thật, đúng kích thước và đúng loại theo magic bytes, sai thì xoá object |
 | `GET /media` | `post:create` | chỉ file đã hoàn tất; danh sách chỉ file của mình (trừ `post:approve`); lọc `?kind=IMAGE\|VIDEO` |
