@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import {
   BadRequestException,
   ForbiddenException,
@@ -5,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { AgentActionDto, AgentActionStatus, SensitiveTool } from '@pvh/shared';
+import { assertPermission } from '../../common/guards/permission.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { parseId } from '../../common/utils/parse-id.js';
 import type { Prisma } from '../../generated/prisma/client.js';
@@ -32,13 +34,29 @@ interface ActionArgs {
   title: string;
   publishAt?: string;
   description: string;
+  // Chỉ có với create_and_publish_post: nội dung bài sẽ được tạo khi người dùng xác nhận.
+  draft?: NewPostInput;
+  // Băm nội dung đề xuất; cùng người + cùng băm đang chờ thì không tạo thêm yêu cầu thứ hai.
+  fingerprint?: string;
+}
+
+export interface NewPostInput {
+  title: string;
+  summary?: string | null;
+  content: string;
+  categoryId?: string | null;
+  mediaIds?: string[];
+  thumbnailMediaId?: string | null;
 }
 
 type ActionRow = Prisma.AgentActionGetPayload<object>;
 
 export interface ProposeInput {
   tool: SensitiveTool;
-  postId: string;
+  // Bắt buộc với mọi tool trừ create_and_publish_post.
+  postId?: string;
+  // Chỉ với create_and_publish_post; publishAt bỏ trống = đăng ngay.
+  draft?: NewPostInput;
   // Bắt buộc với schedule_post và reschedule_post.
   publishAt?: Date;
 }
@@ -55,7 +73,9 @@ export class AgentActionsService {
   ) {}
 
   // Kiểm tra quyền và trạng thái bài ngay lúc đề xuất để người dùng không phải xác nhận một việc chắc chắn lỗi.
-  async propose(user: AuthUser, input: ProposeInput, channel: AuditChannel): Promise<AgentActionDto> {
+  async propose(user: AuthUser, input: ProposeInput, channel: AuditChannel): Promise<AgentActionDto & { duplicate?: boolean }> {
+    if (input.tool === 'create_and_publish_post') return this.proposeNewPost(user, input, channel);
+    if (!input.postId) throw new BadRequestException('Thiếu mã bài viết');
     const needsTime = input.tool === 'schedule_post' || input.tool === 'reschedule_post';
     if (needsTime && !input.publishAt) throw new BadRequestException('Cần chọn thời điểm đăng bài');
     const publishAt = needsTime ? input.publishAt : undefined;
@@ -92,6 +112,56 @@ export class AgentActionsService {
     return toDto(row);
   }
 
+  // "Viết bài và đăng": MỘT yêu cầu duy nhất. Bài chưa được tạo; chỉ khi người dùng bấm Xác nhận hệ thống mới tạo bài
+  // rồi đăng/hẹn giờ (kiểm tra lại quyền lúc đó). Cần cả quyền soạn, duyệt và đăng; thiếu thì từ chối ngay.
+  private async proposeNewPost(user: AuthUser, input: ProposeInput, channel: AuditChannel) {
+    const draft = input.draft;
+    if (!draft) throw new BadRequestException('Thiếu nội dung bài viết');
+    assertPermission(user, 'post:create');
+    assertPermission(user, 'post:approve');
+    assertPermission(user, 'post:schedule');
+    if (input.publishAt && input.publishAt.getTime() <= Date.now()) {
+      throw new BadRequestException('Giờ hẹn đăng phải ở tương lai');
+    }
+    const preview = await this.posts.previewNewPost(user, draft);
+
+    const fingerprint = createHash('sha256')
+      .update(JSON.stringify([draft.title, draft.content, draft.mediaIds ?? [], draft.categoryId ?? null, input.publishAt?.toISOString() ?? null]))
+      .digest('hex');
+    const pending = await this.prisma.agentAction.findMany({
+      where: { userId: BigInt(user.id), toolName: input.tool, status: 'PENDING', expiresAt: { gt: new Date() } },
+    });
+    const same = pending.find((r) => (r.args as unknown as ActionArgs).fingerprint === fingerprint);
+    if (same) return { ...toDto(same), duplicate: true };
+
+    const args: ActionArgs = {
+      postId: '',
+      title: preview.title,
+      publishAt: input.publishAt?.toISOString(),
+      description: describeNewPost(preview, input.publishAt),
+      draft,
+      fingerprint,
+    };
+    const row = await this.prisma.agentAction.create({
+      data: {
+        userId: BigInt(user.id),
+        toolName: input.tool,
+        args: args as unknown as Prisma.InputJsonObject,
+        expiresAt: new Date(Date.now() + ACTION_TTL_MS),
+      },
+    });
+    await this.audit.record({
+      userId: user.id,
+      channel,
+      action: 'agent_action.propose',
+      targetType: 'agent_action',
+      targetId: row.id.toString(),
+      params: { tool: input.tool, title: preview.title, publishAt: args.publishAt, images: preview.images, videos: preview.videos },
+      ok: true,
+    });
+    return toDto(row);
+  }
+
   // Các hành động còn chờ (chưa hết hạn) của người dùng; web dùng để dựng lại thẻ xác nhận.
   async listPending(user: AuthUser): Promise<AgentActionDto[]> {
     const rows = await this.prisma.agentAction.findMany({
@@ -118,7 +188,13 @@ export class AgentActionsService {
     const tool = action.toolName as SensitiveTool;
     try {
       const post = await this.execute(user, tool, args, channel, ip);
-      const result = { ok: true, postId: post.id, status: post.status, message: doneMessage(tool, post.status, args) };
+      const result = {
+        ok: true,
+        postId: post.id,
+        postSlug: post.slug,
+        status: post.status,
+        message: doneMessage(tool, post.status, args),
+      };
       return await this.finish(user, action.id, 'DONE', result, channel);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -228,8 +304,29 @@ export class AgentActionsService {
         return this.posts.transition(user, args.postId, 'reschedule', { publishAt }, meta);
       case 'unpublish_post':
         return this.posts.transition(user, args.postId, 'unpublish', {}, meta);
+      case 'create_and_publish_post':
+        return this.createAndPublish(user, args, publishAt, meta);
       default:
         throw new ForbiddenException(`Tool không được hỗ trợ: ${String(tool)}`);
+    }
+  }
+
+  // Tạo bài rồi gửi duyệt và duyệt/hẹn giờ bằng đúng các thao tác của PostsService (mỗi bước tự kiểm tra quyền và ghi
+  // audit). Nếu một bước sau khi tạo bị lỗi thì bài vẫn còn ở trạng thái nháp/chờ duyệt và thông báo nói rõ.
+  private async createAndPublish(
+    user: AuthUser,
+    args: ActionArgs,
+    publishAt: Date | undefined,
+    meta: { channel: AuditChannel; ip?: string },
+  ) {
+    if (!args.draft) throw new BadRequestException('Thiếu nội dung bài viết');
+    const draft = await this.posts.createDraftWithMedia(user, args.draft, meta);
+    try {
+      await this.posts.transition(user, draft.id, 'submit', {}, meta);
+      return await this.posts.transition(user, draft.id, 'approve', { publishAt }, meta);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      throw new Error(`Đã lưu bài "${args.title}" nhưng chưa đăng được: ${reason}`);
     }
   }
 
@@ -256,7 +353,7 @@ export class AgentActionsService {
   }
 }
 
-function describe(tool: SensitiveTool, title: string, publishAt?: Date): string {
+function describe(tool: Exclude<SensitiveTool, 'create_and_publish_post'>, title: string, publishAt?: Date): string {
   const at = publishAt ? formatTime(publishAt.toISOString()) : '';
   switch (tool) {
     case 'approve_post':
@@ -270,8 +367,26 @@ function describe(tool: SensitiveTool, title: string, publishAt?: Date): string 
   }
 }
 
+// Nội dung để người dùng soát trước khi bấm Xác nhận: tiêu đề, tóm tắt, số ảnh/video, chuyên mục, giờ đăng.
+function describeNewPost(
+  p: { title: string; summary: string; categoryName: string | null; images: number; videos: number },
+  publishAt?: Date,
+): string {
+  const files = [p.images ? `${p.images} ảnh` : '', p.videos ? `${p.videos} video` : ''].filter(Boolean).join(', ');
+  return [
+    `Tạo bài "${p.title}" và ${publishAt ? `hẹn đăng lúc ${formatTime(publishAt.toISOString())}` : 'ĐĂNG NGAY lên website'}`,
+    `• Tóm tắt: ${p.summary || '(chưa có)'}`,
+    `• Đính kèm: ${files || 'không có ảnh/video'}`,
+    `• Chuyên mục: ${p.categoryName ?? 'chưa phân loại'}`,
+  ].join('\n');
+}
+
 function doneMessage(tool: SensitiveTool, status: string, args: ActionArgs): string {
   switch (tool) {
+    case 'create_and_publish_post':
+      return args.publishAt
+        ? `Đã tạo bài "${args.title}" và hẹn đăng lúc ${formatTime(args.publishAt)}`
+        : `Đã tạo và đăng bài "${args.title}"`;
     case 'approve_post':
       return `Đã đăng bài "${args.title}"`;
     case 'schedule_post':
@@ -285,7 +400,7 @@ function doneMessage(tool: SensitiveTool, status: string, args: ActionArgs): str
 
 export function toDto(row: ActionRow): AgentActionDto {
   const args = row.args as unknown as ActionArgs;
-  const result = row.result as { message?: string } | null;
+  const result = row.result as { message?: string; postSlug?: string; status?: string } | null;
   return {
     id: row.id.toString(),
     toolName: row.toolName as SensitiveTool,
@@ -293,5 +408,6 @@ export function toDto(row: ActionRow): AgentActionDto {
     status: row.status,
     expiresAt: row.expiresAt.toISOString(),
     resultMessage: result?.message ?? null,
+    resultSlug: result?.status === 'PUBLISHED' ? (result.postSlug ?? null) : null,
   };
 }

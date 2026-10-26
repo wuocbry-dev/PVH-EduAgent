@@ -33,7 +33,7 @@ export class AgentService {
 
   async chat(base: AgentContext, message: string): Promise<AgentChatResponse> {
     // Mỗi lượt chat có bộ gom riêng cho hành động chờ xác nhận mà tool nhạy cảm đề xuất.
-    const ctx: AgentContext = { ...base, pendingActions: [] };
+    const ctx: AgentContext = { ...base, pendingActions: [], usedMediaIds: [] };
     const claudeEnv = this.buildClaudeEnv();
 
     // Bộ tool được dựng theo từng người dùng: mỗi tool đã gắn sẵn user để kiểm tra quyền.
@@ -80,6 +80,7 @@ export class AgentService {
           numTurns: msg.num_turns,
           costUsd: msg.total_cost_usd,
           pendingActions: ctx.pendingActions ?? [],
+          usedMediaIds: ctx.usedMediaIds ?? [],
         };
       }
       const detail =

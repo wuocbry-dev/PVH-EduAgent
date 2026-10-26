@@ -356,9 +356,10 @@ describe('Rà soát bảo mật (bước 10, e2e)', () => {
       const names = providers.flatMap((p) => p.buildTools({ user, channel: 'telegram' })).map((t) => t.name).sort();
       expect(names).toEqual(
         [
-          'approve_post', 'check_deadlines', 'create_announcement', 'create_post_draft', 'create_task',
-          'get_system_status', 'list_assignees', 'list_posts', 'reschedule_post', 'schedule_post',
-          'summarize_day', 'unpublish_post', 'update_task_status',
+          'approve_post', 'check_deadlines', 'create_and_publish_post', 'create_announcement', 'create_post_draft',
+          'create_post_with_media', 'create_task', 'get_system_status', 'list_assignees', 'list_categories',
+          'list_posts', 'reschedule_post', 'schedule_post', 'submit_post_for_review', 'summarize_day',
+          'unpublish_post', 'update_task_status',
         ].sort(),
       );
     });

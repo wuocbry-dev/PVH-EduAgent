@@ -25,6 +25,7 @@ export class LocalStorageService extends StorageService {
   readonly dir: string;
   private readonly secret: string;
   private readonly origins: string[];
+  private readonly apiBase: string;
 
   constructor(config: ConfigService<Env, true>) {
     super();
@@ -33,6 +34,7 @@ export class LocalStorageService extends StorageService {
     this.secret = `media-local-upload:${config.get('JWT_ACCESS_SECRET', { infer: true })}`;
     const apiUrl =
       config.get('API_PUBLIC_URL', { infer: true }) ?? `http://localhost:${config.get('API_PORT', { infer: true })}`;
+    this.apiBase = apiUrl.replace(/\/+$/, '');
     this.origins = [apiUrl, config.get('WEB_ORIGIN', { infer: true })].map((u) => new URL(u).origin);
   }
 
@@ -108,6 +110,10 @@ export class LocalStorageService extends StorageService {
 
   publicUrl(key: string): string {
     return `${FILES_PREFIX}${key}`;
+  }
+
+  contentUrl(key: string): string {
+    return `${this.apiBase}/api${FILES_PREFIX}${key}`;
   }
 
   keyFromUrl(url: string): string | null {

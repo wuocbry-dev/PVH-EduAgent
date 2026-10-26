@@ -1,5 +1,5 @@
 import type { SdkMcpToolDefinition } from '@anthropic-ai/claude-agent-sdk';
-import type { AgentActionDto } from '@pvh/shared';
+import type { AgentActionDto, AgentAttachment } from '@pvh/shared';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import type { AuditChannel } from '../audit-log/audit-log.service.js';
 
@@ -9,6 +9,12 @@ export interface AgentContext {
   channel: AuditChannel;
   // Hành động chờ xác nhận mà tool nhạy cảm đề xuất trong lượt chat này (AgentService đọc ra để trả về).
   pendingActions?: AgentActionDto[];
+  // Tệp (ảnh/video đã lưu thành media) người dùng gửi kèm và chưa gắn vào bài nào. Chỉ là dữ liệu mô tả, không có URL.
+  attachments?: AgentAttachment[];
+  // Vài lượt hội thoại gần nhất của chat này (Telegram), để soạn bài qua nhiều tin nhắn. Là dữ liệu, không phải chỉ dẫn.
+  history?: { role: 'user' | 'assistant'; text: string }[];
+  // Id media mà tool đã dùng trong lượt này (AgentService trả ra để kênh bỏ khỏi danh sách tệp đang chờ).
+  usedMediaIds?: string[];
 }
 
 // Kiểu chung cho mọi tool tạo bởi `tool()`, bất kể input schema của từng tool.

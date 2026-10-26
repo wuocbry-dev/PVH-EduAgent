@@ -10,6 +10,18 @@ export const createPostSchema = z.object({
 
 export type CreatePostInput = z.infer<typeof createPostSchema>;
 
+const mediaId = z.string().regex(/^\d{1,18}$/, 'Mã media không hợp lệ');
+
+// Tool tạo bài kèm ảnh/video (agent): mediaIds phải là media của chính người dùng, đã hoàn tất kiểm tra.
+export const newPostToolSchema = z.object({
+  title: z.string().trim().min(5).max(255).describe('Tiêu đề bài viết'),
+  summary: z.string().trim().max(500).optional().describe('Tóm tắt ngắn'),
+  content: z.string().trim().min(1).describe('Nội dung bài viết, dạng HTML đơn giản (<p>, <h2>, <ul>...). Không chèn thẻ ảnh/video: dùng mediaIds'),
+  categoryId: z.string().regex(/^\d{1,18}$/, 'Mã chuyên mục không hợp lệ').optional().describe('id chuyên mục, lấy từ list_categories'),
+  mediaIds: z.array(mediaId).max(20).optional().describe('id các ảnh/video đính kèm (từ danh sách tệp đính kèm)'),
+  thumbnailMediaId: mediaId.optional().describe('id ảnh làm ảnh đại diện (mặc định ảnh đầu tiên)'),
+});
+
 const id = z.string().regex(/^\d{1,18}$/, 'Mã không hợp lệ');
 // Ảnh đại diện phải là ảnh đã tải lên qua /media (PostsService đối chiếu với bảng media), không nhận địa chỉ tùy ý.
 const thumbnailUrl = z.string().trim().max(500);

@@ -45,6 +45,12 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 - Không bật tool có sẵn của Claude Code (`tools: []`, `strictMcpConfig`, `settingSources: []` trong `agent.service.ts`). Mọi tool được bọc audit log.
 - Thao tác nhạy cảm/ảnh hưởng công khai (duyệt, hẹn giờ, gỡ bài, xóa…) phải **xác nhận 2 bước** trước khi thực thi: tool chỉ gọi `AgentActionsService.propose` (`features/agent-actions`, bảng `agent_actions`, hết hạn 10 phút), thao tác chạy khi chính người ra lệnh bấm Xác nhận trên Telegram/web (`confirm`).
 
+## Soạn bài qua Telegram (bước 12)
+
+- Tệp từ Telegram đi qua `TelegramFileService` (getFile, tối đa 20 MB, **không bao giờ ghi URL tải vào log/lỗi** vì chứa token bot) rồi `MediaService.createFromBuffer` (đúng kiểm tra của bước 11). Album gom bằng Redis (`TelegramAlbumService`), ngữ cảnh 30 phút và chống xử lý lặp theo `message_id` ở `TelegramContextService`; hạn mức byte/giờ/ngày dùng `RateLimitService`.
+- Agent chỉ nhận mô tả tệp (`AgentContext.attachments`: id, loại, dung lượng, tên) và lịch sử dạng **dữ liệu** trong khối được đánh dấu (`prompts/system-prompt.ts`); chú thích ảnh, nội dung tin, kết quả tool không bao giờ là chỉ dẫn. Tool tạo bài: `create_post_with_media`, `submit_post_for_review`, `list_categories`; "viết bài và đăng" là tool nhạy cảm `create_and_publish_post` (`agent-actions`): **một** yêu cầu xác nhận, bài chỉ được tạo khi xác nhận (`PostsService.createDraftWithMedia` → `submit` → `approve`, quyền kiểm tra lại từng bước).
+- `posts.source` (`WEB`/`TELEGRAM`) đặt theo `meta.channel` khi tạo bài.
+
 ## Lệnh kiểm tra (chạy ở thư mục gốc)
 
 | Lệnh | Việc |

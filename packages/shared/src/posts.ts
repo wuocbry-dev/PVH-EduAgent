@@ -33,6 +33,10 @@ export const POST_ACTIONS = [
 ] as const;
 export type PostAction = (typeof POST_ACTIONS)[number];
 
+// Nơi bài được tạo (hiện nhãn "Tạo qua Telegram" ở giao diện quản trị).
+export const POST_SOURCES = ['WEB', 'TELEGRAM'] as const;
+export type PostSource = (typeof POST_SOURCES)[number];
+
 export interface PostDto {
   id: string;
   title: string;
@@ -47,6 +51,7 @@ export interface PostDto {
   categoryName: string | null;
   thumbnailUrl: string | null;
   rejectReason: string | null;
+  source: PostSource;
   publishAt: string | null;
   publishedAt: string | null;
   createdAt: string;
@@ -127,3 +132,6 @@ export function mediaKindOf(mimeType: string): MediaKind | null {
 export function mediaMaxBytes(kind: MediaKind): number {
   return kind === 'IMAGE' ? MEDIA_IMAGE_MAX_BYTES : MEDIA_VIDEO_MAX_BYTES;
 }
+
+// Bot Telegram chỉ tải được file tối đa 20 MB (giới hạn của Bot API); lớn hơn thì phải đăng trên web.
+export const TELEGRAM_MAX_FILE_BYTES = 20 * 1024 * 1024;

@@ -77,6 +77,9 @@ export function PostManager() {
                     <Link href={`/admin/bai-viet/${post.id}`} className="underline">
                       {post.title}
                     </Link>
+                    {post.source === "TELEGRAM" && (
+                      <span className="ml-2 rounded bg-sky-200 px-1.5 py-0.5 text-xs text-sky-900">Tạo qua Telegram</span>
+                    )}
                   </td>
                   <td className="py-2 pr-4">{post.authorName}</td>
                   <td className="py-2 pr-4">{post.categoryName ?? "—"}</td>

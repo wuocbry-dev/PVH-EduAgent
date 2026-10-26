@@ -182,10 +182,10 @@ describe('Xác nhận 2 bước cho AI Agent (A07, A08, e2e)', () => {
   }
 
   describe('tool nhạy cảm không thực thi ngay', () => {
-    it('có đủ 4 tool; mỗi tool chỉ tạo yêu cầu PENDING (hết hạn sau 10 phút), bài viết giữ nguyên', async () => {
+    it('có đủ 5 tool; mỗi tool chỉ tạo yêu cầu PENDING (hết hạn sau 10 phút), bài viết giữ nguyên', async () => {
       const principal = await authUser(PRINCIPAL);
       const t = sensitiveTools(principal);
-      expect(t.names).toEqual(['approve_post', 'schedule_post', 'reschedule_post', 'unpublish_post']);
+      expect(t.names).toEqual(['approve_post', 'schedule_post', 'create_and_publish_post', 'reschedule_post', 'unpublish_post']);
 
       const pending = await makePost('chờ duyệt', 'PENDING_REVIEW');
       const res = await t.call('approve_post', { postId: pending.id });

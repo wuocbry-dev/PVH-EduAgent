@@ -12,8 +12,9 @@ export class RateLimitService {
   constructor(private readonly redis: RedisService) {}
 
   // Ghi nhận một lần trong cửa sổ `windowSec` giây; trả về tổng số lần (đã tính lần này) và số giây còn lại của cửa sổ.
-  async increment(name: string, id: string, windowSec: number): Promise<{ count: number; retryAfterSec: number }> {
-    return this.touch(name, id, windowSec, 1);
+  // `by` > 1 để đếm theo đơn vị khác lượt (vd. số byte đã tải lên).
+  async increment(name: string, id: string, windowSec: number, by = 1): Promise<{ count: number; retryAfterSec: number }> {
+    return this.touch(name, id, windowSec, by);
   }
 
   // Số lần hiện tại trong cửa sổ, không tính thêm.
@@ -26,7 +27,7 @@ export class RateLimitService {
     await this.redis.client?.del(this.redis.key('rl', name, id)).catch(() => 0);
   }
 
-  private async touch(name: string, id: string, windowSec: number, add: 0 | 1) {
+  private async touch(name: string, id: string, windowSec: number, add: number) {
     const client = this.redis.client;
     if (client) {
       const key = this.redis.key('rl', name, id);
@@ -35,7 +36,7 @@ export class RateLimitService {
           const [count, ttl] = await Promise.all([client.get(key), client.ttl(key)]);
           return { count: Number(count ?? 0), retryAfterSec: Math.max(0, ttl) };
         }
-        const result = await client.multi().incr(key).expire(key, windowSec, 'NX').ttl(key).exec();
+        const result = await client.multi().incrby(key, add).expire(key, windowSec, 'NX').ttl(key).exec();
         const count = Number(result?.[0]?.[1] ?? 1);
         return { count, retryAfterSec: Math.max(1, Number(result?.[2]?.[1] ?? windowSec)) };
       } catch (err) {
@@ -45,7 +46,7 @@ export class RateLimitService {
     return this.touchMemory(`${name}:${id}`, windowSec, add);
   }
 
-  private touchMemory(key: string, windowSec: number, add: 0 | 1) {
+  private touchMemory(key: string, windowSec: number, add: number) {
     const now = Date.now();
     let entry = this.memory.get(key);
     if (!entry || entry.resetAt <= now) {

@@ -126,6 +126,11 @@ enum PostStatus {
   ARCHIVED
 }
 
+enum PostSource {
+  WEB
+  TELEGRAM
+}
+
 model Post {
   id           BigInt     @id @default(autoincrement())
   categoryId   BigInt?    @map("category_id")
@@ -141,6 +146,8 @@ model Post {
   publishedAt  DateTime?  @map("published_at") @db.Timestamptz
   rejectReason String?    @map("reject_reason")
   viewCount    Int        @default(0) @map("view_count")
+  // Nơi bài được tạo; TELEGRAM = người dùng soạn qua bot (AI Agent).
+  source       PostSource @default(WEB)
   createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz
 
   category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)

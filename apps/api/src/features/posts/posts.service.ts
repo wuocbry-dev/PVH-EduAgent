@@ -24,6 +24,7 @@ import {
   AuditLogService,
   type AuditChannel,
 } from '../audit-log/audit-log.service.js';
+import { MediaService } from '../media/media.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import type {
   CreatePostFormInput,
@@ -67,6 +68,7 @@ export class PostsService {
     private readonly queue: QueueService,
     private readonly notifications: NotificationsService,
     private readonly storage: StorageService,
+    private readonly media: MediaService,
   ) {}
 
   // Người có post:approve thấy mọi bài; người còn lại chỉ thấy bài của mình.
@@ -120,11 +122,91 @@ export class PostsService {
         categoryId,
         slug: await this.uniqueSlug(input.title),
         authorId: BigInt(user.id),
+        source: meta.channel === 'telegram' ? 'TELEGRAM' : 'WEB',
       },
       include: WITH_RELATIONS,
     });
     await this.record(user, 'create', post, meta, { title: post.title });
     return toPostDto(post, user);
+  }
+
+  // Bài nháp có ảnh/video đính kèm (do agent tạo từ Telegram/web). Media phải là của chính người dùng và đã hoàn tất
+  // kiểm tra; được nhúng vào cuối nội dung, ảnh đại diện là ảnh `thumbnailMediaId` hoặc ảnh đầu tiên. Không đăng.
+  // Gọi lặp với cùng tiêu đề trong 10 phút (agent gọi lại tool, tin gửi lại) trả về chính bài đã tạo, không tạo bài thứ hai.
+  async createDraftWithMedia(
+    user: AuthUser,
+    input: {
+      title: string;
+      summary?: string | null;
+      content: string;
+      categoryId?: string | null;
+      mediaIds?: string[];
+      thumbnailMediaId?: string | null;
+    },
+    meta: ActionMeta = {},
+  ): Promise<PostDto & { duplicate: boolean }> {
+    assertPermission(user, 'post:create');
+    const items = await this.media.resolveOwnReady(user, input.mediaIds ?? []);
+    const thumb = input.thumbnailMediaId
+      ? items.find((m) => m.id.toString() === input.thumbnailMediaId && m.kind === 'IMAGE')
+      : items.find((m) => m.kind === 'IMAGE');
+    if (input.thumbnailMediaId && !thumb) {
+      throw new BadRequestException('Ảnh đại diện phải là một ảnh nằm trong danh sách đính kèm');
+    }
+    const title = stripHtml(input.title);
+    const recent = await this.prisma.post.findFirst({
+      where: {
+        authorId: BigInt(user.id),
+        title,
+        status: 'DRAFT',
+        createdAt: { gt: new Date(Date.now() - 10 * 60 * 1000) },
+      },
+      include: WITH_RELATIONS,
+      orderBy: { id: 'desc' },
+    });
+    if (recent) return { ...toPostDto(recent, user), duplicate: true };
+
+    const post = await this.createDraft(
+      user,
+      {
+        title: input.title,
+        summary: input.summary,
+        content: input.content + this.media.mediaHtml(items),
+        categoryId: input.categoryId,
+        thumbnailUrl: thumb?.url ?? null,
+      },
+      meta,
+    );
+    return { ...post, duplicate: false };
+  }
+
+  // Kiểm tra trước một bài sắp được tạo (agent đề xuất "tạo và đăng" chờ xác nhận): quyền, media, nội dung, chuyên mục.
+  // Chưa tạo gì; trả dữ liệu để hiển thị cho người dùng soát trước khi xác nhận.
+  async previewNewPost(
+    user: AuthUser,
+    input: { title: string; summary?: string | null; content: string; categoryId?: string | null; mediaIds?: string[] },
+  ): Promise<{ title: string; summary: string; categoryName: string | null; images: number; videos: number }> {
+    assertPermission(user, 'post:create');
+    const items = await this.media.resolveOwnReady(user, input.mediaIds ?? []);
+    const content = this.cleanContent(input.content + this.media.mediaHtml(items));
+    const category = input.categoryId
+      ? await this.prisma.category.findUnique({ where: { id: parseId(input.categoryId) } })
+      : null;
+    if (input.categoryId && !category) throw new BadRequestException('Chuyên mục không tồn tại');
+    const text = stripHtml(content).replace(/\s+/g, ' ');
+    return {
+      title: stripHtml(input.title),
+      summary: input.summary ? stripHtml(input.summary) : text.length > 150 ? `${text.slice(0, 150).trimEnd()}…` : text,
+      categoryName: category?.name ?? null,
+      images: items.filter((m) => m.kind === 'IMAGE').length,
+      videos: items.filter((m) => m.kind === 'VIDEO').length,
+    };
+  }
+
+  // Danh mục để agent chọn chuyên mục khi tạo bài (dữ liệu công khai).
+  async listCategories(): Promise<{ id: string; name: string; slug: string }[]> {
+    const rows = await this.prisma.category.findMany({ orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] });
+    return rows.map((c) => ({ id: c.id.toString(), name: c.name, slug: c.slug }));
   }
 
   // Tác giả sửa bài khi DRAFT hoặc REJECTED (bài bị từ chối sửa xong thì về nháp).
@@ -473,6 +555,7 @@ function toPostDto(post: PostRow, viewer?: AuthUser): PostDto {
     categoryName: post.category?.name ?? null,
     thumbnailUrl: post.thumbnailUrl,
     rejectReason: viewer ? post.rejectReason : null,
+    source: post.source,
     publishAt: post.publishAt?.toISOString() ?? null,
     publishedAt: post.publishedAt?.toISOString() ?? null,
     createdAt: post.createdAt.toISOString(),

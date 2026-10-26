@@ -84,6 +84,9 @@ function PostForm({ post, onPost }: { post: PostDto | null; onPost: (post: PostD
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <PostStatusBadge status={post.status} />
             <span className="opacity-70">Tác giả: {post.authorName}</span>
+            {post.source === "TELEGRAM" && (
+              <span className="rounded bg-sky-200 px-1.5 py-0.5 text-xs text-sky-900">Tạo qua Telegram</span>
+            )}
             {post.publishAt && <span>Hẹn đăng: {formatTime(post.publishAt)}</span>}
             {post.publishedAt && <span>Đã đăng: {formatTime(post.publishedAt)}</span>}
           </div>

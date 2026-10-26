@@ -12,8 +12,14 @@ export class TelegramRateLimiter {
   }
 
   // Tính thêm một lần, trả về số lần trong cửa sổ hiện tại.
-  async increment(name: string, id: string, windowSec: number): Promise<number> {
-    return (await this.limits.increment(`tg-${name}`, id, windowSec)).count;
+  // `by` > 1 để đếm theo đơn vị khác lượt (vd. số byte file đã nhận).
+  async increment(name: string, id: string, windowSec: number, by = 1): Promise<number> {
+    return (await this.limits.increment(`tg-${name}`, id, windowSec, by)).count;
+  }
+
+  // Số đã đếm trong cửa sổ hiện tại (không tính thêm).
+  async peek(name: string, id: string): Promise<number> {
+    return (await this.limits.peek(`tg-${name}`, id)).count;
   }
 
   // Đã vượt hạn mức chưa (không tính thêm lần nào).

@@ -99,6 +99,10 @@ export class R2StorageService extends StorageService {
     return `${this.publicBase}/${key}`;
   }
 
+  contentUrl(key: string): string {
+    return this.publicUrl(key);
+  }
+
   keyFromUrl(url: string): string | null {
     if (!url.startsWith(`${this.publicBase}/`)) return null;
     const key = url.slice(this.publicBase.length + 1);

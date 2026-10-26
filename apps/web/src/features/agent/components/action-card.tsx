@@ -63,7 +63,7 @@ export function ActionCard({ initial }: { initial: AgentActionDto }) {
 
   return (
     <div className="space-y-2 rounded border border-amber-500/50 bg-amber-500/5 p-3 text-sm">
-      <p className="font-medium">Cần xác nhận: {action.description}</p>
+      <p className="whitespace-pre-line font-medium">Cần xác nhận: {action.description}</p>
       {waiting && !expired && (
         <>
           <p className="text-xs opacity-70">
@@ -80,6 +80,11 @@ export function ActionCard({ initial }: { initial: AgentActionDto }) {
         </>
       )}
       {result && <p className={result.className}>{result.text}</p>}
+      {action.status === "DONE" && action.resultSlug && (
+        <a href={`/tin-tuc/${action.resultSlug}`} target="_blank" rel="noreferrer" className="underline">
+          Xem bài trên website
+        </a>
+      )}
       {error && <p className="text-red-600">{error}</p>}
     </div>
   );

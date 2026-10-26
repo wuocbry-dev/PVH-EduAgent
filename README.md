@@ -177,6 +177,14 @@ TELEGRAM_WEBHOOK_URL=                   # vd. https://pvh.edu.vn/api/telegram/we
 
 Chat chưa liên kết chỉ nhận hướng dẫn liên kết; tin trong nhóm bị bỏ qua; mỗi chat tối đa 20 tin/phút. Liên kết, huỷ liên kết, lệnh và chat đều ghi `audit_logs` (kênh `telegram`).
 
+### Soạn và đăng bài qua Telegram (bước 12)
+
+- Gửi **ảnh, video hoặc tệp** (JPEG/PNG/WebP/GIF, MP4/WebM) kèm nội dung, ví dụ "Viết bài về lễ khai giảng, kèm các ảnh này". Nhiều ảnh gửi cùng lúc (album) được gom thành một lượt. Bot lưu thành media của **chính người gửi** qua `StorageService`, kiểm tra loại bằng magic bytes, rồi chuyển cho agent (agent chỉ biết loại, dung lượng, tên và `mediaId`, không nhận nội dung hay URL).
+- **Giới hạn:** Bot API chỉ tải được file **tối đa 20 MB**; lớn hơn thì bot hướng dẫn đăng trên web. Mỗi người tối đa 100 MB/giờ và 500 MB/ngày. URL tải file của Telegram chứa token bot nên không được ghi log.
+- Ngữ cảnh soạn bài (vài lượt gần nhất + tệp chưa gắn vào bài) lưu trong Redis 30 phút để soạn qua nhiều tin; `/huy` bỏ bản nháp đang soạn và huỷ các yêu cầu đang chờ xác nhận. Tin gửi lặp (cùng `message_id`) chỉ xử lý một lần.
+- **Người có quyền đăng** (BGH, biên tập viên, ADMIN): "viết bài này và đăng luôn" → bot hiện **một** thẻ xác nhận (tiêu đề, tóm tắt, số ảnh/video, chuyên mục, giờ đăng); bài chỉ được tạo và đăng khi chính người đó bấm ✅ Xác nhận (quyền kiểm tra lại lúc bấm); bot trả liên kết `/tin-tuc/<slug>`. **Người chỉ có quyền soạn** (giáo viên): chỉ tạo nháp và gửi duyệt, agent giải thích bài chờ người có quyền duyệt.
+- Bài tạo qua bot có nhãn "Tạo qua Telegram" ở danh sách bài và trang soạn bài (`posts.source`). Chú thích ảnh, nội dung tin và kết quả tool đều là **dữ liệu**, không phải lệnh cho agent.
+
 ## Lệnh khác
 
 | Lệnh | Việc |

@@ -38,6 +38,10 @@ export abstract class StorageService {
   // URL công khai: đầy đủ (R2) hoặc đường dẫn tương đối so với API (local).
   abstract publicUrl(key: string): string;
 
+  // URL tuyệt đối để nhúng vào nội dung bài viết (HTML do web hiển thị ở origin khác): R2 = URL công khai của bucket,
+  // local = địa chỉ API + /api + đường dẫn tương đối.
+  abstract contentUrl(key: string): string;
+
   // Ngược lại với publicUrl: nhận một URL (tuyệt đối hoặc tương đối) và trả khoá nếu nó trỏ tới kho của hệ thống.
   abstract keyFromUrl(url: string): string | null;
 

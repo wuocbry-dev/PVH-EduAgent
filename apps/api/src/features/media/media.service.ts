@@ -220,6 +220,31 @@ export class MediaService {
     return toMediaDto(media);
   }
 
+  // Media để gắn vào bài (bot Telegram, tool của agent): chỉ file của chính người dùng và đã hoàn tất kiểm tra.
+  // Giữ đúng thứ tự `ids`; ném lỗi tiếng Việt nếu có id không hợp lệ.
+  async resolveOwnReady(user: AuthUser, ids: string[]): Promise<Media[]> {
+    const unique = [...new Set(ids)];
+    if (unique.length === 0) return [];
+    const rows = await this.prisma.media.findMany({
+      where: { id: { in: unique.map((id) => parseId(id)) }, uploadedBy: BigInt(user.id), status: 'READY' },
+    });
+    if (rows.length !== unique.length) {
+      throw new BadRequestException('Có ảnh/video không tồn tại, không phải của bạn hoặc chưa sẵn sàng');
+    }
+    return unique.map((id) => rows.find((r) => r.id.toString() === id)!);
+  }
+
+  // HTML nhúng các media vào nội dung bài (URL tuyệt đối; server vẫn lọc lại khi lưu bài).
+  mediaHtml(items: Media[]): string {
+    return items
+      .map((m) =>
+        m.kind === 'VIDEO'
+          ? `<video src="${this.storage.contentUrl(m.storageKey)}" controls preload="metadata"></video>`
+          : `<img src="${this.storage.contentUrl(m.storageKey)}" alt="">`,
+      )
+      .join('');
+  }
+
   // Người có post:approve thấy mọi file; người còn lại chỉ thấy file mình tải lên. Chỉ file đã hoàn tất.
   async list(user: AuthUser, kind?: MediaKind): Promise<MediaDto[]> {
     assertPermission(user, 'post:create');
