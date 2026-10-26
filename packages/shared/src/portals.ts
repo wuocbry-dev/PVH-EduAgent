@@ -48,6 +48,9 @@ export const PORTAL_INFO: Record<Portal, PortalInfo> = {
       { slug: 'phan-cong', label: 'Phân công giảng dạy', permissions: ['teaching:read'] },
       { slug: 'thoi-khoa-bieu', label: 'Thời khoá biểu', permissions: ['timetable:read'] },
       { slug: 'diem', label: 'Đợt thi và điểm', permissions: ['score:read:all', 'assessment:manage'] },
+      { slug: 'thong-ke-diem', label: 'Xem và thống kê điểm', permissions: ['score:read:all'] },
+      { slug: 'khoa-so-diem', label: 'Hạn nhập và khoá sổ', permissions: ['assessment:manage'] },
+      { slug: 'dieu-chinh-diem', label: 'Duyệt điều chỉnh điểm', permissions: ['assessment:manage'] },
       { slug: 'bai-viet', label: 'Bài viết và duyệt bài', permissions: ['post:create'] },
       { slug: 'cong-viec', label: 'Giao việc', permissions: ['task:read:own', 'task:read:all'] },
       { slug: 'lich', label: 'Lịch sự kiện' },
@@ -76,6 +79,7 @@ export const PORTAL_INFO: Record<Portal, PortalInfo> = {
       { slug: 'lop-toi-day', label: 'Lớp tôi dạy' },
       { slug: 'thoi-khoa-bieu', label: 'Thời khoá biểu' },
       { slug: 'nhap-diem', label: 'Nhập điểm', permissions: ['score:enter'] },
+      { slug: 'so-diem', label: 'Sổ điểm và lớp chủ nhiệm', permissions: ['score:enter'] },
       { slug: 'bai-viet', label: 'Bài viết của tôi', permissions: ['post:create'] },
       { slug: 'cong-viec', label: 'Việc của tôi', permissions: ['task:read:own', 'task:read:all'] },
       { slug: 'tro-ly-ai', label: 'Trợ lý AI' },
@@ -88,6 +92,7 @@ export const PORTAL_INFO: Record<Portal, PortalInfo> = {
     nav: [
       { slug: '', label: 'Trang của em' },
       { slug: 'thoi-khoa-bieu', label: 'Thời khoá biểu' },
+      { slug: 'diem', label: 'Điểm của em' },
     ],
   },
 };

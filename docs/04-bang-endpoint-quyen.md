@@ -91,6 +91,30 @@ Web chọn cổng giao diện (`/admin`, `/bgh`, `/bien-tap`, `/giao-vien`, `/ho
 | `POST /scores/import/:previewId/confirm` | `score:enter` (chính người tải lên) | dùng một lần; kiểm tra lại phạm vi, hạn nhập, danh sách lớp; 10 lượt/phút |
 | `GET /scores/progress` | `score:read:all` | tiến độ theo đợt–lớp: đã nhập/sĩ số, đã công bố, giáo viên dạy |
 
+### Xem điểm, thống kê, khoá sổ, điều chỉnh (bước 19)
+
+Xem điểm theo đúng phạm vi: **học sinh** chỉ điểm của chính mình và chỉ điểm đã công bố; **giáo viên bộ môn** lớp–môn mình được phân công (cả nháp); **giáo viên chủ nhiệm** (suy từ `classes.homeroom_teacher_id`, cần `score:enter`) mọi môn của lớp chủ nhiệm, chỉ điểm đã công bố; **BGH** (`score:read:all`) toàn trường. ADMIN luôn 403. Bảng tổng hợp lớp và thống kê chỉ dùng điểm đã công bố. Xem giới hạn 240 lần/phút (`score-read`), xuất Excel 20 lần/phút (`score-export`) → 429; mỗi lần xuất ghi `audit_logs` `score.export` (chỉ lớp, môn, số dòng). Điểm bị **khoá** khi học kỳ đã khoá sổ hoặc quá hạn có hiệu lực (hạn riêng của đợt, không có thì hạn chung theo học kỳ–loại đợt); khi đó mọi đường ghi trực tiếp (lưu lưới, nhập Excel) trả 409 và chỉ sửa được qua đề nghị điều chỉnh có BGH duyệt.
+
+| Endpoint | Quyền | Ghi chú |
+|---|---|---|
+| `GET /scores/me` | đăng nhập, vai trò `STUDENT` | kết quả học tập năm hiện hành của **chính mình**: từng cột điểm kèm mã đợt, ĐTB học kỳ (tạm tính khi thiếu cột), ĐTB cả năm; không có điểm bạn khác, không xếp hạng |
+| `GET /scores/students/:studentId/report` | `score:read:all`, hoặc chủ nhiệm lớp hiện tại của học sinh | BGH thấy cả điểm nháp (đánh dấu); chủ nhiệm chỉ điểm đã công bố |
+| `GET /scores/gradebook`, `GET /scores/gradebook/export` | giáo viên được phân công lớp–môn–học kỳ, chủ nhiệm lớp (đã công bố), hoặc `score:read:all` | sổ điểm một lớp–môn–học kỳ: các đợt (mã, trạng thái, hạn, đã khoá), điểm từng học sinh, ĐTB, ô đang có đề nghị chờ duyệt; ngoài phạm vi luôn 403 |
+| `GET /scores/classes/:classId/summary`, `.../summary/export` | chủ nhiệm lớp hoặc `score:read:all` | ĐTB mọi môn tính điểm của lớp theo học kỳ (`?semesterId=`) hoặc cả năm |
+| `GET /scores/stats` | `score:read:all` | theo lớp–môn, môn–khối, lớp, khối: số HS có ĐTB, ĐTB, số dưới 5, phổ điểm 5 khoảng |
+| `GET /scores/formula` | đăng nhập | công thức ĐTB đang dùng (mặc định Thông tư 22/2021), không chứa điểm của ai |
+| `PUT /scores/formula` | `assessment:manage` hoặc `setting:manage` | hệ số từng loại đợt, số cột thường xuyên tối thiểu theo số tiết/tuần, hệ số học kỳ khi tính cả năm, làm tròn 1–2 chữ số; ghi `score.formula.update` |
+| `GET /scores/locks` | `score:read:all` hoặc `assessment:manage` | hạn chung theo loại đợt và trạng thái khoá sổ các học kỳ của năm hiện hành |
+| `PUT /scores/deadlines` | `assessment:manage` | đặt/bỏ hạn chung theo học kỳ–loại đợt; ghi `score.deadline.set` |
+| `PUT /scores/locks/:semesterId` | `assessment:manage` | khoá/mở khoá sổ cả học kỳ (lý do tuỳ chọn); ghi `score.lock`/`score.unlock` |
+| `GET /scores/adjustments` | `score:enter` (đề nghị của mình) hoặc `assessment:manage` (mọi đề nghị) | lọc theo trạng thái |
+| `POST /scores/adjustments` | giáo viên được phân công, đợt **đã khoá** | điểm mới (hoặc vắng có lý do, hoặc xoá) + lý do bắt buộc 5–300 ký tự; còn hạn → 409 (sửa trực tiếp); giống điểm hiện tại → 400; học sinh được miễn → 409; mỗi học sinh–đợt một đề nghị chờ (409) |
+| `POST /scores/adjustments/:id/approve` | `assessment:manage` | trong một transaction: điểm hiện tại phải còn đúng như lúc gửi (khác → 409), ghi `scores` + `score_history` (`source = ADJUST`, `changed_by` = giáo viên, `approved_by` = BGH, `reason`); duyệt hai lần → 409 |
+| `POST /scores/adjustments/:id/reject` | `assessment:manage` | bắt buộc lý do; điểm giữ nguyên |
+| `POST /scores/adjustments/:id/cancel` | `score:enter`, chính người gửi | chỉ khi còn chờ duyệt |
+
+Thông báo về điểm (có điểm mới được công bố cho học sinh; có đề nghị điều chỉnh cho BGH; kết quả duyệt cho giáo viên) chỉ ghi vào bảng `notifications` kênh `web`, **không kèm giá trị điểm** và không bao giờ gửi qua Telegram (bộ gửi Telegram chỉ lấy kênh `telegram`). Hộp thông báo trong cổng thuộc bước 20.
+
 ## Phân công giảng dạy – `/teaching` (bước 16)
 
 | Endpoint | Quyền | Ghi chú |

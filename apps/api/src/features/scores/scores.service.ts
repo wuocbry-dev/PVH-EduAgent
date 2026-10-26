@@ -25,6 +25,7 @@ import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
 import { RateLimitService } from '../../infrastructure/rate-limit/rate-limit.service.js';
 import { AuditLogService } from '../audit-log/audit-log.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { vnToday } from '../timetable/timetable-dates.js';
 import type {
   AssessmentsQuery,
@@ -43,6 +44,7 @@ import {
   type CodeInput,
   type DesiredScore,
 } from './score-rules.js';
+import { effectiveDeadline, isLocked, ScoreCalendarService } from './score-calendar.service.js';
 
 // Số lần ghi điểm (lưu lưới, nhập Excel, công bố, miễn) tối đa mỗi phút cho một tài khoản.
 export const SCORE_WRITES_PER_MIN = 60;
@@ -62,11 +64,13 @@ export interface SheetAccess {
   ac: AssessmentClassRow;
   inScope: boolean; // giáo viên được phân công lớp–môn ở học kỳ của đợt
   manager: boolean; // BGH (assessment:manage)
-  deadlinePassed: boolean;
+  deadlinePassed: boolean; // quá hạn có hiệu lực hoặc học kỳ đã khoá sổ (bước 19)
+  effectiveDeadline: Date | null;
+  semesterLocked: boolean;
 }
 
 export type NormalizedEntry = { studentId: bigint; desired: DesiredScore };
-export type WriteSource = 'GRID' | 'EXCEL' | 'EXEMPT';
+export type WriteSource = 'GRID' | 'EXCEL' | 'EXEMPT' | 'ADJUST';
 export interface ApplyResult {
   created: number;
   updated: number;
@@ -93,6 +97,8 @@ export class ScoresService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService,
     private readonly limits: RateLimitService,
+    private readonly calendar: ScoreCalendarService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // ───────────── Ngữ cảnh, danh sách, tiến độ ─────────────
@@ -101,7 +107,14 @@ export class ScoresService {
     this.assertAnyScorePermission(actor);
     const year = await this.prisma.schoolYear.findFirst({ where: { isCurrent: true }, include: { semesters: { orderBy: { number: 'asc' } } } });
     const canManage = can(actor, 'assessment:manage');
-    if (!year) return { schoolYearId: null, schoolYearName: null, semesters: [], currentSemesterId: null, pairs: [], subjects: [], canManage };
+    const canReadAll = can(actor, 'score:read:all');
+    if (!year) {
+      return { schoolYearId: null, schoolYearName: null, semesters: [], currentSemesterId: null, pairs: [], subjects: [], canManage, canReadAll, homeroomClasses: [] };
+    }
+    // Lớp chủ nhiệm (giáo viên): xem bảng điểm tổng hợp của lớp (bước 19).
+    const homeroom = can(actor, 'score:enter')
+      ? await this.prisma.schoolClass.findMany({ where: { schoolYearId: year.id, homeroomTeacherId: BigInt(actor.id) }, orderBy: { name: 'asc' } })
+      : [];
 
     const pairs = can(actor, 'score:enter')
       ? await this.prisma.teachingAssignment.findMany({
@@ -136,6 +149,8 @@ export class ScoresService {
         .sort((a, b) => a.className.localeCompare(b.className, 'vi') || a.subjectName.localeCompare(b.subjectName, 'vi')),
       subjects: subjects.map((s) => ({ id: s.id.toString(), code: s.code, name: s.name })),
       canManage,
+      canReadAll,
+      homeroomClasses: homeroom.map((c) => ({ id: c.id.toString(), name: c.name })),
     };
   }
 
@@ -412,6 +427,7 @@ export class ScoresService {
         where: { id: ctx.ac.id },
         data: { status: 'PUBLISHED', publishedAt: new Date(), publishedBy: BigInt(actor.id) },
       });
+      await this.notifyPublished(ctx);
     }
     const sheet = await this.buildSheet(actor, await this.access(actor, assessmentId, classId));
     await this.record(actor, 'assessment.publish', ctx.ac.assessmentId, ip, {
@@ -488,14 +504,24 @@ export class ScoresService {
         semesterId: ac.assessment.semesterId.toString(),
       });
     if (!inScope && !reader && !manager) throw new ForbiddenException(OUT_OF_SCOPE);
-    const deadline = ac.assessment.entryDeadline;
-    return { ac, inScope, manager, deadlinePassed: !!deadline && deadline.getTime() < Date.now() };
+    const gate = (await this.calendar.gates([ac.assessment.semesterId])).get(ac.assessment.semesterId.toString());
+    return {
+      ac,
+      inScope,
+      manager,
+      deadlinePassed: isLocked(ac.assessment, gate),
+      effectiveDeadline: effectiveDeadline(ac.assessment, gate),
+      semesterLocked: !!gate?.locked,
+    };
   }
 
   assertCanEdit(ctx: SheetAccess): void {
     if (!ctx.inScope) throw new ForbiddenException('Chỉ giáo viên được phân công lớp–môn này mới nhập điểm');
+    if (ctx.semesterLocked) {
+      throw new ConflictException('Học kỳ đã khoá sổ điểm; muốn sửa cần gửi đề nghị điều chỉnh để Ban giám hiệu duyệt');
+    }
     if (ctx.deadlinePassed) {
-      throw new ConflictException('Đã quá hạn nhập điểm của đợt thi; điều chỉnh sau hạn cần Ban giám hiệu xử lý');
+      throw new ConflictException('Đã quá hạn nhập điểm của đợt thi; muốn sửa cần gửi đề nghị điều chỉnh để Ban giám hiệu duyệt');
     }
   }
 
@@ -597,6 +623,8 @@ export class ScoresService {
       status: ac.status,
       publishedAt: ac.publishedAt?.toISOString() ?? null,
       deadlinePassed: ctx.deadlinePassed,
+      effectiveDeadline: ctx.effectiveDeadline?.toISOString() ?? null,
+      semesterLocked: ctx.semesterLocked,
       canEdit: ctx.inScope && !ctx.deadlinePassed,
       canExempt: can(actor, 'assessment:manage'),
       canPublish: ctx.inScope || ctx.manager,
@@ -619,7 +647,21 @@ export class ScoresService {
     }
   }
 
-  private async teacherScopes(actor: AuthUser, schoolYearId: bigint): Promise<AssignmentScope[]> {
+  // Báo trong cổng học sinh (kênh `web`, KHÔNG qua Telegram) khi có điểm mới được công bố; không kèm giá trị điểm.
+  private async notifyPublished(ctx: SheetAccess): Promise<void> {
+    const students = await this.classStudents(ctx.ac.classId);
+    const a = ctx.ac.assessment;
+    await this.notifications.notify(
+      [...students.values()].map((s) => ({
+        userId: s.id,
+        title: `Có điểm mới môn ${a.subject.name}`,
+        body: `Đợt ${a.code} (${a.semester.name}) đã được công bố cho lớp ${ctx.ac.class.name}. Xem ở mục Điểm của em.`,
+      })),
+      'web',
+    );
+  }
+
+  async teacherScopes(actor: AuthUser, schoolYearId: bigint): Promise<AssignmentScope[]> {
     const rows = await this.prisma.teachingAssignment.findMany({ where: { teacherId: BigInt(actor.id), schoolYearId } });
     return rows.map((r) => ({
       teacherId: r.teacherId.toString(),

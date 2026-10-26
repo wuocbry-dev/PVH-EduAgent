@@ -93,6 +93,13 @@ model User {
   enteredScores        Score[]           @relation("ScoreEnteredBy")
   scoreHistory         ScoreHistory[]    @relation("ScoreHistoryStudent")
   scoreChanges         ScoreHistory[]    @relation("ScoreHistoryChanger")
+  scoreApprovals       ScoreHistory[]    @relation("ScoreHistoryApprover")
+
+  scoreDeadlines        ScoreDeadline[]   @relation("ScoreDeadlineUpdater")
+  scoreLocks            ScoreLock[]       @relation("ScoreLocker")
+  adjustmentsAbout      ScoreAdjustment[] @relation("ScoreAdjustmentStudent")
+  requestedAdjustments  ScoreAdjustment[] @relation("ScoreAdjustmentRequester")
+  reviewedAdjustments   ScoreAdjustment[] @relation("ScoreAdjustmentReviewer")
 
   @@map("users")
 }
@@ -399,6 +406,9 @@ model Semester {
   timetables  Timetable[]
   assessments Assessment[]
 
+  scoreDeadlines ScoreDeadline[]
+  scoreLock      ScoreLock?
+
   @@unique([schoolYearId, number])
   @@map("semesters")
 }
@@ -476,6 +486,7 @@ model SchoolClass {
 
   assessmentClasses AssessmentClass[]
   scores            Score[]
+  scoreAdjustments  ScoreAdjustment[]
 
   @@unique([schoolYearId, name])
   @@index([homeroomTeacherId])
@@ -736,9 +747,10 @@ model Assessment {
   semester Semester          @relation(fields: [semesterId], references: [id])
   subject  Subject           @relation(fields: [subjectId], references: [id])
   creator  User              @relation("AssessmentCreator", fields: [createdBy], references: [id])
-  classes  AssessmentClass[]
-  scores   Score[]
-  history  ScoreHistory[]
+  classes     AssessmentClass[]
+  scores      Score[]
+  history     ScoreHistory[]
+  adjustments ScoreAdjustment[]
 
   @@index([semesterId, subjectId])
   @@map("assessments")
@@ -797,14 +809,86 @@ model ScoreHistory {
   newStatus    ScoreStatus? @map("new_status")
   note         String?      @db.VarChar(200)
   reason       String?      @db.VarChar(300)
-  source       String       @db.VarChar(10) // GRID | EXCEL | EXEMPT
+  source       String       @db.VarChar(10) // GRID | EXCEL | EXEMPT | ADJUST (điều chỉnh sau hạn, bước 19)
   changedBy    BigInt       @map("changed_by")
+  // Điều chỉnh sau hạn: changed_by là giáo viên đề nghị, approved_by là người BGH duyệt.
+  approvedBy   BigInt?      @map("approved_by")
   changedAt    DateTime     @default(now()) @map("changed_at") @db.Timestamptz
 
   assessment Assessment @relation(fields: [assessmentId], references: [id])
   student    User       @relation("ScoreHistoryStudent", fields: [studentId], references: [id])
   changer    User       @relation("ScoreHistoryChanger", fields: [changedBy], references: [id])
+  approver   User?      @relation("ScoreHistoryApprover", fields: [approvedBy], references: [id])
 
   @@index([assessmentId, studentId])
   @@map("score_history")
+}
+
+// ───────────────────────────── Hạn nhập, khoá sổ, điều chỉnh điểm (bước 19) ─────────────────────────────
+
+// Hạn nhập điểm chung theo học kỳ và loại đợt. Hạn riêng của đợt (assessments.entry_deadline) được ưu tiên hơn.
+model ScoreDeadline {
+  id         BigInt         @id @default(autoincrement())
+  semesterId BigInt         @map("semester_id")
+  type       AssessmentType
+  deadline   DateTime       @db.Timestamptz
+  updatedBy  BigInt         @map("updated_by")
+  updatedAt  DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+
+  semester Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  updater  User     @relation("ScoreDeadlineUpdater", fields: [updatedBy], references: [id])
+
+  @@unique([semesterId, type])
+  @@map("score_deadlines")
+}
+
+// Khoá sổ thủ công cả học kỳ: có dòng = đã khoá, mọi điểm của học kỳ chỉ sửa được qua điều chỉnh có BGH duyệt.
+model ScoreLock {
+  semesterId BigInt   @id @map("semester_id")
+  reason     String?  @db.VarChar(300)
+  lockedBy   BigInt   @map("locked_by")
+  lockedAt   DateTime @default(now()) @map("locked_at") @db.Timestamptz
+
+  semester Semester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  locker   User     @relation("ScoreLocker", fields: [lockedBy], references: [id])
+
+  @@map("score_locks")
+}
+
+enum ScoreAdjustmentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+// Đề nghị điều chỉnh một điểm đã khoá (quá hạn hoặc khoá sổ). old_* là ảnh chụp lúc gửi: khi duyệt mà điểm hiện tại
+// đã khác thì từ chối áp dụng. new_status rỗng = xoá điểm. Mỗi học sinh–đợt chỉ một đề nghị đang chờ (index một phần).
+model ScoreAdjustment {
+  id           BigInt                @id @default(autoincrement())
+  assessmentId BigInt                @map("assessment_id")
+  studentId    BigInt                @map("student_id")
+  classId      BigInt                @map("class_id")
+  oldValue     Decimal?              @map("old_value") @db.Decimal(4, 2)
+  oldStatus    ScoreStatus?          @map("old_status")
+  newValue     Decimal?              @map("new_value") @db.Decimal(4, 2)
+  newStatus    ScoreStatus?          @map("new_status")
+  newNote      String?               @map("new_note") @db.VarChar(200)
+  reason       String                @db.VarChar(300)
+  status       ScoreAdjustmentStatus @default(PENDING)
+  requestedBy  BigInt                @map("requested_by")
+  requestedAt  DateTime              @default(now()) @map("requested_at") @db.Timestamptz
+  reviewedBy   BigInt?               @map("reviewed_by")
+  reviewedAt   DateTime?             @map("reviewed_at") @db.Timestamptz
+  reviewNote   String?               @map("review_note") @db.VarChar(300)
+
+  assessment Assessment  @relation(fields: [assessmentId], references: [id])
+  student    User        @relation("ScoreAdjustmentStudent", fields: [studentId], references: [id])
+  class      SchoolClass @relation(fields: [classId], references: [id])
+  requester  User        @relation("ScoreAdjustmentRequester", fields: [requestedBy], references: [id])
+  reviewer   User?       @relation("ScoreAdjustmentReviewer", fields: [reviewedBy], references: [id])
+
+  @@index([status])
+  @@index([assessmentId, studentId])
+  @@map("score_adjustments")
 }

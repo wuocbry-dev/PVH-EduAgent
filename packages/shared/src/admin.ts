@@ -1,3 +1,4 @@
+import { DEFAULT_SCORE_FORMULA } from './scores.js';
 import { defaultTimetableFrame } from './timetable.js';
 
 // ───────────────────────────── Nhật ký hoạt động (F16) ─────────────────────────────
@@ -53,6 +54,7 @@ export const SETTING_KEYS = [
   'telegram.review_notify',
   'teaching.default_quota',
   'timetable.frame',
+  'scores.formula',
 ] as const;
 export type SettingKey = (typeof SETTING_KEYS)[number];
 
@@ -136,6 +138,14 @@ export const SETTING_META: Record<SettingKey, SettingMeta> = {
     label: 'Khung tiết học',
     description: 'Các thứ học và giờ bắt đầu/kết thúc từng tiết (chỉnh ở trang Thời khoá biểu).',
     defaultValue: JSON.stringify(defaultTimetableFrame()),
+    optional: false,
+    input: 'json',
+  },
+  'scores.formula': {
+    label: 'Công thức điểm trung bình',
+    description:
+      'Hệ số từng loại đợt, số cột thường xuyên tối thiểu, cách tính cả năm và làm tròn. Mặc định theo Thông tư 22/2021 (chỉnh ở trang Hạn nhập và khoá sổ của Ban giám hiệu).',
+    defaultValue: JSON.stringify(DEFAULT_SCORE_FORMULA),
     optional: false,
     input: 'json',
   },

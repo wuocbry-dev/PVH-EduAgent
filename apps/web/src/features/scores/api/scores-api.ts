@@ -2,6 +2,15 @@ import {
   XLSX_MIME,
   type AssessmentDto,
   type AssessmentType,
+  type ClassSummaryDto,
+  type GradebookDto,
+  type ScoreAdjustmentDto,
+  type ScoreAdjustmentStatus,
+  type ScoreFormula,
+  type ScoreFormulaDto,
+  type ScoreLockDto,
+  type ScoreStatsDto,
+  type StudentReportDto,
   type ScoreContextDto,
   type ScoreEntryInput,
   type ScoreImportPreviewDto,
@@ -77,9 +86,9 @@ export const previewScoreImport = (assessmentId: string, classId: string, file: 
 export const confirmScoreImport = (previewId: string) =>
   api<Omit<ScoreSaveResultDto, "unchanged"> & { unchanged: number; skipped: number }>(`/scores/import/${previewId}/confirm`, json("POST"));
 
-// Tải file mẫu về máy (cần cookie đăng nhập nên không dùng liên kết thường).
-export async function downloadScoreTemplate(assessmentId: string, classId: string, filename: string): Promise<void> {
-  const res = await apiFetch(`${sheetPath(assessmentId, classId)}/template`);
+// Tải file về máy (cần cookie đăng nhập nên không dùng liên kết thường).
+async function download(path: string, filename: string): Promise<void> {
+  const res = await apiFetch(path);
   if (!res.ok) await parseResponse<never>(res);
   const url = URL.createObjectURL(await res.blob());
   const link = document.createElement("a");
@@ -88,3 +97,61 @@ export async function downloadScoreTemplate(assessmentId: string, classId: strin
   link.click();
   URL.revokeObjectURL(url);
 }
+
+export const downloadScoreTemplate = (assessmentId: string, classId: string, filename: string) =>
+  download(`${sheetPath(assessmentId, classId)}/template`, filename);
+
+// ───────────── Bước 19: xem điểm, thống kê, khoá sổ, điều chỉnh ─────────────
+
+export type GradebookKey = { classId: string; subjectId: string; semesterId: string };
+
+export const getMyScores = () => api<StudentReportDto>("/scores/me");
+
+export const getStudentReport = (studentId: string) => api<StudentReportDto>(`/scores/students/${studentId}/report`);
+
+export const getGradebook = (key: GradebookKey) => api<GradebookDto>(`/scores/gradebook${qs(key)}`);
+
+export const downloadGradebook = (key: GradebookKey) =>
+  download(`/scores/gradebook/export${qs(key)}`, `so-diem-${key.classId}-${key.subjectId}.xlsx`);
+
+export const getClassSummary = ({ classId, semesterId }: { classId: string; semesterId: string }) =>
+  api<ClassSummaryDto>(`/scores/classes/${classId}/summary${qs({ semesterId })}`);
+
+export const downloadClassSummary = (classId: string, semesterId: string) =>
+  download(`/scores/classes/${classId}/summary/export${qs({ semesterId })}`, `bang-diem-lop-${classId}.xlsx`);
+
+export const getScoreStats = (q: { semesterId?: string; gradeLevel?: number | "" }) =>
+  api<ScoreStatsDto>(`/scores/stats${qs({ semesterId: q.semesterId, gradeLevel: q.gradeLevel || undefined })}`);
+
+export const getScoreFormula = () => api<ScoreFormulaDto>("/scores/formula");
+
+export const setScoreFormula = (formula: ScoreFormula) => api<ScoreFormulaDto>("/scores/formula", json("PUT", formula));
+
+export const getScoreLocks = () => api<ScoreLockDto[]>("/scores/locks");
+
+export const setScoreDeadline = (body: { semesterId: string; type: AssessmentType; deadline: string | null }) =>
+  api<ScoreLockDto[]>("/scores/deadlines", json("PUT", body));
+
+export const setScoreLock = (semesterId: string, body: { locked: boolean; reason?: string }) =>
+  api<ScoreLockDto[]>(`/scores/locks/${semesterId}`, json("PUT", body));
+
+export const listAdjustments = (status?: ScoreAdjustmentStatus | "") =>
+  api<ScoreAdjustmentDto[]>(`/scores/adjustments${qs({ status: status || undefined })}`);
+
+export const createAdjustment = (body: {
+  assessmentId: string;
+  classId: string;
+  studentId: string;
+  value: string | null;
+  status?: "GRADED" | "ABSENT";
+  note?: string | null;
+  reason: string;
+}) => api<ScoreAdjustmentDto>("/scores/adjustments", json("POST", body));
+
+export const approveAdjustment = (id: string, note?: string) =>
+  api<ScoreAdjustmentDto>(`/scores/adjustments/${id}/approve`, json("POST", { note }));
+
+export const rejectAdjustment = (id: string, note: string) =>
+  api<ScoreAdjustmentDto>(`/scores/adjustments/${id}/reject`, json("POST", { note }));
+
+export const cancelAdjustment = (id: string) => api<ScoreAdjustmentDto>(`/scores/adjustments/${id}/cancel`, json("POST"));

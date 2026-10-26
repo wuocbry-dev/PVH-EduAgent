@@ -163,13 +163,17 @@ export function ScoreGrid({
           Có điểm {counts.graded}/{counts.students} · Vắng {counts.absent} · Miễn {counts.exempt} ·{" "}
           <span className={counts.missing > 0 ? "text-amber-700 dark:text-amber-400" : ""}>Còn trống {counts.missing}</span>
         </span>
-        {sheet.assessment.entryDeadline && (
-          <span className={sheet.deadlinePassed ? "text-red-600" : ""}>Hạn nhập: {formatDateTime(sheet.assessment.entryDeadline)}</span>
+        {sheet.effectiveDeadline && (
+          <span className={sheet.deadlinePassed ? "text-red-600" : ""}>Hạn nhập: {formatDateTime(sheet.effectiveDeadline)}</span>
         )}
+        {sheet.semesterLocked && <span className="text-red-600">Học kỳ đã khoá sổ</span>}
       </div>
 
       {sheet.deadlinePassed && sheet.canPublish && (
-        <p className="text-sm text-red-600">Đã quá hạn nhập điểm: không sửa được điểm. Cần điều chỉnh thì liên hệ Ban giám hiệu.</p>
+        <p className="text-sm text-red-600">
+          {sheet.semesterLocked ? "Học kỳ đã khoá sổ" : "Đã quá hạn nhập điểm"}: không sửa trực tiếp được. Muốn sửa, vào mục Sổ điểm, bấm vào ô
+          điểm để gửi đề nghị điều chỉnh cho Ban giám hiệu duyệt.
+        </p>
       )}
       {!sheet.canEdit && !sheet.deadlinePassed && (
         <p className="text-sm opacity-70">Chế độ xem: chỉ giáo viên được phân công lớp–môn này mới nhập điểm.</p>

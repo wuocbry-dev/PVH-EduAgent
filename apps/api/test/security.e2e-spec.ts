@@ -198,6 +198,24 @@ const ROUTES: Record<string, Access> = {
   'GET /scores/assessments/:id/classes/:classId/template': ['score:enter'],
   'POST /scores/assessments/:id/classes/:classId/import/preview': ['score:enter'],
   'POST /scores/import/:previewId/confirm': ['score:enter'],
+  // Bước 19 – xem điểm, thống kê, hạn nhập/khoá sổ, điều chỉnh sau hạn.
+  'GET /scores/me': 'self', // chỉ học sinh, chỉ điểm của chính mình đã công bố
+  'GET /scores/students/:studentId/report': ['score:read:all'], // hoặc chủ nhiệm lớp hiện tại của học sinh (score:enter)
+  'GET /scores/gradebook': ['score:enter'], // giáo viên được phân công / chủ nhiệm (đã công bố) / score:read:all
+  'GET /scores/gradebook/export': ['score:enter'], // như trên
+  'GET /scores/classes/:classId/summary': ['score:enter'], // chủ nhiệm lớp, hoặc score:read:all
+  'GET /scores/classes/:classId/summary/export': ['score:enter'], // như trên
+  'GET /scores/stats': ['score:read:all'],
+  'GET /scores/formula': 'self', // công thức ĐTB, không chứa điểm của ai
+  'PUT /scores/formula': ['assessment:manage'], // hoặc setting:manage (ADMIN)
+  'GET /scores/locks': ['score:read:all'], // hoặc assessment:manage
+  'PUT /scores/deadlines': ['assessment:manage'],
+  'PUT /scores/locks/:semesterId': ['assessment:manage'],
+  'GET /scores/adjustments': ['score:enter'], // giáo viên: của mình; assessment:manage: mọi đề nghị
+  'POST /scores/adjustments': ['score:enter'], // giáo viên được phân công, đợt đã khoá
+  'POST /scores/adjustments/:id/approve': ['assessment:manage'],
+  'POST /scores/adjustments/:id/reject': ['assessment:manage'],
+  'POST /scores/adjustments/:id/cancel': ['score:enter'], // chính người gửi
 
   'GET /telegram/link': 'self',
   'POST /telegram/link-code': 'self',

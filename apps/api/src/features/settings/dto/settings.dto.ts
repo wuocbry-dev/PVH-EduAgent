@@ -1,5 +1,6 @@
 import { SETTING_KEYS, type SettingKey } from '@pvh/shared';
 import { z } from 'zod';
+import { formulaSchema } from '../../scores/score-formula.js';
 import { frameSchema } from '../../timetable/frame.js';
 
 // Schema kiểm tra giá trị cho từng khóa cho phép (giá trị luôn lưu dạng chuỗi trong system_settings).
@@ -43,6 +44,13 @@ export const settingValueSchemas: Record<SettingKey, z.ZodType<string>> = {
     }
   }, 'Khung tiết không hợp lệ (dạng JSON gồm days và periods)'),
   'telegram.review_notify': z.enum(['true', 'false'], { error: 'Chỉ nhận true hoặc false' }),
+  'scores.formula': z.string().refine((v) => {
+    try {
+      return formulaSchema.safeParse(JSON.parse(v)).success;
+    } catch {
+      return false;
+    }
+  }, 'Công thức điểm không hợp lệ (JSON gồm weights, regularMin, regularMinOther, yearWeights, decimals)'),
 };
 
 // Chỉ nhận các khóa trong danh sách cho phép: khóa lạ (kể cả tên giống bí mật như
