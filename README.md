@@ -88,6 +88,8 @@ pnpm db:migrate
 pnpm db:seed
 ```
 
+Muốn có dữ liệu đầy đủ để xem thử các chức năng (45 giáo viên, 10 lớp, thời khoá biểu, điểm, thông báo): `pnpm --filter api db:seed-demo`. Danh sách tài khoản và gợi ý thử: [docs/06-du-lieu-demo.md](docs/06-du-lieu-demo.md).
+
 Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, migration, sao lưu, lỗi thường gặp): [docs/02-huong-dan-postgresql.md](docs/02-huong-dan-postgresql.md).
 
 ## Đăng nhập (F10)

@@ -522,10 +522,12 @@ describe('Thời khoá biểu (bước 17, e2e)', () => {
 
   describe('xuất Excel và tool Agent', () => {
     it('xuất theo lớp, giáo viên, toàn trường; ô bắt đầu bằng "=" được thêm dấu nháy', async () => {
+      // Chỉ rõ phiên bản: CSDL dev có thể có thời khoá biểu khác đã công bố (dữ liệu demo) cho học kỳ thật cùng thời gian.
+      const versionId = (await prisma.timetable.findFirstOrThrow({ where: { semesterId: BigInt(sem1), status: 'PUBLISHED' } })).id.toString();
       const download = async (query: Record<string, string>) => {
         const res = await principal
           .get('/timetable/export')
-          .query(query)
+          .query({ versionId, ...query })
           .buffer(true)
           .parse((r, cb) => {
             const chunks: Buffer[] = [];
@@ -551,6 +553,7 @@ describe('Thời khoá biểu (bước 17, e2e)', () => {
       expect(school.wb.worksheets.length).toBeGreaterThanOrEqual(3); // toàn trường + mỗi lớp một sheet
       for (const { cells } of [cls, teacher, school]) expect(cells.filter((c) => /^[=+\-@]/.test(c))).toEqual([]);
       expect(school.cells).toContain(`'=HYPERLINK("http://evil")`);
+      await principal.get('/timetable/export').query({ scope: 'school' }).expect(200); // không chỉ định phiên bản: bản đang áp dụng
       await principal.get('/timetable/export').query({ scope: 'class' }).expect(400); // thiếu id lớp
       await principal.get('/timetable/export').query({ scope: 'khac' }).expect(400);
     });
