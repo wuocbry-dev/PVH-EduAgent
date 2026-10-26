@@ -32,6 +32,8 @@ const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   'student:import': 'Nhập danh sách giáo viên/học sinh từ Excel, phát mã kích hoạt',
   'teaching:read': 'Xem phân công giảng dạy và định mức tiết',
   'teaching:assign': 'Phân công giảng dạy, đặt định mức tiết',
+  'timetable:read': 'Xem toàn bộ thời khoá biểu (các phiên bản, theo lớp/giáo viên/phòng)',
+  'timetable:manage': 'Xếp, công bố thời khoá biểu, quản lý khung tiết và tiết cố định',
 };
 
 // Mật khẩu chung cho tài khoản mẫu, chỉ dùng trên máy phát triển.
@@ -252,6 +254,16 @@ async function seedAcademic(users: Map<Role, bigint>) {
     await prisma.teachingAssignment.create({
       data: { schoolYearId: year.id, classId: class10A1, subjectId: math.id, teacherId, periodsPerWeek: 3 },
     });
+  }
+
+  // Tiết cố định MẪU (bước 17): Chào cờ thứ Hai tiết 1 (cả trường) và Sinh hoạt lớp thứ Bảy tiết 5. Cần đối chiếu với nhà trường.
+  for (const f of [
+    { name: 'Chào cờ', kind: 'SCHOOL' as const, day: 1, period: 1 },
+    { name: 'Sinh hoạt lớp', kind: 'CLASS_MEETING' as const, day: 6, period: 5 },
+  ]) {
+    if (!(await prisma.fixedPeriod.findFirst({ where: { day: f.day, period: f.period, gradeLevel: null } }))) {
+      await prisma.fixedPeriod.create({ data: f });
+    }
   }
 
   // Học sinh mẫu: đăng nhập bằng mã học sinh (không có email) với mật khẩu mẫu chung.

@@ -7,6 +7,8 @@ import { SystemAgentTools } from '../system/system.agent-tools.js';
 import { SystemModule } from '../system/system.module.js';
 import { TasksAgentTools } from '../tasks/tasks.agent-tools.js';
 import { TasksModule } from '../tasks/tasks.module.js';
+import { TimetableAgentTools } from '../timetable/timetable.agent-tools.js';
+import { TimetableModule } from '../timetable/timetable.module.js';
 import { AGENT_TOOL_PROVIDERS, type AgentToolProvider } from './agent-tool.js';
 import { AgentController } from './agent.controller.js';
 import { AgentService } from './agent.service.js';
@@ -17,10 +19,11 @@ const toolProviders = [
   TasksAgentTools,
   SystemAgentTools,
   AgentActionsAgentTools,
+  TimetableAgentTools,
 ];
 
 @Module({
-  imports: [PostsModule, TasksModule, SystemModule, AgentActionsModule],
+  imports: [PostsModule, TasksModule, SystemModule, AgentActionsModule, TimetableModule],
   controllers: [AgentController],
   providers: [
     AgentService,

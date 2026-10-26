@@ -39,7 +39,7 @@ export const listClasses = (schoolYearId?: string) =>
   api<ClassDto[]>(`/academic/classes${schoolYearId ? `?schoolYearId=${schoolYearId}` : ""}`);
 export const createClass = (body: { name: string; gradeLevel: number; subjectCombo?: string | null; homeroomTeacherId?: string | null }) =>
   api<ClassDto>("/academic/classes", json("POST", body));
-export const updateClass = (id: string, body: { name?: string; subjectCombo?: string | null; homeroomTeacherId?: string | null }) =>
+export const updateClass = (id: string, body: { name?: string; subjectCombo?: string | null; homeroomTeacherId?: string | null; sessions?: string }) =>
   api<ClassDto>(`/academic/classes/${id}`, json("PATCH", body));
 export const deleteClass = (id: string) => api<void>(`/academic/classes/${id}`, json("DELETE"));
 export const listClassStudents = (id: string) => api<ClassStudentDto[]>(`/academic/classes/${id}/students`);
@@ -64,3 +64,7 @@ export const createRoom = (body: { name: string; kind?: string | null }) => api<
 export const updateRoom = (id: string, body: { name?: string; kind?: string | null }) =>
   api<RoomDto>(`/academic/rooms/${id}`, json("PATCH", body));
 export const deleteRoom = (id: string) => api<void>(`/academic/rooms/${id}`, json("DELETE"));
+
+// Buổi học của lớp (thời khoá biểu): chỉnh hàng loạt theo khối.
+export const setSessionsBulk = (body: { schoolYearId?: string; gradeLevel?: number; classIds?: string[]; sessions: string }) =>
+  api<{ updated: number }>("/academic/classes/sessions", json("PATCH", body));

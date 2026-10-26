@@ -1,4 +1,4 @@
-import { GRADING_TYPES, SEMESTER_NUMBERS } from '@pvh/shared';
+import { CLASS_SESSIONS, GRADING_TYPES, SEMESTER_NUMBERS } from '@pvh/shared';
 import { z } from 'zod';
 
 const id = z.string().regex(/^\d{1,18}$/, 'Mã không hợp lệ');
@@ -91,6 +91,7 @@ export const classSchema = z.object({
   schoolYearId: id.optional(), // bỏ trống = năm học hiện hành
   subjectCombo: optionalText(100).optional(),
   homeroomTeacherId: id.nullable().optional(),
+  sessions: z.enum(CLASS_SESSIONS).optional(),
 });
 export type ClassInput = z.infer<typeof classSchema>;
 
@@ -98,8 +99,20 @@ export const updateClassSchema = z.object({
   name: className.optional(),
   subjectCombo: optionalText(100).optional(),
   homeroomTeacherId: id.nullable().optional(),
+  sessions: z.enum(CLASS_SESSIONS).optional(),
 });
 export type UpdateClassInput = z.infer<typeof updateClassSchema>;
 
 export const transferStudentSchema = z.object({ classId: id });
 export type TransferStudentInput = z.infer<typeof transferStudentSchema>;
+
+// Chỉnh buổi học hàng loạt theo khối hoặc theo danh sách lớp (năm học hiện hành nếu bỏ trống).
+export const bulkSessionsSchema = z
+  .object({
+    schoolYearId: id.optional(),
+    gradeLevel: z.number().int().min(10).max(12).optional(),
+    classIds: z.array(id).min(1).max(200).optional(),
+    sessions: z.enum(CLASS_SESSIONS),
+  })
+  .refine((v) => v.gradeLevel !== undefined || v.classIds !== undefined, { message: 'Chọn khối hoặc danh sách lớp' });
+export type BulkSessionsInput = z.infer<typeof bulkSessionsSchema>;

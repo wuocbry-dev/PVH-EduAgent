@@ -24,6 +24,7 @@ import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
 import { AuditLogService } from '../audit-log/audit-log.service.js';
 import type {
+  BulkSessionsInput,
   ClassInput,
   ClassQuery,
   DepartmentInput,
@@ -370,6 +371,7 @@ export class AcademicService {
           schoolYearId: year.id,
           subjectCombo: input.subjectCombo ?? null,
           homeroomTeacherId,
+          sessions: input.sessions,
         },
         include: CLASS_INCLUDE,
       });
@@ -388,7 +390,7 @@ export class AcademicService {
     try {
       const row = await this.prisma.schoolClass.update({
         where: { id: current.id },
-        data: { name: input.name, subjectCombo: input.subjectCombo, homeroomTeacherId },
+        data: { name: input.name, subjectCombo: input.subjectCombo, homeroomTeacherId, sessions: input.sessions },
         include: CLASS_INCLUDE,
       });
       await this.record(actor, 'academic.class.update', 'class', row.id, ip, input);
@@ -396,6 +398,30 @@ export class AcademicService {
     } catch (err) {
       throw this.conflictOr(err, 'Tên lớp đã có trong năm học này');
     }
+  }
+
+  // Chỉnh buổi học (sáng/chiều/cả hai) hàng loạt theo khối hoặc danh sách lớp trong một năm học.
+  async setSessionsBulk(actor: AuthUser, input: BulkSessionsInput, ip?: string): Promise<{ updated: number }> {
+    assertPermission(actor, 'academic:manage');
+    const year = input.schoolYearId ? await this.schoolYearOrThrow(input.schoolYearId) : await this.currentYear();
+    if (!year) throw new BadRequestException('Chưa có năm học hiện hành');
+    const { count } = await this.prisma.schoolClass.updateMany({
+      where: {
+        schoolYearId: year.id,
+        grade: input.gradeLevel === undefined ? undefined : { level: input.gradeLevel },
+        id: input.classIds ? { in: input.classIds.map((id) => BigInt(id)) } : undefined,
+      },
+      data: { sessions: input.sessions },
+    });
+    await this.audit.record({
+      userId: actor.id,
+      channel: 'web',
+      action: 'academic.class.sessions',
+      params: { year: year.name, gradeLevel: input.gradeLevel, classes: input.classIds?.length, sessions: input.sessions, updated: count },
+      ok: true,
+      ip,
+    });
+    return { updated: count };
   }
 
   async deleteClass(actor: AuthUser, id: string, ip?: string): Promise<void> {
@@ -597,5 +623,6 @@ function toClassDto(c: ClassRow): ClassDto {
     homeroomTeacherId: c.homeroomTeacherId?.toString() ?? null,
     homeroomTeacherName: c.homeroomTeacher?.fullName ?? null,
     studentCount: c._count.enrollments,
+    sessions: c.sessions,
   };
 }

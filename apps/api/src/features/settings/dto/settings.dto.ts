@@ -1,5 +1,6 @@
 import { SETTING_KEYS, type SettingKey } from '@pvh/shared';
 import { z } from 'zod';
+import { frameSchema } from '../../timetable/frame.js';
 
 // Schema kiểm tra giá trị cho từng khóa cho phép (giá trị luôn lưu dạng chuỗi trong system_settings).
 // Chuỗi rỗng nghĩa là xóa cấu hình, chỉ áp dụng cho khóa optional trong SETTING_META (kiểm tra ở service).
@@ -34,6 +35,13 @@ export const settingValueSchemas: Record<SettingKey, z.ZodType<string>> = {
     .string()
     .regex(/^\d{1,2}$/, 'Phải là số nguyên từ 1 đến 40')
     .refine((v) => Number(v) >= 1 && Number(v) <= 40, 'Phải từ 1 đến 40 tiết'),
+  'timetable.frame': z.string().refine((v) => {
+    try {
+      return frameSchema.safeParse(JSON.parse(v)).success;
+    } catch {
+      return false;
+    }
+  }, 'Khung tiết không hợp lệ (dạng JSON gồm days và periods)'),
   'telegram.review_notify': z.enum(['true', 'false'], { error: 'Chỉ nhận true hoặc false' }),
 };
 

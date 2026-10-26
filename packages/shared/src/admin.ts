@@ -1,3 +1,5 @@
+import { defaultTimetableFrame } from './timetable.js';
+
 // ───────────────────────────── Nhật ký hoạt động (F16) ─────────────────────────────
 
 export const AUDIT_CHANNELS = ['web', 'telegram', 'scheduler'] as const;
@@ -50,6 +52,7 @@ export const SETTING_KEYS = [
   'reminder.hours_before',
   'telegram.review_notify',
   'teaching.default_quota',
+  'timetable.frame',
 ] as const;
 export type SettingKey = (typeof SETTING_KEYS)[number];
 
@@ -62,7 +65,7 @@ export interface SettingMeta {
   optional: boolean;
   // Kiểu ô nhập trên giao diện.
   // toggle = công tắc bật/tắt, giá trị lưu là 'true' hoặc 'false'.
-  input: 'text' | 'tel' | 'email' | 'url' | 'time' | 'number' | 'toggle';
+  input: 'text' | 'tel' | 'email' | 'url' | 'time' | 'number' | 'toggle' | 'json';
 }
 
 export const SETTING_META: Record<SettingKey, SettingMeta> = {
@@ -128,6 +131,13 @@ export const SETTING_META: Record<SettingKey, SettingMeta> = {
     defaultValue: '17',
     optional: false,
     input: 'number',
+  },
+  'timetable.frame': {
+    label: 'Khung tiết học',
+    description: 'Các thứ học và giờ bắt đầu/kết thúc từng tiết (chỉnh ở trang Thời khoá biểu).',
+    defaultValue: JSON.stringify(defaultTimetableFrame()),
+    optional: false,
+    input: 'json',
   },
 };
 

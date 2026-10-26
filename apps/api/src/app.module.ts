@@ -20,6 +20,7 @@ import { SettingsModule } from './features/settings/settings.module.js';
 import { SchedulerModule } from './features/scheduler/scheduler.module.js';
 import { SystemModule } from './features/system/system.module.js';
 import { TasksModule } from './features/tasks/tasks.module.js';
+import { TimetableModule } from './features/timetable/timetable.module.js';
 import { TeachingModule } from './features/teaching/teaching.module.js';
 import { TelegramModule } from './features/telegram/telegram.module.js';
 import { UsersModule } from './features/users/users.module.js';
@@ -47,6 +48,7 @@ import { RevalidateModule } from './infrastructure/revalidate/revalidate.module.
     AcademicModule,
     RosterModule,
     TeachingModule,
+    TimetableModule,
     PostsModule,
     CategoriesModule,
     MediaModule,

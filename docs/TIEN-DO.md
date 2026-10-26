@@ -34,7 +34,7 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 | [x] | 14 | Nền tảng học vụ & tạo tài khoản hàng loạt (Excel, mã kích hoạt) | 2026-10-26 |
 | [x] | 15 | Khung các cổng theo vai trò | 2026-10-26 |
 | [x] | 16 | Phân công giảng dạy | 2026-10-26 |
-| [ ] | 17 | Thời khoá biểu | |
+| [x] | 17 | Thời khoá biểu | 2026-10-26 |
 | [ ] | 18 | Đợt thi có mã & giáo viên nhập điểm | |
 | [ ] | 19 | Xem điểm, thống kê, khoá sổ & điều chỉnh | |
 | [ ] | 20 | Cổng học sinh hoàn chỉnh & thông báo theo lớp/khối | |
@@ -245,3 +245,21 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 - **Lệch thiết kế:** thống kê theo một phạm vi: không chọn học kỳ thì chỉ tính phân công cả năm; chọn học kỳ thì tính cả năm + học kỳ đó. Tổng tiết trong "Lớp tôi dạy" tính phân công cả năm + học kỳ đang diễn ra. Ô chọn giáo viên ở tab Theo lớp liệt kê mọi giáo viên (chưa lọc theo tổ), dạy chéo tổ chỉ được xác nhận bằng hộp thoại. Xuất Excel chỉ cho phạm vi đang xem.
 - **Chưa làm / ghi cho bước sau:** dữ liệu mẫu chưa phản ánh tổ hợp môn thật của từng lớp (đặt định mức riêng theo lớp khi nhà trường có kế hoạch); chưa có tool AI Agent cho phần này (đúng theo yêu cầu, bước 17 sẽ thêm tool tra cứu thời khoá biểu chỉ đọc); chưa thử bằng dữ liệu giáo viên và lớp thật của trường (cần nhà trường cung cấp).
 - **Còn lại:** bước 17 (thời khoá biểu, dùng `teaching_assignments` làm nguồn) và bước 18 (quyền nhập điểm theo lớp–môn được phân công).
+
+### Bước 17 – Thời khoá biểu (2026-10-26)
+
+- **Đã làm:**
+  - **CSDL** (migration `timetable`): `classes.sessions` (sáng/chiều/cả hai, mặc định cả hai), `timetables` (DRAFT/PUBLISHED/ARCHIVED, ngày hiệu lực), `timetable_slots` (kèm `teacher_id` lặp từ phân công), `fixed_periods`, `teacher_unavailability`. **Chặn trùng ở CSDL** trong một phiên bản: UNIQUE (giáo viên, thứ, tiết), (lớp, thứ, tiết) và index một phần (phòng, thứ, tiết); không có hai bản đã công bố cùng (học kỳ, ngày hiệu lực); bản đã công bố phải có ngày hiệu lực; CHECK thứ 1–6, tiết 1–10. Khung tiết ở cấu hình `timetable.frame` (JSON, có zod; mặc định T2–T7, sáng 5 tiết từ 7:00, chiều 4 tiết từ 13:00, tiết 45 phút, nghỉ 5 phút, 20 phút sau tiết 2).
+  - **Quyền:** `timetable:read` (BGH, ADMIN), `timetable:manage` (**chỉ BGH**); sửa khung tiết còn cho ADMIN qua `setting:manage`.
+  - **API `features/timetable`** (~25 route): phiên bản (tạo nháp, sao chép từ bản khác, xoá nháp, công bố), đặt/dời/xoá tiết, bảng "ô nào đặt được và vì sao không", thống kê (lớp thiếu tiết, giáo viên dồn tiết/tiết trống), tiết cố định (seed mẫu: Chào cờ T2 tiết 1, Sinh hoạt lớp T7 tiết 5), tiết bận của giáo viên, xem lịch tuần (của tôi/lớp/giáo viên) theo phạm vi quyền, xuất Excel (lớp/giáo viên/toàn trường, `safeCell`). Trùng giáo viên/lớp/phòng/tiết cố định/lớp chỉ học một buổi/vượt số tiết/ngoài khung → 409 tiếng Việt; hai người sửa đồng thời chỉ một người thành công, người kia 409 (không 500).
+  - **Công bố theo ngày hiệu lực (theo quyết định của người dùng):** ngày D dùng bản đã công bố có ngày hiệu lực lớn nhất ≤ D (`pickEffective`); công bố trước ngày hiệu lực thì tuần này vẫn thấy lịch cũ, tuần sau thấy lịch mới; bản cũ chỉ chuyển ARCHIVED khi bản mới bắt đầu có hiệu lực (`archiveSuperseded`, chạy lúc truy vấn và lúc công bố). Công bố kiểm tra lại toàn bộ (thiếu tiết/chưa xếp tiết nào thì từ chối), ngày hiệu lực không ở quá khứ và trong học kỳ. Giáo viên có tiết ở bản mới hoặc bản trước được báo (`notifications` → Telegram, văn bản thuần qua `defang`, đã tách `defang` ra `common/utils`).
+  - **Tiết bận chỉ để BGH tham khảo (theo quyết định):** xếp đè cần `confirmUnavailable`, và **ghi `audit_logs` `timetable.override_unavailable`**.
+  - **Đổi phân công sau khi xếp lịch:** đổi giáo viên thì đồng bộ `teacher_id` của slot ở bản nháp và bản đã công bố (bản lưu trữ giữ lịch sử) và báo giáo viên cũ/mới; giảm số tiết dưới số đã xếp, hoặc xoá phân công đang có trong bản đã công bố → 409.
+  - **Buổi học của lớp:** cột chỉnh ở trang Học vụ + nút áp dụng hàng loạt theo khối (`PATCH /academic/classes/sessions`).
+  - **AI Agent:** tool chỉ đọc `get_timetable` (theo giáo viên hoặc lớp, theo ngày), đúng phạm vi quyền, có audit như mọi tool; không có tool sửa lịch.
+  - **Web:** `/bgh/thoi-khoa-bieu` (lưới thứ × tiết bấm hoặc kéo thả, ô xanh/vàng/đỏ kèm lý do, xem theo giáo viên/phòng, phiên bản và hộp thoại công bố, khung tiết, tiết cố định, xuất Excel, in), `/admin/thoi-khoa-bieu` (chỉ xem), `/giao-vien/thoi-khoa-bieu` (lịch tuần + đăng ký tiết bận), `/hoc-sinh/thoi-khoa-bieu` (lịch lớp); hôm nay được tô nổi bật, điện thoại hiển thị từng ngày, CSS in. Menu mới ở 4 cổng.
+  - **Tài liệu:** `CLAUDE.md`, README, `docs/02`, `docs/04`, bảng `ROUTES`.
+- **Test:** unit `timetable.spec.ts` (18: ngày giờ Việt Nam, chọn phiên bản hiệu lực, lưu trữ bản cũ, khung tiết, mọi luật của một ô); e2e `timetable.e2e-spec.ts` (15: quyền, khung tiết, buổi học hàng loạt, **trùng giáo viên/lớp/phòng bị chặn kể cả chèn thẳng CSDL và gửi đồng thời**, tiết cố định, tiết bận + audit, ô đặt được và thống kê, công bố khi còn lỗi bị từ chối, **công bố trước ngày hiệu lực: tuần này lịch cũ, tuần sau lịch mới, bản cũ ARCHIVED khi bản mới có hiệu lực**, phạm vi xem của giáo viên/học sinh/ADMIN, đồng bộ khi đổi giáo viên, xuất Excel chống injection, tool Agent đúng quyền). `pnpm build`, `pnpm lint`, `pnpm test` (166 unit + 274 e2e tổng) xanh.
+- **Kiểm tra giao diện (Chrome headless, API + web dev thật):** BGH tạo bản nháp, chọn phân công Toán rồi bấm ô thứ Ba tiết 2 (đặt được, ô Chào cờ tô đỏ), công bố khi còn thiếu 2 tiết bị từ chối với thông báo rõ, xoá bản nháp (DB về như cũ); trang giáo viên và học sinh không tràn ngang ở 375 px.
+- **Lệch thiết kế / chưa làm:** kéo thả đã làm nhưng chưa thử bằng thao tác kéo thật trong trình duyệt (chỉ thử bấm); lịch tuần của giáo viên chưa có chọn xem lớp mình dạy (API `view/class` đã có); chưa có job riêng chuyển ARCHIVED (làm lúc truy vấn); học sinh nhận thông báo lịch đổi ở bước 20; chưa thử Telegram thật cho thông báo công bố.
+- **Còn lại:** bước 18 (đợt thi, nhập điểm theo phân công); bước 25 (tự động gợi ý xếp lịch, tuỳ chọn).

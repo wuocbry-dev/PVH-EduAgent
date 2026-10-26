@@ -70,6 +70,11 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 - `src/proxy.ts` đọc claim `roles` trong access token (do `TokenService.issue` thêm) **chỉ để chọn cổng/chuyển hướng**; không bao giờ dùng claim làm bằng chứng quyền (API đọc lại quyền từ CSDL mỗi request). Đổi vai trò của người dùng thu hồi mọi refresh token (`UsersAdminService.update`).
 - Quyền không đổi ở bước 15 (ADMIN vẫn giữ `post:approve`, `task:assign`…); chỉ điều hướng và menu thay đổi.
 
+## Thời khoá biểu (bước 17)
+
+- `features/timetable`: khung tiết (`timetable.frame`, JSON trong `system_settings`), phiên bản `timetables` (DRAFT/PUBLISHED/ARCHIVED, ngày hiệu lực), tiết đã xếp `timetable_slots` (có cột `teacher_id` lặp từ phân công), `fixed_periods`, `teacher_unavailability`. **Chặn trùng thời khoá biểu ở CSDL** bằng ràng buộc duy nhất trong một phiên bản: (giáo viên, thứ, tiết), (lớp, thứ, tiết), (phòng, thứ, tiết); service kiểm tra trước để báo lý do tiếng Việt và bắt lỗi ràng buộc khi sửa đồng thời (409, không 500). Đổi giáo viên của phân công thì `TeachingService` đồng bộ `teacher_id` ở bản nháp và bản đã công bố (bản lưu trữ giữ nguyên) và báo giáo viên.
+- Quyền `timetable:read` (BGH, ADMIN), `timetable:manage` (**chỉ BGH**). Xem lịch theo phạm vi ở `TimetableViewService` (giáo viên: của mình và lớp mình dạy/chủ nhiệm; học sinh: lớp mình). Ngày D dùng bản đã công bố có `effective_date` lớn nhất ≤ D (`pickEffective`); bản cũ chuyển ARCHIVED khi bản mới bắt đầu có hiệu lực (`archiveSuperseded`, chạy lúc truy vấn). Tiết bận của giáo viên chỉ để tham khảo: xếp đè phải `confirmUnavailable` và ghi audit `timetable.override_unavailable`. Tool Agent `get_timetable` chỉ đọc.
+
 ## Phân công giảng dạy (bước 16)
 
 - `features/teaching`: định mức tiết/tuần của môn theo khối (`subject_period_quotas`, ghi đè theo lớp `class_period_quotas`), phân công giáo viên–môn–lớp (`teaching_assignments`, `semester_id` rỗng = cả năm), định mức riêng của giáo viên (`teacher_profiles.weekly_quota`, mặc định chung ở cấu hình `teaching.default_quota`, 17 tiết). **Một lớp–môn chỉ một giáo viên chính, ràng buộc ở CSDL** bằng hai index duy nhất một phần (cả năm / từng học kỳ); service còn chặn cả năm đụng học kỳ. Giáo viên khác tổ chuyên môn với môn thì phải `confirmCrossDepartment: true` (dạy chéo vẫn có thật, chỉ cảnh báo).

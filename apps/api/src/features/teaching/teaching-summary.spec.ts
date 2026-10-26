@@ -109,7 +109,7 @@ describe('thống kê và cảnh báo phân công', () => {
     ]);
 
     const idle = computeSummary(base());
-    expect(issuesOf(idle, 'TEACHER_UNDER').map((i) => i.teacherId).sort()).toEqual(['t1', 't2']);
+    expect(issuesOf(idle, 'TEACHER_UNDER').map((i) => i.teacherId).sort((a, b) => String(a).localeCompare(String(b)))).toEqual(['t1', 't2']);
   });
 
   it('dạy chéo tổ chuyên môn được cảnh báo; lỗi xếp trước cảnh báo', () => {

@@ -57,6 +57,8 @@ export interface RoomDto {
   kind: string | null;
 }
 
+import type { ClassSessions } from './timetable.js';
+
 export interface ClassDto {
   id: string;
   name: string;
@@ -68,6 +70,8 @@ export interface ClassDto {
   homeroomTeacherId: string | null;
   homeroomTeacherName: string | null;
   studentCount: number;
+  // Lớp học buổi nào (thời khoá biểu).
+  sessions: ClassSessions;
 }
 
 export interface ClassStudentDto {

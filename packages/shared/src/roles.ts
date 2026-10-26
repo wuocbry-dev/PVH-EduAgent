@@ -16,6 +16,8 @@ export const PERMISSIONS = [
   'student:import',
   'teaching:read',
   'teaching:assign',
+  'timetable:read',
+  'timetable:manage',
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -24,8 +26,8 @@ export type Permission = (typeof PERMISSIONS)[number];
 // `user:manage` (F11), `setting:manage` (F17) và `student:import` (bước 14) chỉ dành cho ADMIN;
 // `academic:manage` (bước 14) cho ADMIN và PRINCIPAL. Giáo viên chủ nhiệm không phải vai trò: suy từ classes.homeroom_teacher_id.
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
-  // ADMIN chỉ xem phân công giảng dạy (teaching:read); phân công là việc của Ban giám hiệu.
-  ADMIN: PERMISSIONS.filter((p) => p !== 'teaching:assign'),
+  // ADMIN chỉ xem phân công giảng dạy và thời khoá biểu (teaching:read, timetable:read); xếp và công bố là việc của Ban giám hiệu.
+  ADMIN: PERMISSIONS.filter((p) => p !== 'teaching:assign' && p !== 'timetable:manage'),
   PRINCIPAL: PERMISSIONS.filter((p) => p !== 'user:manage' && p !== 'setting:manage' && p !== 'student:import'),
   EDITOR: ['task:read:all', 'post:create', 'post:approve', 'post:schedule', 'post:unpublish'],
   TEACHER: ['task:read:own', 'post:create'],

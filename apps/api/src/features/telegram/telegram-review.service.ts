@@ -5,6 +5,7 @@ import { PORTAL_INFO, POST_STATUS_NAMES, portalSections, portalsFor, type Role }
 import { InlineKeyboard, type Context } from 'grammy';
 import { can } from '../../common/guards/permission.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
+import { defang } from '../../common/utils/defang.js';
 import { stripHtml } from '../../common/utils/sanitize-content.js';
 import type { Env } from '../../config/env.validation.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
@@ -27,15 +28,7 @@ const CLICKS_PER_MINUTE = 30;
 const formatTime = (date: Date) =>
   date.toLocaleString('vi-VN', { timeZone: TZ, hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', hour12: false });
 
-// Telegram tự biến văn bản thuần thành liên kết (http://…, www.…, a.com) và nhắc tên (@ten). Nội dung do người dùng nhập
-// được chèn ký tự rộng-không (U+200B) để các dạng đó không còn được nhận diện, nên không tạo liên kết/mention giả.
-export function defang(text: string): string {
-  return text
-    .replace(/@(?=\S)/g, '@​')
-    .replace(/:\/\//g, ':​//')
-    .replace(/(\S)\.(?=[A-Za-z0-9])/g, '$1​.')
-    .replace(/\bwww​?\./gi, 'www​.');
-}
+export { defang };
 
 // Nội dung bài (HTML đã lọc) → văn bản thuần có xuống dòng theo đoạn.
 export function htmlToText(html: string): string {

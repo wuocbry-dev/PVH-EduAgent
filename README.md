@@ -120,6 +120,11 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
 - Sau đăng nhập/kích hoạt tự vào cổng chính (ADMIN → PRINCIPAL → EDITOR → TEACHER → STUDENT); `next` hợp lệ và thuộc cổng của người đó thì ưu tiên. Người nhiều vai trò có nút **Đổi cổng**. Vào cổng không thuộc mình, hoặc dùng đường dẫn cũ `/admin/bai-viet…`, thì `src/proxy.ts` chuyển hướng (308) sang trang tương ứng của cổng mình.
 - **Ẩn menu/chuyển hướng không phải bảo mật:** API luôn kiểm tra quyền trong service. Proxy chọn cổng theo claim `roles` trong access token (chỉ để định tuyến); đổi vai trò người dùng thì thu hồi mọi phiên đăng nhập của họ.
 
+## Thời khoá biểu (bước 17)
+
+- **BGH** (`/bgh/thoi-khoa-bieu`; ADMIN xem ở `/admin/thoi-khoa-bieu`): xếp tiết trên lưới thứ × tiết (chọn phân công hoặc kéo thả, ô xanh đặt được / vàng giáo viên báo bận / đỏ không đặt được kèm lý do), xem theo giáo viên và phòng, phiên bản nháp → **công bố kèm ngày hiệu lực** (bản cũ vẫn dùng tới ngày đó), khung tiết và tiết cố định, xuất Excel và in. Buổi học của từng lớp (sáng/chiều/cả hai) chỉnh ở trang Học vụ, có nút áp dụng cho cả khối.
+- **Giáo viên** (`/giao-vien/thoi-khoa-bieu`): lịch dạy theo tuần và đăng ký tiết bận (chỉ để BGH tham khảo). **Học sinh** (`/hoc-sinh/thoi-khoa-bieu`): lịch của lớp. Trên điện thoại hiển thị theo từng ngày. Giáo viên được báo khi công bố hoặc khi đổi giáo viên của phân công; AI Agent tra cứu bằng tool `get_timetable` (chỉ đọc).
+
 ## Phân công giảng dạy (bước 16)
 
 - **BGH** (`/bgh/phan-cong`, quyền `teaching:assign`; ADMIN xem ở `/admin/phan-cong`): chọn năm học và phạm vi (cả năm / học kỳ), bốn tab: **Theo lớp** (hàng là môn, chọn giáo viên và số tiết, ô thiếu/thừa tô màu), **Theo giáo viên** (lớp–môn đang dạy, tiết so với định mức, định mức riêng cho giáo viên giảm tiết), **Định mức môn** (số tiết/tuần theo khối, ghi đè theo lớp), **Cảnh báo và thống kê** (môn chưa có giáo viên, lớp thiếu/thừa tiết, giáo viên vượt/thiếu định mức, dạy chéo tổ; thống kê theo lớp/tổ/toàn trường; xuất Excel; sao chép phân công từ năm học/học kỳ trước).

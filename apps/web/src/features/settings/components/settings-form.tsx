@@ -41,6 +41,7 @@ export function SettingsForm() {
     const form = new FormData(e.currentTarget);
     const changes: UpdateSettingsRequest = {};
     for (const s of settings) {
+      if (s.input === "json") continue; // khung tiết chỉnh ở trang Thời khoá biểu
       const value = String(form.get(s.key)).trim();
       if (value !== (s.value ?? "")) changes[s.key as SettingKey] = value;
     }
@@ -71,7 +72,7 @@ export function SettingsForm() {
           Bạn chỉ có quyền xem. Chỉ quản trị hệ thống mới sửa được cấu hình.
         </p>
       )}
-      {settings.map((s) => (
+      {settings.filter((s) => s.input !== "json").map((s) => (
         <label key={s.key} className="block space-y-1 text-sm">
           <span className="font-medium">{s.label}</span>
           {s.input === "toggle" ? (

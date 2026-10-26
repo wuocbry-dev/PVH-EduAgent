@@ -58,6 +58,20 @@ Web chọn cổng giao diện (`/admin`, `/bgh`, `/bien-tap`, `/giao-vien`, `/ho
 | `GET /academic/me` | Tự phục vụ | mã, lớp, năm học, giáo viên chủ nhiệm (học sinh) hoặc các lớp chủ nhiệm (giáo viên) của chính mình |
 | `GET /system/overview` | `academic:manage` | số lớp, học sinh, giáo viên của năm học hiện hành (trang tổng quan BGH) |
 
+## Thời khoá biểu – `/timetable` (bước 17)
+
+| Endpoint | Quyền | Ghi chú |
+|---|---|---|
+| `GET /timetable/frame`, `GET /timetable/fixed` | Tự phục vụ | khung tiết và tiết cố định ai đăng nhập cũng xem |
+| `PUT /timetable/frame` | `timetable:manage` hoặc `setting:manage` | khung sai/thu hẹp khi còn tiết ngoài khung → 400/409 |
+| `GET /timetable/versions`, `/versions/:id/slots`, `/options`, `/stats`, `/unavailability`, `/export` | `timetable:read` | BGH, ADMIN |
+| `POST/DELETE /timetable/versions`, `POST /versions/:id/publish`, `POST /versions/:id/slots`, `PATCH/DELETE /slots/:id`, `POST/DELETE /fixed` | `timetable:manage` | chỉ BGH; chỉ sửa bản nháp; trùng giáo viên/lớp/phòng/tiết cố định → 409; giáo viên báo bận cần `confirmUnavailable` (ghi audit); công bố khi còn thiếu tiết bị từ chối |
+| `GET/PUT /timetable/unavailability/mine` | Tự phục vụ | PUT chỉ giáo viên (có hồ sơ giáo viên) |
+| `GET /timetable/view/mine` | Tự phục vụ | giáo viên: tiết mình dạy; học sinh: lớp mình |
+| `GET /timetable/view/class/:classId` | Tự phục vụ | `timetable:read`, hoặc học sinh lớp đó, hoặc giáo viên dạy/chủ nhiệm lớp đó |
+| `GET /timetable/view/teacher/:teacherId` | Tự phục vụ | `timetable:read`, hoặc chính giáo viên đó |
+| `PATCH /academic/classes/sessions` | `academic:manage` | chỉnh buổi học của lớp hàng loạt theo khối |
+
 ## Phân công giảng dạy – `/teaching` (bước 16)
 
 | Endpoint | Quyền | Ghi chú |

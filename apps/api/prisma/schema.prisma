@@ -82,6 +82,11 @@ model User {
   activationCodes     ActivationCode[]     @relation("ActivationTarget")
   teachingAssignments TeachingAssignment[]
 
+  timetableSlots      TimetableSlot[]
+  unavailability      TeacherUnavailability[]
+  createdTimetables   Timetable[]             @relation("TimetableCreator")
+  publishedTimetables Timetable[]             @relation("TimetablePublisher")
+
   @@map("users")
 }
 
@@ -384,6 +389,8 @@ model Semester {
   schoolYear          SchoolYear           @relation(fields: [schoolYearId], references: [id], onDelete: Cascade)
   teachingAssignments TeachingAssignment[]
 
+  timetables Timetable[]
+
   @@unique([schoolYearId, number])
   @@map("semesters")
 }
@@ -433,6 +440,8 @@ model Room {
   name String  @unique @db.VarChar(100)
   kind String? @db.VarChar(50)
 
+  timetableSlots TimetableSlot[]
+
   @@map("rooms")
 }
 
@@ -451,6 +460,10 @@ model SchoolClass {
   enrollments         ClassEnrollment[]
   periodQuotas        ClassPeriodQuota[]
   teachingAssignments TeachingAssignment[]
+
+  timetableSlots TimetableSlot[]
+  // Lớp học buổi nào (thời khoá biểu): mặc định cả sáng lẫn chiều.
+  sessions       ClassSessions   @default(BOTH)
 
   @@unique([schoolYearId, name])
   @@index([homeroomTeacherId])
@@ -570,7 +583,104 @@ model TeachingAssignment {
   subject    Subject     @relation(fields: [subjectId], references: [id])
   teacher    User        @relation(fields: [teacherId], references: [id])
 
+  timetableSlots TimetableSlot[]
+
   @@index([teacherId])
   @@index([classId])
   @@map("teaching_assignments")
+}
+
+// ───────────────────────────── Thời khoá biểu (bước 17) ─────────────────────────────
+// Chặn trùng ở CSDL (trong cùng một phiên bản): giáo viên, lớp, phòng không thể có hai tiết cùng (thứ, tiết).
+// Các index duy nhất một phần, CHECK khoảng giá trị và ràng buộc "ngày hiệu lực" nằm trong migration `timetable`.
+
+enum ClassSessions {
+  MORNING
+  AFTERNOON
+  BOTH
+}
+
+enum TimetableStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// Một phiên bản thời khoá biểu của một học kỳ. Nhiều bản PUBLISHED có thể cùng tồn tại với ngày hiệu lực khác nhau:
+// ngày D dùng bản có effective_date lớn nhất <= D; bản cũ chuyển ARCHIVED khi bản mới bắt đầu có hiệu lực.
+model Timetable {
+  id            BigInt          @id @default(autoincrement())
+  semesterId    BigInt          @map("semester_id")
+  name          String          @db.VarChar(120)
+  status        TimetableStatus @default(DRAFT)
+  effectiveDate DateTime?       @map("effective_date") @db.Date
+  createdBy     BigInt          @map("created_by")
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  publishedBy   BigInt?         @map("published_by")
+  publishedAt   DateTime?       @map("published_at") @db.Timestamptz
+
+  semester  Semester        @relation(fields: [semesterId], references: [id])
+  creator   User            @relation("TimetableCreator", fields: [createdBy], references: [id])
+  publisher User?           @relation("TimetablePublisher", fields: [publishedBy], references: [id])
+  slots     TimetableSlot[]
+
+  @@index([semesterId, status])
+  @@map("timetables")
+}
+
+// day: 1 = thứ Hai ... 6 = thứ Bảy. teacher_id lặp lại từ phân công để đặt được ràng buộc duy nhất
+// (đồng bộ khi phân công đổi giáo viên).
+model TimetableSlot {
+  id           BigInt   @id @default(autoincrement())
+  timetableId  BigInt   @map("timetable_id")
+  day          Int
+  period       Int
+  classId      BigInt   @map("class_id")
+  assignmentId BigInt   @map("assignment_id")
+  teacherId    BigInt   @map("teacher_id")
+  roomId       BigInt?  @map("room_id")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  timetable  Timetable          @relation(fields: [timetableId], references: [id], onDelete: Cascade)
+  class      SchoolClass        @relation(fields: [classId], references: [id])
+  assignment TeachingAssignment @relation(fields: [assignmentId], references: [id])
+  teacher    User               @relation(fields: [teacherId], references: [id])
+  room       Room?              @relation(fields: [roomId], references: [id])
+
+  @@unique([timetableId, teacherId, day, period], map: "timetable_slots_teacher_unique")
+  @@unique([timetableId, classId, day, period], map: "timetable_slots_class_unique")
+  @@index([assignmentId])
+  @@map("timetable_slots")
+}
+
+enum FixedPeriodKind {
+  SCHOOL
+  CLASS_MEETING
+}
+
+// Tiết cố định áp cho cả trường (grade_level rỗng) hoặc một khối: Chào cờ, Sinh hoạt lớp...
+// CLASS_MEETING: giáo viên chủ nhiệm của lớp bận ở tiết này.
+model FixedPeriod {
+  id         BigInt          @id @default(autoincrement())
+  name       String          @db.VarChar(80)
+  kind       FixedPeriodKind @default(SCHOOL)
+  day        Int
+  period     Int
+  gradeLevel Int?            @map("grade_level")
+
+  @@map("fixed_periods")
+}
+
+// Tiết bận do giáo viên đăng ký: chỉ để BGH tham khảo (không chặn). Xếp đè lên thì cần xác nhận và ghi audit_logs.
+model TeacherUnavailability {
+  id        BigInt  @id @default(autoincrement())
+  teacherId BigInt  @map("teacher_id")
+  day       Int
+  period    Int
+  note      String? @db.VarChar(200)
+
+  teacher User @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, day, period])
+  @@map("teacher_unavailability")
 }

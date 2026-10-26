@@ -62,6 +62,7 @@ const ROUTES: Record<string, Access> = {
   'GET /academic/teachers': ['academic:manage'],
   'GET /academic/classes': ['academic:manage'],
   'POST /academic/classes': ['academic:manage'],
+  'PATCH /academic/classes/sessions': ['academic:manage'],
   'PATCH /academic/classes/:id': ['academic:manage'],
   'DELETE /academic/classes/:id': ['academic:manage'],
   'GET /academic/classes/:id/students': ['academic:manage'], // hoặc giáo viên chủ nhiệm đúng lớp
@@ -144,6 +145,29 @@ const ROUTES: Record<string, Access> = {
   'DELETE /tasks/:id': ['task:assign'],
 
   'POST /telegram/webhook': 'public',
+  'GET /timetable/frame': 'self',
+  'PUT /timetable/frame': ['timetable:manage'], // hoặc setting:manage (ADMIN)
+  'GET /timetable/versions': ['timetable:read'],
+  'POST /timetable/versions': ['timetable:manage'],
+  'DELETE /timetable/versions/:id': ['timetable:manage'],
+  'POST /timetable/versions/:id/publish': ['timetable:manage'],
+  'GET /timetable/versions/:id/slots': ['timetable:read'],
+  'POST /timetable/versions/:id/slots': ['timetable:manage'],
+  'GET /timetable/versions/:id/options': ['timetable:read'],
+  'GET /timetable/versions/:id/stats': ['timetable:read'],
+  'PATCH /timetable/slots/:id': ['timetable:manage'],
+  'DELETE /timetable/slots/:id': ['timetable:manage'],
+  'GET /timetable/fixed': 'self',
+  'POST /timetable/fixed': ['timetable:manage'],
+  'DELETE /timetable/fixed/:id': ['timetable:manage'],
+  'GET /timetable/unavailability': ['timetable:read'],
+  'GET /timetable/unavailability/mine': 'self',
+  'PUT /timetable/unavailability/mine': 'self', // chỉ giáo viên (có hồ sơ giáo viên)
+  'GET /timetable/view/mine': 'self',
+  'GET /timetable/view/class/:classId': 'self', // quản lý/ADMIN mọi lớp; học sinh lớp mình; giáo viên lớp mình dạy
+  'GET /timetable/view/teacher/:teacherId': 'self', // quản lý/ADMIN mọi giáo viên; giáo viên chỉ của mình
+  'GET /timetable/export': ['timetable:read'],
+
   'GET /teaching/quotas': ['teaching:read'],
   'PUT /teaching/quotas': ['teaching:assign'],
   'PUT /teaching/quotas/class': ['teaching:assign'],
@@ -408,7 +432,7 @@ describe('Rà soát bảo mật (bước 10, e2e)', () => {
       expect(names).toEqual(
         [
           'approve_post', 'check_deadlines', 'create_and_publish_post', 'create_announcement', 'create_post_draft',
-          'create_post_with_media', 'create_task', 'get_system_status', 'list_assignees', 'list_categories',
+          'create_post_with_media', 'create_task', 'get_system_status', 'get_timetable', 'list_assignees', 'list_categories',
           'list_posts', 'reschedule_post', 'schedule_post', 'submit_post_for_review', 'summarize_day',
           'unpublish_post', 'update_task_status',
         ].sort(),

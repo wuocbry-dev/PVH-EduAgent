@@ -393,7 +393,7 @@ describe('Phân công giảng dạy (bước 16, e2e)', () => {
       expect(first.copied).toBeGreaterThanOrEqual(2);
       expect(first.skipped.filter((s) => s.reason === 'Lớp không có trong năm học đích').map((s) => s.className)).toContain(cls2.name);
       const copied = await prisma.teachingAssignment.findMany({ where: { schoolYearId: yearB.id } });
-      expect(copied.map((r) => r.periodsPerWeek).sort()).toEqual(expect.arrayContaining([2, 3]));
+      expect(copied.map((r) => r.periodsPerWeek).sort((a, b) => a - b)).toEqual(expect.arrayContaining([2, 3]));
 
       const again = (await principal.post('/teaching/assignments/copy').send(body).expect(200)).body as CopyAssignmentsResultDto;
       expect(again.copied).toBe(0);

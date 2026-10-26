@@ -33,6 +33,7 @@ export const PORTAL_INFO: Record<Portal, PortalInfo> = {
       { slug: 'nhap-danh-sach', label: 'Nhập danh sách', permissions: ['student:import'] },
       { slug: 'vai-tro', label: 'Vai trò và quyền', permissions: ['user:manage'] },
       { slug: 'phan-cong', label: 'Phân công giảng dạy', permissions: ['teaching:read'] },
+      { slug: 'thoi-khoa-bieu', label: 'Thời khoá biểu', permissions: ['timetable:read'] },
       { slug: 'cau-hinh', label: 'Cấu hình', permissions: ['system:read'] },
       { slug: 'nhat-ky', label: 'Nhật ký hoạt động', permissions: ['system:read'] },
     ],
@@ -45,6 +46,7 @@ export const PORTAL_INFO: Record<Portal, PortalInfo> = {
       { slug: '', label: 'Tổng quan' },
       { slug: 'hoc-vu', label: 'Học vụ', permissions: ['academic:manage'] },
       { slug: 'phan-cong', label: 'Phân công giảng dạy', permissions: ['teaching:read'] },
+      { slug: 'thoi-khoa-bieu', label: 'Thời khoá biểu', permissions: ['timetable:read'] },
       { slug: 'bai-viet', label: 'Bài viết và duyệt bài', permissions: ['post:create'] },
       { slug: 'cong-viec', label: 'Giao việc', permissions: ['task:read:own', 'task:read:all'] },
       { slug: 'lich', label: 'Lịch sự kiện' },
@@ -71,6 +73,7 @@ export const PORTAL_INFO: Record<Portal, PortalInfo> = {
     nav: [
       { slug: '', label: 'Tổng quan' },
       { slug: 'lop-toi-day', label: 'Lớp tôi dạy' },
+      { slug: 'thoi-khoa-bieu', label: 'Thời khoá biểu' },
       { slug: 'bai-viet', label: 'Bài viết của tôi', permissions: ['post:create'] },
       { slug: 'cong-viec', label: 'Việc của tôi', permissions: ['task:read:own', 'task:read:all'] },
       { slug: 'tro-ly-ai', label: 'Trợ lý AI' },
@@ -80,7 +83,10 @@ export const PORTAL_INFO: Record<Portal, PortalInfo> = {
     path: '/hoc-sinh',
     name: 'Học sinh',
     roles: ['STUDENT'],
-    nav: [{ slug: '', label: 'Trang của em' }],
+    nav: [
+      { slug: '', label: 'Trang của em' },
+      { slug: 'thoi-khoa-bieu', label: 'Thời khoá biểu' },
+    ],
   },
 };
 

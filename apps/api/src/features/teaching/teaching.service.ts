@@ -20,6 +20,7 @@ import { isUniqueViolation } from '../../common/utils/prisma-errors.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
 import { AuditLogService } from '../audit-log/audit-log.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { safeCell } from '../roster/excel.js';
 import { SettingsService } from '../settings/settings.service.js';
 import type {
@@ -51,6 +52,7 @@ export class TeachingService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogService,
     private readonly settings: SettingsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // ───────────── Định mức tiết/tuần ─────────────
@@ -188,16 +190,60 @@ export class TeachingService {
     const current = await this.assignmentOrThrow(id);
     const teacher = input.teacherId ? await this.teacherOrThrow(input.teacherId) : null;
     if (teacher) this.assertCrossDepartment(teacher, current.subject, input.confirmCrossDepartment);
-    const row = await this.prisma.teachingAssignment.update({
-      where: { id: current.id },
-      data: { teacherId: teacher?.id, periodsPerWeek: input.periodsPerWeek },
-      include: ASSIGNMENT_INCLUDE,
-    });
+
+    // Thời khoá biểu (bước 17): giảm số tiết dưới số tiết đã xếp thì từ chối; đổi giáo viên thì đồng bộ các tiết đã xếp
+    // (bản nháp và bản đã công bố; bản lưu trữ giữ nguyên lịch sử) và báo giáo viên cũ/mới.
+    if (input.periodsPerWeek !== undefined && input.periodsPerWeek < current.periodsPerWeek) {
+      const placed = await this.prisma.timetableSlot.groupBy({
+        by: ['timetableId'],
+        where: { assignmentId: current.id, timetable: { status: { not: 'ARCHIVED' } } },
+        _count: { _all: true },
+      });
+      const most = Math.max(0, ...placed.map((p) => p._count._all));
+      if (most > input.periodsPerWeek) {
+        throw new ConflictException(`Phân công đang được xếp ${most} tiết/tuần trong thời khoá biểu, hãy gỡ bớt tiết trước khi giảm xuống ${input.periodsPerWeek}`);
+      }
+    }
+    const teacherChanged = !!teacher && teacher.id !== current.teacherId;
+    let publishedAffected = 0;
+    let row: AssignmentRow;
+    try {
+      row = await this.prisma.$transaction(async (tx) => {
+        const updated = await tx.teachingAssignment.update({
+          where: { id: current.id },
+          data: { teacherId: teacher?.id, periodsPerWeek: input.periodsPerWeek },
+          include: ASSIGNMENT_INCLUDE,
+        });
+        if (teacherChanged) {
+          const slots = await tx.timetableSlot.findMany({
+            where: { assignmentId: current.id, timetable: { status: { in: ['DRAFT', 'PUBLISHED'] } } },
+            include: { timetable: { select: { status: true } } },
+          });
+          publishedAffected = slots.filter((s) => s.timetable.status === 'PUBLISHED').length;
+          if (slots.length > 0) {
+            await tx.timetableSlot.updateMany({ where: { id: { in: slots.map((s) => s.id) } }, data: { teacherId: teacher.id } });
+          }
+        }
+        return updated;
+      });
+    } catch (err) {
+      throw isUniqueViolation(err)
+        ? new ConflictException('Giáo viên mới đã có tiết khác trùng giờ trong thời khoá biểu, hãy gỡ hoặc dời tiết đó trước khi đổi giáo viên')
+        : err;
+    }
+    if (teacherChanged && publishedAffected > 0) {
+      const text = `Lịch dạy thay đổi: lớp ${current.class.name} môn ${current.subject.name} đã đổi giáo viên. Xem lại thời khoá biểu của bạn.`;
+      await this.notifications.notify([
+        { userId: current.teacherId, title: 'Thay đổi thời khoá biểu', body: text },
+        { userId: row.teacherId, title: 'Thay đổi thời khoá biểu', body: text },
+      ]);
+    }
     await this.record(actor, 'teaching.update', 'class', current.classId, ip, {
       class: current.class.name,
       subject: current.subject.code,
       teacher: row.teacher.teacherProfile?.teacherCode,
       periodsPerWeek: row.periodsPerWeek,
+      timetableSlotsSynced: teacherChanged ? publishedAffected : undefined,
     });
     return toAssignmentDto(row);
   }
@@ -205,7 +251,15 @@ export class TeachingService {
   async deleteAssignment(actor: AuthUser, id: string, ip?: string): Promise<void> {
     assertPermission(actor, 'teaching:assign');
     const current = await this.assignmentOrThrow(id);
-    await this.prisma.teachingAssignment.delete({ where: { id: current.id } });
+    // Tiết đã xếp trong bản nháp thì gỡ theo; nằm trong bản đã công bố/lưu trữ thì giữ lịch sử nên không xoá được.
+    const kept = await this.prisma.timetableSlot.count({ where: { assignmentId: current.id, timetable: { status: { not: 'DRAFT' } } } });
+    if (kept > 0) {
+      throw new ConflictException(`Phân công đang có ${kept} tiết trong thời khoá biểu đã công bố, không thể xóa`);
+    }
+    await this.prisma.$transaction([
+      this.prisma.timetableSlot.deleteMany({ where: { assignmentId: current.id } }),
+      this.prisma.teachingAssignment.delete({ where: { id: current.id } }),
+    ]);
     await this.record(actor, 'teaching.unassign', 'class', current.classId, ip, {
       class: current.class.name,
       subject: current.subject.code,

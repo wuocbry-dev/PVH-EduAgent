@@ -16,6 +16,7 @@ import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { AcademicService } from './academic.service.js';
 import {
+  bulkSessionsSchema,
   classQuerySchema,
   classSchema,
   departmentSchema,
@@ -30,6 +31,7 @@ import {
   updateSchoolYearSchema,
   updateSemesterSchema,
   updateSubjectSchema,
+  type BulkSessionsInput,
   type ClassInput,
   type ClassQuery,
   type DepartmentInput,
@@ -238,6 +240,16 @@ export class AcademicController {
     @Req() req: Request,
   ) {
     return this.academic.createClass(user, body, req.ip);
+  }
+
+  // Phải khai báo trước `classes/:id` để "sessions" không bị hiểu là id.
+  @Patch('classes/sessions')
+  setSessionsBulk(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(bulkSessionsSchema)) body: BulkSessionsInput,
+    @Req() req: Request,
+  ) {
+    return this.academic.setSessionsBulk(user, body, req.ip);
   }
 
   @Patch('classes/:id')

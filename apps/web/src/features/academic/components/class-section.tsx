@@ -1,6 +1,6 @@
 "use client";
 
-import { GENDER_NAMES, USER_STATUS_NAMES } from "@pvh/shared";
+import { CLASS_SESSION_NAMES, CLASS_SESSIONS, GENDER_NAMES, USER_STATUS_NAMES, type ClassSessions } from "@pvh/shared";
 import { useState, type FormEvent } from "react";
 import { errorClass, inputClass } from "@/shared/ui/form-styles";
 import {
@@ -10,6 +10,7 @@ import {
   listClassStudents,
   listGrades,
   listSchoolYears,
+  setSessionsBulk,
   listTeachers,
   transferStudent,
   updateClass,
@@ -80,6 +81,7 @@ export function ClassSection() {
               <th className="py-2 pr-4">Tổ hợp môn</th>
               <th className="py-2 pr-4">Chủ nhiệm</th>
               <th className="py-2 pr-4">Sĩ số</th>
+              <th className="py-2 pr-4">Buổi học</th>
               <th className="py-2">Thao tác</th>
             </tr>
           </thead>
@@ -105,6 +107,20 @@ export function ClassSection() {
                   </select>
                 </td>
                 <td className="py-2 pr-4">{c.studentCount}</td>
+                <td className="py-2 pr-4">
+                  <select
+                    aria-label={`Buổi học lớp ${c.name}`}
+                    value={c.sessions}
+                    onChange={(e) => run(() => updateClass(c.id, { sessions: e.target.value as ClassSessions }))}
+                    className={`${inputClass} w-40`}
+                  >
+                    {CLASS_SESSIONS.map((x) => (
+                      <option key={x} value={x}>
+                        {CLASS_SESSION_NAMES[x]}
+                      </option>
+                    ))}
+                  </select>
+                </td>
                 <td className="space-y-2 py-2">
                   <div className="flex flex-wrap gap-2">
                     <button type="button" className={smallButton} onClick={() => setOpenClass(openClass === c.id ? null : c.id)}>
@@ -136,7 +152,7 @@ export function ClassSection() {
             ))}
             {classes.data?.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-4 opacity-70">
+                <td colSpan={7} className="py-4 opacity-70">
                   Năm học này chưa có lớp.
                 </td>
               </tr>
@@ -144,6 +160,42 @@ export function ClassSection() {
           </tbody>
         </table>
       </div>
+
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const data = new FormData(e.currentTarget);
+          const grade = Number(data.get("grade"));
+          if (confirm(`Đặt buổi học của mọi lớp khối ${grade} trong năm học đang chọn?`)) {
+            void run(() => setSessionsBulk({ schoolYearId: yearId || undefined, gradeLevel: grade, sessions: String(data.get("sessions")) }));
+          }
+        }}
+        className="flex flex-wrap items-end gap-2"
+      >
+        <label className="space-y-1 text-sm">
+          <span>Chỉnh buổi học hàng loạt: khối</span>
+          <select name="grade" className={`${inputClass} w-auto`}>
+            {[10, 11, 12].map((g) => (
+              <option key={g} value={g}>
+                {g}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="space-y-1 text-sm">
+          <span>học</span>
+          <select name="sessions" defaultValue="BOTH" className={`${inputClass} w-auto`}>
+            {CLASS_SESSIONS.map((x) => (
+              <option key={x} value={x}>
+                {CLASS_SESSION_NAMES[x]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="submit" className="rounded border border-black/20 px-4 py-2 dark:border-white/20">
+          Áp dụng cho cả khối
+        </button>
+      </form>
 
       <form onSubmit={onAdd} className="flex flex-wrap items-end gap-2">
         <label className="space-y-1 text-sm">
