@@ -71,6 +71,12 @@ const envSchema = z
   R2_SECRET_ACCESS_KEY: optional(z.string().trim()),
   R2_BUCKET: optional(z.string().trim()),
   R2_PUBLIC_BASE_URL: optional(z.url().transform((v) => v.replace(/\/+$/, ''))),
+  // Thư viện số (bước 21): KHO RIÊNG TƯ cho file tài liệu (PDF, MP3, video) – không có địa chỉ công khai, chỉ cấp URL đọc
+  // hết hạn ngắn. STORAGE_DRIVER=r2: bucket R2 thứ hai (không bật r2.dev/tên miền công khai), dùng cùng cặp khoá R2;
+  // bỏ trống thì thư viện dùng thư mục PRIVATE_UPLOAD_DIR (production bắt buộc có bucket).
+  R2_PRIVATE_BUCKET: optional(z.string().trim()),
+  // Thư mục của kho riêng tư khi không dùng R2; phải khác UPLOAD_DIR (không được phục vụ công khai).
+  PRIVATE_UPLOAD_DIR: z.string().trim().min(1).default('uploads-private'),
 
   DATABASE_URL: z
     .string()
@@ -100,6 +106,12 @@ const envSchema = z
   TELEGRAM_WEBHOOK_URL: optional(z.url()),
   })
   .superRefine((env, ctx) => {
+    if (env.PRIVATE_UPLOAD_DIR === env.UPLOAD_DIR) {
+      ctx.addIssue({ code: 'custom', path: ['PRIVATE_UPLOAD_DIR'], message: 'Phải khác UPLOAD_DIR (thư mục công khai)' });
+    }
+    if (env.R2_PRIVATE_BUCKET && env.R2_PRIVATE_BUCKET === env.R2_BUCKET) {
+      ctx.addIssue({ code: 'custom', path: ['R2_PRIVATE_BUCKET'], message: 'Phải là bucket khác R2_BUCKET (bucket công khai)' });
+    }
     if (env.STORAGE_DRIVER !== 'r2') return;
     for (const key of ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET', 'R2_PUBLIC_BASE_URL'] as const) {
       if (!env[key]) ctx.addIssue({ code: 'custom', path: [key], message: `Cần có khi STORAGE_DRIVER=r2` });
@@ -134,6 +146,9 @@ export function productionProblems(env: Env): string[] {
   if (!env.WEB_ORIGIN.startsWith('https://')) problems.push('WEB_ORIGIN phải là địa chỉ https:// (cookie đăng nhập đặt cờ Secure)');
   if (env.STORAGE_DRIVER === 'r2' && !env.R2_PUBLIC_BASE_URL?.startsWith('https://')) {
     problems.push('R2_PUBLIC_BASE_URL phải là địa chỉ https:// (r2.dev chỉ để dev, production dùng tên miền riêng)');
+  }
+  if (env.STORAGE_DRIVER === 'r2' && !env.R2_PRIVATE_BUCKET) {
+    problems.push('R2_PRIVATE_BUCKET cần có: tài liệu thư viện số phải nằm trong bucket R2 riêng tư');
   }
   if (!env.REDIS_URL) problems.push('REDIS_URL cần có: giới hạn tần suất, OTP Telegram và bộ lập lịch dùng Redis');
   return problems;

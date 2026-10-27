@@ -5,7 +5,7 @@ import {
   type MediaKind,
   type MediaPresignDto,
 } from "@pvh/shared";
-import { env } from "@/shared/config/env";
+import { putUpload } from "@/shared/lib/put-upload";
 import { api } from "@/shared/lib/api-client";
 
 export function listMedia(kind?: MediaKind) {
@@ -36,27 +36,6 @@ export async function uploadMedia(file: File, onProgress?: (percent: number) => 
     method: "POST",
     body: JSON.stringify({ filename: file.name, mimeType: file.type, size: file.size }),
   });
-  await putFile(file, presign, onProgress);
+  await putUpload(file, presign, onProgress);
   return api<MediaDto>(`/media/${presign.id}/complete`, { method: "POST" });
-}
-
-// Driver local trả đường dẫn tương đối so với API; driver R2 trả URL đầy đủ của Cloudflare.
-function putFile(file: File, presign: MediaPresignDto, onProgress?: (percent: number) => void): Promise<void> {
-  const url = /^https?:\/\//i.test(presign.uploadUrl) ? presign.uploadUrl : `${env.apiUrl}${presign.uploadUrl}`;
-  return new Promise((resolve, reject) => {
-    // XMLHttpRequest vì fetch chưa báo được tiến độ tải lên.
-    const xhr = new XMLHttpRequest();
-    xhr.open("PUT", url);
-    for (const [name, value] of Object.entries(presign.headers)) xhr.setRequestHeader(name, value);
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) onProgress?.(Math.round((e.loaded / e.total) * 100));
-    };
-    xhr.onload = () =>
-      xhr.status >= 200 && xhr.status < 300
-        ? resolve()
-        : reject(new Error(`Tải file lên kho lưu trữ thất bại (mã ${xhr.status})`));
-    xhr.onerror = () => reject(new Error("Mất kết nối khi tải file lên, vui lòng thử lại"));
-    xhr.onabort = () => reject(new Error("Đã huỷ tải lên"));
-    xhr.send(file);
-  });
 }

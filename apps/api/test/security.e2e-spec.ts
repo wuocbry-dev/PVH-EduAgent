@@ -227,6 +227,35 @@ const ROUTES: Record<string, Access> = {
   'POST /announcements': ['announcement:send'], // giáo viên: lớp mình dạy/chủ nhiệm; announcement:manage: mọi đối tượng
   'DELETE /announcements/:id': ['announcement:send'], // người gửi hoặc announcement:manage
 
+  // Thư viện số (bước 21): danh mục công khai chỉ tài liệu toàn trường; đọc phải đăng nhập và đúng đối tượng xem.
+  'GET /public/library/home': 'public',
+  'GET /public/library/items': 'public',
+  'GET /public/library/items/:slug': 'public',
+  'PUT /library/local-upload/:id': 'public', // chỉ driver local; token HMAC `put` trong query
+  'GET /library/files/:id': 'public', // chỉ driver local; token HMAC `get` hết hạn 5 phút, cấp sau khi kiểm tra quyền
+  'GET /library/items': 'self', // lọc theo đối tượng xem của chính mình
+  'GET /library/items/by-slug/:slug': 'self',
+  'POST /library/items/:id/access': 'self', // kiểm tra đối tượng xem mỗi lần cấp URL; giới hạn 30/phút
+  'PUT /library/items/:id/progress': 'self',
+  'PUT /library/items/:id/favorite': 'self',
+  'DELETE /library/items/:id/favorite': 'self',
+  'GET /library/me': 'self',
+  'GET /library/form-options': ['library:submit'], // hoặc library:manage
+  'GET /library/submissions': ['library:submit'], // scope=all cần library:manage
+  'POST /library/items': ['library:submit'],
+  'GET /library/items/:id': ['library:submit'], // tài liệu của mình; library:manage mọi tài liệu
+  'PATCH /library/items/:id': ['library:submit'], // của mình khi nháp/bị từ chối; library:manage mọi lúc
+  'DELETE /library/items/:id': ['library:submit'],
+  'POST /library/items/:id/upload': ['library:submit'],
+  'POST /library/items/:id/upload/complete': ['library:submit'],
+  'POST /library/items/:id/submit': ['library:submit'],
+  'POST /library/items/:id/review': ['library:manage'],
+  'GET /library/categories': ['library:manage'],
+  'POST /library/categories': ['library:manage'],
+  'PATCH /library/categories/:id': ['library:manage'],
+  'DELETE /library/categories/:id': ['library:manage'],
+  'GET /library/stats': ['library:manage'],
+
   'GET /telegram/link': 'self',
   'POST /telegram/link-code': 'self',
   'DELETE /telegram/link': 'self',
@@ -479,7 +508,7 @@ describe('Rà soát bảo mật (bước 10, e2e)', () => {
         [
           'approve_post', 'check_deadlines', 'create_and_publish_post', 'create_announcement', 'create_post_draft',
           'create_post_with_media', 'create_task', 'get_system_status', 'get_timetable', 'list_assignees', 'list_categories',
-          'list_posts', 'reschedule_post', 'schedule_post', 'submit_post_for_review', 'summarize_day',
+          'list_posts', 'reschedule_post', 'schedule_post', 'search_library', 'submit_post_for_review', 'summarize_day',
           'unpublish_post', 'update_task_status',
         ].sort(),
       );

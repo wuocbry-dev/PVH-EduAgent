@@ -16,3 +16,5 @@ coverage/
 
 # Ảnh tải lên (F13)
 uploads/
+# Kho riêng tư của thư viện số khi không dùng R2 (bước 21)
+uploads-private/

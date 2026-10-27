@@ -43,6 +43,10 @@ export interface ActionMeta {
   channel?: AuditChannel;
 }
 
+// Quyền tải lên mặc định (ảnh/video cho bài viết). Thư viện số truyền kiểm tra riêng khi tải ảnh bìa.
+export type UploadPermissionCheck = (user: AuthUser) => void;
+const canUploadForPosts: UploadPermissionCheck = (user) => assertPermission(user, 'post:create');
+
 // Bài còn giữ liên kết tới media nên không cho xoá file.
 const PROTECTED_POST_STATUSES = ['PUBLISHED', 'SCHEDULED'] as const;
 
@@ -59,8 +63,13 @@ export class MediaService {
   ) {}
 
   // Bước 1 của luồng tải lên: tạo bản ghi chờ + URL ký sẵn để trình duyệt PUT thẳng lên kho.
-  async presign(user: AuthUser, input: PresignInput, meta: ActionMeta = {}): Promise<MediaPresignDto> {
-    assertPermission(user, 'post:create');
+  async presign(
+    user: AuthUser,
+    input: PresignInput,
+    meta: ActionMeta = {},
+    check: UploadPermissionCheck = canUploadForPosts,
+  ): Promise<MediaPresignDto> {
+    check(user);
     const type = mediaTypeByMime(input.mimeType);
     if (!type) {
       throw new BadRequestException('Chỉ chấp nhận ảnh JPEG, PNG, WebP, GIF hoặc video MP4, WebM');
@@ -138,8 +147,13 @@ export class MediaService {
   }
 
   // Bước 3: kiểm tra object thật sự có trên kho, đúng kích thước và đúng loại (magic bytes). Sai thì xoá object + bản ghi.
-  async complete(user: AuthUser, id: string, meta: ActionMeta = {}): Promise<MediaDto> {
-    assertPermission(user, 'post:create');
+  async complete(
+    user: AuthUser,
+    id: string,
+    meta: ActionMeta = {},
+    check: UploadPermissionCheck = canUploadForPosts,
+  ): Promise<MediaDto> {
+    check(user);
     const media = await this.ownedOrThrow(user, id);
     if (media.status === 'READY') return toMediaDto(media);
 

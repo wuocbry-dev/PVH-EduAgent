@@ -1,4 +1,4 @@
-export const ROLES = ['ADMIN', 'PRINCIPAL', 'EDITOR', 'TEACHER', 'STUDENT'] as const;
+export const ROLES = ['ADMIN', 'PRINCIPAL', 'EDITOR', 'LIBRARIAN', 'TEACHER', 'STUDENT'] as const;
 export type Role = (typeof ROLES)[number];
 
 export const PERMISSIONS = [
@@ -23,6 +23,8 @@ export const PERMISSIONS = [
   'score:read:all',
   'announcement:send',
   'announcement:manage',
+  'library:submit',
+  'library:manage',
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -38,15 +40,23 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   // ADMIN chỉ xem phân công giảng dạy và thời khoá biểu (teaching:read, timetable:read); xếp và công bố là việc của Ban giám hiệu.
   // Thông báo cho học sinh/giáo viên (bước 20) là việc của BGH và giáo viên, không phải của quản trị hệ thống.
   ADMIN: PERMISSIONS.filter(
-    (p) => p !== 'teaching:assign' && p !== 'timetable:manage' && !isScorePermission(p) && !p.startsWith('announcement:'),
+    (p) =>
+      p !== 'teaching:assign' &&
+      p !== 'timetable:manage' &&
+      !isScorePermission(p) &&
+      !p.startsWith('announcement:') &&
+      // Thư viện số (bước 21): duyệt nội dung là việc của thủ thư và BGH, không phải của quản trị hệ thống.
+      !p.startsWith('library:'),
   ),
   // BGH tạo đợt thi chung và xem mọi điểm nhưng không tự nhập điểm (score:enter là của giáo viên được phân công).
   PRINCIPAL: PERMISSIONS.filter(
     (p) => p !== 'user:manage' && p !== 'setting:manage' && p !== 'student:import' && p !== 'score:enter',
   ),
   EDITOR: ['task:read:all', 'post:create', 'post:approve', 'post:schedule', 'post:unpublish'],
+  // Thủ thư (bước 21): quản lý danh mục, duyệt/ẩn tài liệu, xem thống kê thư viện số; cũng tự gửi tài liệu.
+  LIBRARIAN: ['library:submit', 'library:manage'],
   // announcement:send của giáo viên chỉ cho lớp mình dạy/chủ nhiệm (kiểm tra trong service); announcement:manage = mọi đối tượng.
-  TEACHER: ['task:read:own', 'post:create', 'score:enter', 'announcement:send'],
+  TEACHER: ['task:read:own', 'post:create', 'score:enter', 'announcement:send', 'library:submit'],
   STUDENT: [],
 };
 
@@ -58,6 +68,7 @@ export const ROLE_NAMES: Record<Role, string> = {
   ADMIN: 'Quản trị hệ thống',
   PRINCIPAL: 'Ban giám hiệu',
   EDITOR: 'Biên tập viên',
+  LIBRARIAN: 'Thủ thư',
   TEACHER: 'Giáo viên',
   STUDENT: 'Học sinh',
 };

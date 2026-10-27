@@ -7,7 +7,7 @@ export const REFRESH_COOKIE = "pvh_refresh";
 export const LOGIN_PATH = "/dang-nhap";
 
 // Nơi đến sau đăng nhập/kích hoạt: `next` hợp lệ (cùng origin, và nếu thuộc một cổng thì cổng đó người này được vào)
-// thì ưu tiên, không thì cổng chính theo vai trò (ADMIN → PRINCIPAL → EDITOR → TEACHER → STUDENT).
+// thì ưu tiên, không thì cổng chính theo vai trò (ADMIN → PRINCIPAL → EDITOR → LIBRARIAN → TEACHER → STUDENT).
 export function afterLoginPath(roles: readonly Role[], next: string | null | undefined): string {
   const safe = next && next.startsWith("/") && !next.startsWith("//") ? next : null;
   if (safe && (!portalOfPath(safe) || portalRedirect(roles, safe) === null)) return safe;

@@ -81,6 +81,15 @@ describe('cổng theo vai trò (@pvh/shared)', () => {
       expect(go(['PRINCIPAL', 'EDITOR'], '/bgh/chuyen-muc')).toBe('/bien-tap/chuyen-muc');
     });
 
+    it('thủ thư vào cổng /thu-thu; vào cổng khác thì về /thu-thu (bước 21)', () => {
+      expect(primaryPortal(['LIBRARIAN'])).toBe('thu-thu');
+      expect(go(['LIBRARIAN'], '/thu-thu/duyet-tai-lieu')).toBeNull();
+      expect(go(['LIBRARIAN'], '/bgh/thu-vien-so')).toBe('/thu-thu');
+      expect(go(['LIBRARIAN'], '/giao-vien/tai-lieu-cua-toi')).toBe('/thu-thu/tai-lieu-cua-toi');
+      expect(go(['TEACHER'], '/thu-thu/duyet-tai-lieu')).toBe('/giao-vien');
+      expect(go(['STUDENT'], '/thu-thu')).toBe('/hoc-sinh');
+    });
+
     it('đường dẫn ngoài các cổng không bị đụng tới; không có vai trò nào thì về trang chủ', () => {
       expect(go(['TEACHER'], '/tin-tuc')).toBeNull();
       expect(go([], '/bgh')).toBe('/');

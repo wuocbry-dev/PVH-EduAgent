@@ -104,6 +104,11 @@ model User {
   announcements     Announcement[]     @relation("AnnouncementCreator")
   announcementReads AnnouncementRead[]
 
+  submittedLibraryItems LibraryItem[]            @relation("LibraryItemSubmitter")
+  reviewedLibraryItems  LibraryItem[]            @relation("LibraryItemReviewer")
+  libraryFavorites      LibraryFavorite[]
+  libraryProgress       LibraryReadingProgress[]
+
   @@map("users")
 }
 
@@ -504,6 +509,7 @@ model Subject {
   classQuotas         ClassPeriodQuota[]
   teachingAssignments TeachingAssignment[]
   assessments         Assessment[]
+  libraryItems        LibraryItem[]
 
   @@map("subjects")
 }
@@ -544,6 +550,7 @@ model SchoolClass {
   scoreAdjustments  ScoreAdjustment[]
   announcements     Announcement[]
   events            Event[]
+  libraryItems      LibraryItemClass[]
 
   @@unique([schoolYearId, name])
   @@index([homeroomTeacherId])
@@ -948,4 +955,157 @@ model ScoreAdjustment {
   @@index([status])
   @@index([assessmentId, studentId])
   @@map("score_adjustments")
+}
+
+// ───────────────────────────── Thư viện số (bước 21) ─────────────────────────────
+
+enum LibraryKind {
+  PDF
+  AUDIO
+  VIDEO
+}
+
+enum LibraryStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+  REJECTED
+  ARCHIVED
+}
+
+enum LibraryAudience {
+  ALL
+  GRADE
+  CLASS
+  TEACHERS_ONLY
+}
+
+enum LibrarySource {
+  SELF_AUTHORED
+  TEACHER_CONTRIBUTED
+  PUBLIC_RELEASE
+  LICENSED
+}
+
+model LibraryCategory {
+  id        BigInt  @id @default(autoincrement())
+  name      String  @db.VarChar(100)
+  slug      String  @unique @db.VarChar(120)
+  parentId  BigInt? @map("parent_id")
+  sortOrder Int     @default(0) @map("sort_order")
+
+  parent   LibraryCategory?  @relation("LibraryCategoryTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children LibraryCategory[] @relation("LibraryCategoryTree")
+  items    LibraryItem[]
+
+  @@map("library_categories")
+}
+
+// File tài liệu nằm trong KHO RIÊNG TƯ (file_key), không có URL công khai: chỉ cấp URL đọc hết hạn ngắn sau khi kiểm tra
+// quyền. Ảnh bìa ở kho công khai (cover_url, qua bảng media). Nguồn và giấy phép bắt buộc (CHECK trong migration).
+model LibraryItem {
+  id            BigInt          @id @default(autoincrement())
+  title         String          @db.VarChar(200)
+  slug          String          @unique @db.VarChar(220)
+  author        String?         @db.VarChar(200)
+  publisher     String?         @db.VarChar(200)
+  publishYear   Int?            @map("publish_year")
+  description   String?
+  coverUrl      String?         @map("cover_url") @db.VarChar(500)
+  kind          LibraryKind
+  categoryId    BigInt          @map("category_id")
+  subjectId     BigInt?         @map("subject_id")
+  gradeLevel    Int?            @map("grade_level") // khối liên quan (để lọc), khác đối tượng xem
+  source        LibrarySource
+  license       String          @db.VarChar(500) // ghi chú giấy phép / xuất xứ
+  allowDownload Boolean         @default(false) @map("allow_download")
+  audience      LibraryAudience @default(ALL)
+  gradeLevels   Int[]           @default([]) @map("grade_levels") // đối tượng GRADE
+  status        LibraryStatus   @default(DRAFT)
+  rejectReason  String?         @map("reject_reason") @db.VarChar(500)
+  submittedBy   BigInt          @map("submitted_by")
+  reviewedBy    BigInt?         @map("reviewed_by")
+  reviewedAt    DateTime?       @map("reviewed_at") @db.Timestamptz
+  publishedAt   DateTime?       @map("published_at") @db.Timestamptz
+  // File đã kiểm tra (magic bytes) trong kho riêng tư.
+  fileKey       String?         @unique @map("file_key") @db.VarChar(120)
+  fileMime      String?         @map("file_mime") @db.VarChar(80)
+  fileSize      Int?            @map("file_size")
+  // File đang tải lên (presign → PUT → complete); thay file cũ khi hoàn tất.
+  pendingKey    String?         @unique @map("pending_key") @db.VarChar(120)
+  pendingMime   String?         @map("pending_mime") @db.VarChar(80)
+  pendingSize   Int?            @map("pending_size")
+  // Chuỗi bỏ dấu (tiêu đề, tác giả, NXB, mô tả) để tìm không dấu; index pg_trgm trong migration.
+  searchText    String          @default("") @map("search_text")
+  viewCount     Int             @default(0) @map("view_count")
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  category  LibraryCategory          @relation(fields: [categoryId], references: [id])
+  subject   Subject?                 @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  submitter User                     @relation("LibraryItemSubmitter", fields: [submittedBy], references: [id])
+  reviewer  User?                    @relation("LibraryItemReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  classes   LibraryItemClass[]
+  favorites LibraryFavorite[]
+  progress  LibraryReadingProgress[]
+  views     LibraryViewDaily[]
+
+  @@index([status, publishedAt])
+  @@index([categoryId])
+  @@index([submittedBy])
+  @@index([searchText(ops: raw("gin_trgm_ops"))], type: Gin, map: "library_items_search_text_trgm_idx")
+  @@map("library_items")
+}
+
+// Lớp được xem tài liệu có đối tượng CLASS.
+model LibraryItemClass {
+  itemId  BigInt @map("item_id")
+  classId BigInt @map("class_id")
+
+  item  LibraryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  class SchoolClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@id([itemId, classId])
+  @@index([classId])
+  @@map("library_item_classes")
+}
+
+model LibraryFavorite {
+  userId    BigInt   @map("user_id")
+  itemId    BigInt   @map("item_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item LibraryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@id([userId, itemId])
+  @@map("library_favorites")
+}
+
+// "Đọc tiếp": trang PDF hoặc giây đang nghe/xem.
+model LibraryReadingProgress {
+  userId    BigInt   @map("user_id")
+  itemId    BigInt   @map("item_id")
+  position  Float    @default(0)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item LibraryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@id([userId, itemId])
+  @@index([userId, updatedAt])
+  @@map("library_reading_progress")
+}
+
+// Lượt đọc gộp theo ngày (giờ Việt Nam); không lưu từng lượt hay IP.
+model LibraryViewDaily {
+  itemId BigInt   @map("item_id")
+  day    DateTime @db.Date
+  count  Int      @default(0)
+
+  item LibraryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@id([itemId, day])
+  @@index([day])
+  @@map("library_views")
 }

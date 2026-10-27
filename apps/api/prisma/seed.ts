@@ -39,6 +39,8 @@ const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   'score:read:all': 'Xem điểm và tiến độ nhập điểm toàn trường',
   'announcement:send': 'Gửi thông báo cho lớp mình dạy/chủ nhiệm (giáo viên) – trong cổng',
   'announcement:manage': 'Gửi thông báo cho mọi đối tượng (toàn trường, khối, lớp, chỉ nhân sự) và quản lý mọi thông báo',
+  'library:submit': 'Gửi tài liệu lên thư viện số (soạn, tải file, gửi duyệt tài liệu của mình)',
+  'library:manage': 'Quản lý thư viện số: danh mục, duyệt/từ chối/ẩn tài liệu, thống kê lượt đọc',
 };
 
 // Mật khẩu chung cho tài khoản mẫu, chỉ dùng trên máy phát triển.
@@ -48,6 +50,7 @@ const USERS: { email: string; fullName: string; role: Role }[] = [
   { email: 'admin@pvh.edu.vn', fullName: 'Quản trị hệ thống', role: 'ADMIN' },
   { email: 'bgh@pvh.edu.vn', fullName: 'Nguyễn Duy Bình', role: 'PRINCIPAL' },
   { email: 'bientap@pvh.edu.vn', fullName: 'Biên tập viên', role: 'EDITOR' },
+  { email: 'thuthu@pvh.edu.vn', fullName: 'Thủ thư', role: 'LIBRARIAN' },
   { email: 'gv.toan@pvh.edu.vn', fullName: 'Giáo viên Toán', role: 'TEACHER' },
 ];
 
@@ -405,6 +408,23 @@ async function seedTasks(users: Map<Role, bigint>) {
   });
 }
 
+// Danh mục thư viện số (bước 21). Chỉ là khung danh mục, chưa có tài liệu nào.
+const LIBRARY_CATEGORIES: [slug: string, name: string][] = [
+  ['sach-giao-khoa', 'Sách giáo khoa'],
+  ['sach-tham-khao', 'Sách tham khảo'],
+  ['truyen', 'Truyện'],
+  ['sach-noi', 'Sách nói'],
+  ['video-bai-giang', 'Video bài giảng'],
+  ['de-thi-on-tap', 'Đề thi – tài liệu ôn tập'],
+  ['ky-nang-song', 'Kỹ năng sống'],
+];
+
+async function seedLibrary() {
+  for (const [i, [slug, name]] of LIBRARY_CATEGORIES.entries()) {
+    await prisma.libraryCategory.upsert({ where: { slug }, update: {}, create: { slug, name, sortOrder: i } });
+  }
+}
+
 // Sự kiện không có khoá duy nhất nên chỉ tạo khi bảng còn trống.
 async function seedEvents(users: Map<Role, bigint>) {
   if ((await prisma.event.count()) > 0) return;
@@ -441,12 +461,13 @@ async function main() {
   await seedContent(users);
   await seedTasks(users);
   await seedEvents(users);
+  await seedLibrary();
 
   console.log(
     'Đã seed xong. Tài khoản mẫu (mật khẩu chung %s):',
     DEMO_PASSWORD,
   );
-  for (const u of USERS) console.log(`  ${u.role.padEnd(9)} ${u.email}`);
+  for (const u of USERS) console.log(`  ${u.role.padEnd(10)} ${u.email}`);
   console.log('Dữ liệu học vụ MẪU (không phải dữ liệu thật): giáo viên GVMAU01 (gv.toan@), học sinh HSMAU01–HSMAU03 đăng nhập bằng mã học sinh; định mức tiết khối 10 và phân công Toán 10A1 cũng là MẪU, cần đối chiếu kế hoạch giáo dục của trường.');
 }
 

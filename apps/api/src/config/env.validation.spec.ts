@@ -54,6 +54,7 @@ describe('validateEnv – lưu trữ ảnh/video (bước 11)', () => {
     R2_SECRET_ACCESS_KEY: 'secret',
     R2_BUCKET: 'pvh',
     R2_PUBLIC_BASE_URL: 'https://media.pvh.edu.vn/',
+    R2_PRIVATE_BUCKET: 'pvh-library',
   };
 
   it('mặc định là local và không cần biến R2 (để trống cũng được)', () => {
@@ -73,6 +74,14 @@ describe('validateEnv – lưu trữ ảnh/video (bước 11)', () => {
   it('production với r2 phải dùng địa chỉ công khai https', () => {
     expect(() => validateEnv({ ...prod, ...r2, R2_PUBLIC_BASE_URL: 'http://pub-x.r2.dev' })).toThrow(/https/);
     expect(validateEnv({ ...prod, ...r2 }).STORAGE_DRIVER).toBe('r2');
+  });
+
+  it('thư viện số (bước 21): kho riêng tư khác kho công khai; production với r2 bắt buộc có bucket riêng tư', () => {
+    expect(validateEnv({ ...base, ...r2, R2_PRIVATE_BUCKET: '' }).R2_PRIVATE_BUCKET).toBeUndefined(); // dev: dùng thư mục local
+    expect(() => validateEnv({ ...prod, ...r2, R2_PRIVATE_BUCKET: '' })).toThrow(/R2_PRIVATE_BUCKET/);
+    expect(() => validateEnv({ ...base, ...r2, R2_PRIVATE_BUCKET: 'pvh' })).toThrow(/R2_PRIVATE_BUCKET/);
+    expect(() => validateEnv({ ...base, PRIVATE_UPLOAD_DIR: 'uploads' })).toThrow(/PRIVATE_UPLOAD_DIR/);
+    expect(validateEnv(base).PRIVATE_UPLOAD_DIR).toBe('uploads-private');
   });
 });
 

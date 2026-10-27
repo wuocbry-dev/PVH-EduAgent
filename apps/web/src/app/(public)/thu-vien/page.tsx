@@ -1,20 +1,21 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { GalleryGrid } from "@/features/gallery";
+import { LibraryBrowser } from "@/features/library";
 import { Loading, PageShell } from "@/features/site";
 
 export const metadata: Metadata = {
-  title: "Thư viện ảnh",
-  description: "Hình ảnh hoạt động của Trường THPT Phan Văn Hớn.",
+  title: "Thư viện số",
+  description: "Sách, sách nói, video bài giảng và tài liệu ôn tập của Trường THPT Phan Văn Hớn.",
   alternates: { canonical: "/thu-vien" },
 };
 
-// F06 – Thư viện: ảnh trong các bài đã đăng.
-export default function GalleryPage() {
+// Thư viện số (bước 21): danh mục xem công khai; đọc/nghe/xem cần đăng nhập. Thư viện ảnh ở /thu-vien/anh.
+export default function LibraryPage({ searchParams }: PageProps<"/thu-vien">) {
   return (
-    <PageShell title="Thư viện ảnh" description="Hình ảnh từ các bài viết và hoạt động của nhà trường.">
-      <Suspense fallback={<Loading text="Đang tải ảnh…" />}>
-        <GalleryGrid />
+    <PageShell title="Thư viện số" description="Sách, sách nói, video bài giảng và tài liệu ôn tập của nhà trường.">
+      {/* searchParams và cookie là dữ liệu theo yêu cầu: đọc trong <Suspense>, phần khung trang vẫn prerender. */}
+      <Suspense fallback={<Loading text="Đang tải thư viện…" />}>
+        <LibraryBrowser searchParams={searchParams} />
       </Suspense>
     </PageShell>
   );

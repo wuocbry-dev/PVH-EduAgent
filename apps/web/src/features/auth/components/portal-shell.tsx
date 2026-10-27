@@ -10,6 +10,7 @@ const ACCENT: Record<Portal, { bar: string; title: string }> = {
   admin: { bar: "border-t-red-600", title: "text-red-700 dark:text-red-400" },
   bgh: { bar: "border-t-indigo-600", title: "text-indigo-700 dark:text-indigo-400" },
   "bien-tap": { bar: "border-t-emerald-600", title: "text-emerald-700 dark:text-emerald-400" },
+  "thu-thu": { bar: "border-t-teal-600", title: "text-teal-700 dark:text-teal-400" },
   "giao-vien": { bar: "border-t-amber-500", title: "text-amber-700 dark:text-amber-400" },
   "hoc-sinh": { bar: "border-t-sky-500", title: "text-sky-700 dark:text-sky-400" },
 };

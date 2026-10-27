@@ -51,7 +51,7 @@ Ký hiệu: **Công khai** = không cần đăng nhập; **Tự phục vụ** = 
 
 ## Cổng theo vai trò (bước 15)
 
-Web chọn cổng giao diện (`/admin`, `/bgh`, `/bien-tap`, `/giao-vien`, `/hoc-sinh`) theo vai trò; ẩn menu và chuyển hướng **không phải** bảo mật, API vẫn kiểm tra quyền như các bảng dưới đây. Access token có thêm claim `roles` chỉ để proxy của web định tuyến; đổi vai trò người dùng thu hồi mọi phiên của họ.
+Web chọn cổng giao diện (`/admin`, `/bgh`, `/bien-tap`, `/thu-thu`, `/giao-vien`, `/hoc-sinh`) theo vai trò; ẩn menu và chuyển hướng **không phải** bảo mật, API vẫn kiểm tra quyền như các bảng dưới đây. Access token có thêm claim `roles` chỉ để proxy của web định tuyến; đổi vai trò người dùng thu hồi mọi phiên của họ.
 
 | Endpoint | Quyền | Ghi chú |
 |---|---|---|
@@ -128,6 +128,42 @@ Thông báo về điểm (có điểm mới được công bố cho học sinh; 
 | `GET /announcements/sent` | `announcement:send` | giáo viên: thông báo của mình; BGH: mọi thông báo; kèm số người đã đọc |
 | `POST /announcements` | `announcement:send` | giáo viên chỉ `CLASS` cho lớp mình dạy/chủ nhiệm (khác → 403); BGH mọi đối tượng; thiếu khối/lớp, hạn hiển thị đã qua, nội dung rỗng sau khi làm sạch → 400 |
 | `DELETE /announcements/:id` | người gửi hoặc `announcement:manage` | |
+
+## Thư viện số – `/library`, `/public/library` (bước 21)
+
+File tài liệu (PDF, MP3, MP4/WebM) nằm trong **kho riêng tư** (`PrivateStorageService`: bucket `R2_PRIVATE_BUCKET`, hoặc thư mục `PRIVATE_UPLOAD_DIR` với driver local), **không có URL công khai**. Muốn đọc phải gọi `POST /library/items/:id/access`: service kiểm tra lại đối tượng xem rồi cấp URL ký sẵn hết hạn sau 5 phút (R2: URL GET ký sẵn của bucket; local: `GET /library/files/:id?token=`). URL không bao giờ được ghi vào log, `audit_logs` hay CSDL. Đối tượng xem (`library-audience.ts`): khách chỉ thấy danh mục tài liệu **toàn trường** và không đọc được; học sinh đọc toàn trường + khối mình + lớp mình, **không bao giờ thấy "chỉ giáo viên"**; nhân sự đọc mọi tài liệu đã đăng; người gửi đọc tài liệu của mình ở mọi trạng thái; `library:manage` (thủ thư, BGH) mọi tài liệu. Tài liệu không đọc được luôn trả 404 (không lộ là có tồn tại). Nguồn và giấy phép bắt buộc (zod + CHECK ở CSDL). Ẩn nút tải về chỉ **hạn chế**, không ngăn được việc sao chép hoàn toàn (người đọc vẫn có thể chụp màn hình hay lưu luồng dữ liệu).
+
+| Endpoint | Quyền | Ghi chú |
+|---|---|---|
+| `GET /public/library/home` | công khai | danh mục (kèm số tài liệu toàn trường), 8 mới thêm, 8 đọc nhiều; web cache tag `library` |
+| `GET /public/library/items` | công khai | chỉ tài liệu toàn trường đã đăng; `q` tìm không dấu (cột `search_text` + pg_trgm), `category`, `kind`, `subjectId`, `gradeLevel`, `sort=new` hoặc `popular`, phân trang |
+| `GET /public/library/items/:slug` | công khai | tài liệu toàn trường đã đăng; khác → 404; không có người gửi/người duyệt |
+| `PUT /library/local-upload/:id` | công khai, token `put` | chỉ driver local: nhận file đúng kích thước/Content-Type đã khai báo |
+| `GET /library/files/:id` | công khai, token `get` | chỉ driver local: token hết hạn 5 phút, phải là file hiện tại của tài liệu; hỗ trợ `Range` (206); `Cache-Control: private, no-store`; `Content-Disposition` inline hoặc attachment |
+| `GET /library/items` | đăng nhập | như danh sách công khai nhưng theo đối tượng xem của chính mình |
+| `GET /library/items/by-slug/:slug` | đăng nhập | kèm `favorite`, `position` (đọc tiếp) của mình |
+| `POST /library/items/:id/access` | đăng nhập, đúng đối tượng | URL đọc 5 phút; `download: true` chỉ khi tài liệu cho phép (khác → 403) và ghi audit `library.download`; 30 lần/phút/người (`library-access`) → 429; một lượt đọc/người/tài liệu/30 phút cộng vào `library_views` |
+| `PUT /library/items/:id/progress` | đăng nhập, đúng đối tượng | trang PDF hoặc giây đang nghe/xem |
+| `PUT /library/items/:id/favorite` | đăng nhập, đúng đối tượng | |
+| `DELETE /library/items/:id/favorite` | đăng nhập | |
+| `GET /library/me` | đăng nhập | yêu thích + lịch sử đọc (chỉ tài liệu còn đọc được) |
+| `GET /library/form-options` | `library:submit` hoặc `library:manage` | danh mục, môn, khối, lớp năm hiện hành |
+| `GET /library/submissions` | `library:submit` hoặc `library:manage` | `scope=mine` tài liệu của mình; `scope=all` (hàng chờ duyệt, kho) cần `library:manage` |
+| `POST /library/items` | `library:submit` hoặc `library:manage` | trạng thái nháp; thiếu nguồn/giấy phép → 400; 20 tài liệu/giờ (`library-submit`) → 429 |
+| `GET /library/items/:id` | người gửi hoặc `library:manage` | của người khác → 404 |
+| `PATCH /library/items/:id` | người gửi khi nháp/bị từ chối; `library:manage` mọi lúc | đang chờ duyệt/đã đăng mà không phải người quản lý → 409; đã có file thì không đổi loại |
+| `DELETE /library/items/:id` | như sửa | xoá cả file trong kho riêng tư |
+| `POST /library/items/:id/upload` | như sửa | `target=file`: URL PUT ký sẵn vào kho riêng tư (đúng loại theo tài liệu: PDF ≤ 50 MB, MP3 ≤ 100 MB, MP4/WebM ≤ 100 MB); `target=cover`: ảnh bìa qua luồng media (kho công khai) |
+| `POST /library/items/:id/upload/complete` | như sửa | HEAD + magic bytes; sai kích thước/loại → xoá object, audit `library.file_reject`, 400; đúng thì thay file cũ |
+| `POST /library/items/:id/submit` | chính người gửi | nháp/bị từ chối → chờ duyệt; chưa có file → 400 |
+| `POST /library/items/:id/review` | `library:manage` | `approve` (chờ duyệt → đã đăng), `reject` (bắt buộc lý do), `archive` (ẩn), `restore`; sai trạng thái/duyệt hai lần → 409; báo người gửi (`notifications` kênh `web`); báo web làm mới tag `library` |
+| `GET /library/categories` | `library:manage` | kèm số tài liệu mọi trạng thái |
+| `POST /library/categories` | `library:manage` | tối đa hai cấp; trùng đường dẫn → 409 |
+| `PATCH /library/categories/:id` | `library:manage` | |
+| `DELETE /library/categories/:id` | `library:manage` | còn tài liệu hoặc danh mục con → 409 |
+| `GET /library/stats` | `library:manage` | lượt hôm nay, hôm qua, tháng này, tháng trước, tổng (giờ Việt Nam) + 10 tài liệu đọc nhiều nhất |
+
+Tool AI Agent `search_library` (chỉ đọc): chỉ nhân sự (học sinh bị từ chối), chỉ tài liệu đã đăng, trả tiêu đề + đường dẫn `/thu-vien/tai-lieu/<slug>`, không bao giờ trả URL kho.
 
 ## Phân công giảng dạy – `/teaching` (bước 16)
 

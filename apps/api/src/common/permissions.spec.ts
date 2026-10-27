@@ -18,6 +18,16 @@ describe('bảng quyền (@pvh/shared)', () => {
     }
   });
 
+  it('thư viện số: thủ thư và BGH quản lý, giáo viên gửi; ADMIN, biên tập, học sinh không có quyền thư viện (bước 21)', () => {
+    expect([...ROLE_PERMISSIONS.LIBRARIAN].sort()).toEqual(['library:manage', 'library:submit']);
+    expect(ROLE_PERMISSIONS.PRINCIPAL).toEqual(expect.arrayContaining(['library:manage', 'library:submit']));
+    expect(ROLE_PERMISSIONS.TEACHER).toContain('library:submit');
+    expect(ROLE_PERMISSIONS.TEACHER).not.toContain('library:manage');
+    for (const role of ['ADMIN', 'EDITOR', 'STUDENT'] as const) {
+      expect(ROLE_PERMISSIONS[role].filter((p) => p.startsWith('library:'))).toEqual([]);
+    }
+  });
+
   it('mọi quyền của vai trò đều nằm trong danh sách PERMISSIONS', () => {
     for (const role of ROLES) for (const p of ROLE_PERMISSIONS[role]) expect(PERMISSIONS).toContain(p);
   });

@@ -9,7 +9,7 @@ export const PUBLIC_NAV = [
   { href: "/thong-bao", label: "Thông báo" },
   { href: "/tuyen-sinh", label: "Tuyển sinh" },
   { href: "/lich-su-kien", label: "Lịch sự kiện" },
-  { href: "/thu-vien", label: "Thư viện" },
+  { href: "/thu-vien", label: "Thư viện số" },
   { href: "/lien-he", label: "Liên hệ" },
 ] as const;
 

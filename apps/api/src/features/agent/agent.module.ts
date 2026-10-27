@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { AgentActionsAgentTools } from '../agent-actions/agent-actions.agent-tools.js';
 import { AgentActionsModule } from '../agent-actions/agent-actions.module.js';
+import { LibraryAgentTools } from '../library/library.agent-tools.js';
+import { LibraryModule } from '../library/library.module.js';
 import { PostsAgentTools } from '../posts/posts.agent-tools.js';
 import { PostsModule } from '../posts/posts.module.js';
 import { SystemAgentTools } from '../system/system.agent-tools.js';
@@ -20,10 +22,11 @@ const toolProviders = [
   SystemAgentTools,
   AgentActionsAgentTools,
   TimetableAgentTools,
+  LibraryAgentTools,
 ];
 
 @Module({
-  imports: [PostsModule, TasksModule, SystemModule, AgentActionsModule, TimetableModule],
+  imports: [PostsModule, TasksModule, SystemModule, AgentActionsModule, TimetableModule, LibraryModule],
   controllers: [AgentController],
   providers: [
     AgentService,

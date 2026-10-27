@@ -7,7 +7,8 @@ export type CacheTag =
   | 'categories'
   | 'admission'
   | 'settings'
-  | 'events';
+  | 'events'
+  | 'library';
 
 // Báo cho website (Next.js) làm mới cache của trang công khai khi nội dung đổi (đăng/gỡ bài, sửa chuyên mục...).
 // Không bao giờ ném lỗi: web tắt hoặc chưa cấu hình thì trang tự làm mới theo cacheLife.

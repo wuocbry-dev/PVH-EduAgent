@@ -3,13 +3,14 @@ import {
   GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
-  S3Client,
+  type S3Client,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Injectable } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { Env } from '../../config/env.validation.js';
 import { STORAGE_KEY } from './media-types.js';
+import { createR2Client, isNotFound } from './r2-client.js';
 import { PRESIGN_TTL_SEC, StorageService, type PresignedUpload, type PresignInput } from './storage.service.js';
 
 // Driver Cloudflare R2 (API tương thích S3). Bí mật chỉ nằm trong S3Client, không bao giờ ghi log hay trả ra API.
@@ -22,26 +23,12 @@ export class R2StorageService extends StorageService {
 
   constructor(config: ConfigService<Env, true>) {
     super();
-    const accountId = config.get('R2_ACCOUNT_ID', { infer: true });
-    const accessKeyId = config.get('R2_ACCESS_KEY_ID', { infer: true });
-    const secretAccessKey = config.get('R2_SECRET_ACCESS_KEY', { infer: true });
     const bucket = config.get('R2_BUCKET', { infer: true });
     const publicBase = config.get('R2_PUBLIC_BASE_URL', { infer: true });
-    if (!accountId || !accessKeyId || !secretAccessKey || !bucket || !publicBase) {
-      throw new Error(
-        'STORAGE_DRIVER=r2 cần đủ R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_BASE_URL',
-      );
-    }
+    if (!bucket || !publicBase) throw new Error('STORAGE_DRIVER=r2 cần đủ R2_BUCKET, R2_PUBLIC_BASE_URL');
     this.bucket = bucket;
     this.publicBase = publicBase;
-    this.s3 = new S3Client({
-      region: 'auto',
-      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
-      credentials: { accessKeyId, secretAccessKey },
-      // SDK mới tự thêm checksum vào PUT; trình duyệt không gửi được nên chỉ tính khi bắt buộc.
-      requestChecksumCalculation: 'WHEN_REQUIRED',
-      responseChecksumValidation: 'WHEN_REQUIRED',
-    });
+    this.s3 = createR2Client(config);
   }
 
   async presignPut(input: PresignInput): Promise<PresignedUpload> {
@@ -110,7 +97,3 @@ export class R2StorageService extends StorageService {
   }
 }
 
-function isNotFound(err: unknown): boolean {
-  const e = err as { name?: string; $metadata?: { httpStatusCode?: number } };
-  return e.name === 'NotFound' || e.name === 'NoSuchKey' || e.$metadata?.httpStatusCode === 404;
-}

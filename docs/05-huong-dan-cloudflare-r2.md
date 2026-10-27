@@ -60,6 +60,32 @@ Thiếu một biến thì API không khởi động (báo rõ biến nào). Kho�
 
 Với `STORAGE_DRIVER=r2`: `GET /media/files/:name` và `PUT /media/local-upload/:id` trả 404 (file được phục vụ thẳng từ địa chỉ công khai của bucket).
 
+## 4b. Bucket riêng tư cho thư viện số (bước 21)
+
+File tài liệu của thư viện số (PDF, sách nói MP3, video) **không được công khai**: chỉ người đăng nhập, đúng đối tượng mới đọc được, qua URL ký sẵn hết hạn sau **5 phút** do API cấp sau khi kiểm tra quyền. Vì vậy dùng một bucket thứ hai:
+
+1. **Create bucket** (vd. `pvh-library`). **Không** bật Public Development URL (`r2.dev`) và **không** gắn Custom Domain cho bucket này.
+2. Token API: nếu token hiện có chỉ được phép trên một bucket thì sửa token (hoặc tạo token mới) để có quyền **Object Read & Write** trên cả `pvh-library`. Dùng chung `R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY`.
+3. CORS của `pvh-library` (trình duyệt PUT file lên; trang web tải PDF bằng `fetch` để hiển thị bằng pdf.js; trình phát âm thanh/video đọc thẳng URL ký sẵn):
+
+   ```json
+   [
+     {
+       "AllowedOrigins": ["http://localhost:3000"],
+       "AllowedMethods": ["GET", "PUT", "HEAD"],
+       "AllowedHeaders": ["*"],
+       "ExposeHeaders": ["Content-Length", "Content-Range", "Accept-Ranges"],
+       "MaxAgeSeconds": 3600
+     }
+   ]
+   ```
+
+4. `apps/api/.env`: thêm `R2_PRIVATE_BUCKET=pvh-library` (phải khác `R2_BUCKET`). Thiếu biến này thì máy dev nhắc trong log và lưu tài liệu ở thư mục `PRIVATE_UPLOAD_DIR` (mặc định `uploads-private/`, không được phục vụ công khai); **production từ chối khởi động**.
+
+Giới hạn file: PDF ≤ 50 MB, MP3 ≤ 100 MB, MP4/WebM ≤ 100 MB (`LIBRARY_MAX_BYTES` ở `packages/shared/src/library.ts`); loại thật được nhận dạng bằng magic bytes, sai thì object bị xoá. **Gói miễn phí R2 chỉ 10 GB** (tính chung mọi bucket): video bài giảng nhanh đầy dung lượng, nên nén video (720p) và theo dõi mục *Metrics* của bucket.
+
+Lưu ý: ẩn nút "Tải về" chỉ **hạn chế**, không ngăn được sao chép hoàn toàn (người đã được đọc vẫn có thể lưu dữ liệu trong 5 phút hiệu lực của URL, hay chụp màn hình). Đừng đưa lên thư viện tài liệu không được phép chia sẻ.
+
 ## 5. Chuyển ảnh cũ trong `uploads/` lên R2
 
 Chạy một lần sau khi cấu hình xong mục 4 (đổi `STORAGE_DRIVER=r2` có thể làm trước hoặc sau):

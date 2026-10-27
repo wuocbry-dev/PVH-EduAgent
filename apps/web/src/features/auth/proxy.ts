@@ -6,7 +6,7 @@ import { ACCESS_COOKIE, LOGIN_PATH, REFRESH_COOKIE } from "./config";
 // Gộp các lần refresh đồng thời của cùng một refresh token (prefetch nhiều trang trong cổng).
 const pending = new Map<string, Promise<string[] | null>>();
 
-// Chặn mọi cổng (/admin, /bgh, /bien-tap, /giao-vien, /hoc-sinh). Kiểm tra lạc quan: chỉ xem cookie và claim `roles`
+// Chặn mọi cổng (/admin, /bgh, /bien-tap, /thu-thu, /giao-vien, /hoc-sinh). Kiểm tra lạc quan: chỉ xem cookie và claim `roles`
 // trong access token để chọn cổng; API mới là nơi xác thực và kiểm tra quyền thật.
 // - Còn access token → dùng luôn. Hết access token nhưng còn refresh token → gọi API cấp cặp token mới, gắn cookie
 //   mới cho trình duyệt và cho chính request đang render. Không có gì → /dang-nhap?next=<trang đang mở>.

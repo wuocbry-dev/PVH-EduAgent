@@ -2,7 +2,7 @@ import type { Permission, Role } from './roles.js';
 
 // Các cổng giao diện theo vai trò (bước 15). Web (proxy, menu, chuyển hướng sau đăng nhập) và API (dựng liên kết
 // tới trang quản trị trong Telegram) dùng chung bảng này. Thứ tự trong PORTALS cũng là thứ tự ưu tiên khi chọn cổng chính.
-export const PORTALS = ['admin', 'bgh', 'bien-tap', 'giao-vien', 'hoc-sinh'] as const;
+export const PORTALS = ['admin', 'bgh', 'bien-tap', 'thu-thu', 'giao-vien', 'hoc-sinh'] as const;
 export type Portal = (typeof PORTALS)[number];
 
 export interface PortalNavItem {
@@ -53,6 +53,7 @@ export const PORTAL_INFO: Record<Portal, PortalInfo> = {
       { slug: 'dieu-chinh-diem', label: 'Duyệt điều chỉnh điểm', permissions: ['assessment:manage'] },
       { slug: 'thong-bao', label: 'Thông báo' },
       { slug: 'bai-viet', label: 'Bài viết và duyệt bài', permissions: ['post:create'] },
+      { slug: 'thu-vien-so', label: 'Thư viện số', permissions: ['library:manage'] },
       { slug: 'cong-viec', label: 'Giao việc', permissions: ['task:read:own', 'task:read:all'] },
       { slug: 'lich', label: 'Lịch sự kiện' },
       { slug: 'tro-ly-ai', label: 'Trợ lý AI' },
@@ -71,6 +72,18 @@ export const PORTAL_INFO: Record<Portal, PortalInfo> = {
       { slug: 'tro-ly-ai', label: 'Trợ lý AI' },
     ],
   },
+  'thu-thu': {
+    path: '/thu-thu',
+    name: 'Thủ thư',
+    roles: ['LIBRARIAN'],
+    nav: [
+      { slug: '', label: 'Tổng quan' },
+      { slug: 'duyet-tai-lieu', label: 'Hàng chờ duyệt', permissions: ['library:manage'] },
+      { slug: 'kho-tai-lieu', label: 'Kho tài liệu', permissions: ['library:manage'] },
+      { slug: 'danh-muc-thu-vien', label: 'Danh mục', permissions: ['library:manage'] },
+      { slug: 'tai-lieu-cua-toi', label: 'Tài liệu tôi gửi', permissions: ['library:submit'] },
+    ],
+  },
   'giao-vien': {
     path: '/giao-vien',
     name: 'Giáo viên',
@@ -85,6 +98,8 @@ export const PORTAL_INFO: Record<Portal, PortalInfo> = {
       { slug: 'thong-bao', label: 'Thông báo' },
       { slug: 'bai-viet', label: 'Bài viết của tôi', permissions: ['post:create'] },
       { slug: 'cong-viec', label: 'Việc của tôi', permissions: ['task:read:own', 'task:read:all'] },
+      { slug: 'tai-lieu-cua-toi', label: 'Tài liệu tôi gửi', permissions: ['library:submit'] },
+      { slug: 'tu-sach', label: 'Tủ sách của tôi' },
       { slug: 'tro-ly-ai', label: 'Trợ lý AI' },
     ],
   },
@@ -98,6 +113,7 @@ export const PORTAL_INFO: Record<Portal, PortalInfo> = {
       { slug: 'diem', label: 'Điểm của em' },
       { slug: 'thong-bao', label: 'Thông báo' },
       { slug: 'lich', label: 'Lịch' },
+      { slug: 'tu-sach', label: 'Tủ sách của em' },
       { slug: 'ho-so', label: 'Hồ sơ' },
     ],
   },
@@ -109,7 +125,7 @@ export const PORTAL_ACCOUNT_NAV: readonly PortalNavItem[] = ACCOUNT;
 
 export const isPortal = (value: string): value is Portal => (PORTALS as readonly string[]).includes(value);
 
-// Cổng mà các vai trò này được vào, theo thứ tự ưu tiên (ADMIN → PRINCIPAL → EDITOR → TEACHER → STUDENT).
+// Cổng mà các vai trò này được vào, theo thứ tự ưu tiên (ADMIN → PRINCIPAL → EDITOR → LIBRARIAN → TEACHER → STUDENT).
 export function portalsFor(roles: readonly Role[]): Portal[] {
   return PORTALS.filter((p) => PORTAL_INFO[p].roles.some((r) => roles.includes(r)));
 }

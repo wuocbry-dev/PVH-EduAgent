@@ -61,10 +61,11 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 | Cổng | Vai trò | Ghi chú |
 |---|---|---|
 | `/admin` | ADMIN | hệ thống: người dùng, nhập Excel, vai trò/quyền, cấu hình, nhật ký (không có duyệt bài/giao việc) |
-| `/bgh` | PRINCIPAL | tổng quan toàn trường, học vụ, bài viết + duyệt, giao việc, lịch, Trợ lý AI |
+| `/bgh` | PRINCIPAL | tổng quan toàn trường, học vụ, bài viết + duyệt, thư viện số, giao việc, lịch, Trợ lý AI |
 | `/bien-tap` | EDITOR | bài viết, chuyên mục, liên hệ, lịch, Trợ lý AI |
-| `/giao-vien` | TEACHER | tổng quan, thời khoá biểu, nhập điểm, sổ điểm, lớp chủ nhiệm, thông báo, bài của tôi, việc của tôi, Trợ lý AI |
-| `/hoc-sinh` | STUDENT | trang của em, thời khoá biểu, điểm, thông báo, lịch, hồ sơ, đổi mật khẩu |
+| `/thu-thu` | LIBRARIAN | thư viện số: thống kê, hàng chờ duyệt, kho tài liệu, danh mục, tài liệu tôi gửi |
+| `/giao-vien` | TEACHER | tổng quan, thời khoá biểu, nhập điểm, sổ điểm, lớp chủ nhiệm, thông báo, bài của tôi, việc của tôi, tài liệu tôi gửi, tủ sách, Trợ lý AI |
+| `/hoc-sinh` | STUDENT | trang của em, thời khoá biểu, điểm, thông báo, lịch, tủ sách, hồ sơ, đổi mật khẩu |
 
 - Bảng cổng nằm ở **một nơi**: `PORTAL_INFO` trong `packages/shared/src/portals.ts` (đường dẫn, tên, vai trò, menu `nav` theo `slug`, `portalRedirect`); proxy, menu và API (liên kết trong Telegram) đều dùng nó. **Thêm trang mới:** thêm mục vào `nav` của cổng cần có, tạo `apps/web/src/app/<cổng>/<slug>/page.tsx` (trang mỏng gọi component của feature; trang dùng ở nhiều cổng thì mỗi cổng một route gọi chung một component, không sao chép code), rồi chạy `portals.spec.ts` (kiểm mọi mục menu có trang). Component dùng chung giữa cổng dựng liên kết bằng `usePortalBase()` (client) hoặc prop `base` (server), không viết cứng `/admin`.
 - `src/proxy.ts` đọc claim `roles` trong access token (do `TokenService.issue` thêm) **chỉ để chọn cổng/chuyển hướng**; không bao giờ dùng claim làm bằng chứng quyền (API đọc lại quyền từ CSDL mỗi request). Đổi vai trò của người dùng thu hồi mọi refresh token (`UsersAdminService.update`).
@@ -75,6 +76,12 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 - `features/scores`: đợt thi `assessments` (**mã duy nhất**, sinh ở `score-rules.ts`), lớp áp dụng `assessment_classes` (nháp/công bố **theo từng lớp**), `scores` (CHECK 0–10, UNIQUE đợt–học sinh, `GRADED`/`ABSENT` vắng có lý do do giáo viên ghi/`EXEMPT` miễn chỉ BGH đặt), `score_history` (**chỉ thêm**, trigger CSDL chặn sửa/xoá; test dọn dữ liệu phải `SET LOCAL pvh.allow_score_history_purge = 'on'` trong transaction). Mọi thay đổi điểm phải đi qua `ScoresService.apply` (hoặc `setExemption`) để luôn sinh `score_history`.
 - **ADMIN không có quyền điểm nào** (`SCORE_PERMISSIONS` bị loại khỏi `ROLE_PERMISSIONS.ADMIN`, có unit test `common/permissions.spec.ts`). `score:enter` (giáo viên) chỉ trong **phạm vi phân công** lớp–môn–học kỳ (`assignmentCovers`, kiểm tra trong service, người ngoài phạm vi luôn 403 kể cả khi đoán id); `assessment:manage` + `score:read:all` (BGH) tạo đợt giữa kỳ/cuối kỳ cho khối, đặt hạn nhập, miễn, xem tiến độ; BGH không tự nhập điểm. Quá `entry_deadline` thì giáo viên không sửa được (điều chỉnh sau hạn: bước 19).
 - **AI Agent và Telegram không bao giờ đọc/gửi điểm**: không thêm tool hay thông báo nào dùng `scores`/`assessments` (test trong `security.e2e-spec.ts` quét mã nguồn agent/telegram). `audit_logs` chỉ ghi mã đợt, lớp, số lượng: **không bao giờ ghi giá trị điểm**. Ghi điểm giới hạn tần suất bằng `RateLimitService` (`score-write`). Nhập Excel dùng `readSheet` chung với bước 14 (xem trước → xác nhận). Ảnh biên bản chấm chưa làm vì kho hiện tại là công khai (chờ bucket riêng tư, bước 21).
+
+## Thư viện số (bước 21)
+
+- **Kho riêng tư:** file tài liệu (PDF, MP3, MP4/WebM) chỉ đi qua `PrivateStorageService` (`infrastructure/storage`: bucket `R2_PRIVATE_BUCKET`, hoặc thư mục `PRIVATE_UPLOAD_DIR` với driver local; production bắt buộc có bucket). Kho này **không có URL công khai**: chỉ cấp URL đọc ký sẵn hết hạn 5 phút (`presignGet`) **sau khi** service kiểm tra đối tượng xem; không bao giờ ghi URL ký sẵn vào log, `audit_logs`, CSDL hay kết quả tool Agent. Khoá object `lib-<uuid>.<đuôi>` (`newPrivateKey`), loại thật nhận dạng bằng magic bytes (`private-types.ts`). Ảnh bìa vẫn đi luồng media công khai (`MediaService.presign/complete` nhận hàm kiểm tra quyền riêng). Dữ liệu sau này cần riêng tư (ảnh biên bản chấm, minh chứng điều chỉnh điểm…) dùng kho này.
+- **Ai đọc được gì** ở một chỗ: `features/library/library-audience.ts` (`publishedWhere` cho danh sách, `canRead` trước khi cấp URL). Khách chỉ thấy danh mục tài liệu `ALL`; học sinh `ALL` + khối/lớp mình, **không bao giờ `TEACHERS_ONLY`**; nhân sự mọi tài liệu đã đăng; tài liệu không đọc được luôn 404. Danh mục công khai qua `use cache` + `cacheTag('library')`; người đăng nhập gọi API kèm cookie (không cache).
+- **Nguồn và giấy phép bắt buộc** (zod + CHECK CSDL). Quyền `library:submit` (TEACHER, LIBRARIAN, PRINCIPAL), `library:manage` (LIBRARIAN, PRINCIPAL); **ADMIN không có quyền thư viện**. Luồng `DRAFT` → `PENDING_REVIEW` → `PUBLISHED`/`REJECTED` (lý do bắt buộc), `ARCHIVED`; chuyển trạng thái có điều kiện (chống duyệt hai lần). Tìm không dấu bằng cột `search_text` (`normalizeSearch` ở `@pvh/shared`) + index pg_trgm, không dùng `unaccent`. Lượt đọc gộp theo ngày (`library_views`), một lượt/người/tài liệu/30 phút. Giới hạn `library-access` (30/phút), `library-submit` (20/giờ).
 
 ## Thông báo theo đối tượng (bước 20)
 

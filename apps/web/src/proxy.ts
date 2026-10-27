@@ -7,5 +7,5 @@ export function proxy(request: NextRequest) {
 
 // Khớp danh sách cổng trong @pvh/shared (PORTALS).
 export const config = {
-  matcher: ["/admin/:path*", "/bgh/:path*", "/bien-tap/:path*", "/giao-vien/:path*", "/hoc-sinh/:path*"],
+  matcher: ["/admin/:path*", "/bgh/:path*", "/bien-tap/:path*", "/thu-thu/:path*", "/giao-vien/:path*", "/hoc-sinh/:path*"],
 };

@@ -42,7 +42,7 @@ apps/web/src/
 ├── app/                         # chỉ định tuyến, trang mỏng
 │   ├── (public)/                #   /, /tin-tuc
 │   ├── (auth)/                  #   /dang-nhap, /quen-mat-khau, /dat-lai-mat-khau
-│   └── admin/ bgh/ bien-tap/ giao-vien/ hoc-sinh/   #   5 cổng theo vai trò, mỗi cổng layout + menu riêng
+│   └── admin/ bgh/ bien-tap/ thu-thu/ giao-vien/ hoc-sinh/   #   6 cổng theo vai trò, mỗi cổng layout + menu riêng
 ├── features/
 │   ├── auth/    {api, components, proxy.ts, index.ts}
 │   ├── posts/   {api, components, index.ts}
@@ -106,7 +106,7 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
 
 - Cookie `httpOnly`, `SameSite=Lax`, `Secure` khi production; refresh token chỉ lưu bản băm (bảng `refresh_tokens`).
 - Sai mật khẩu 5 lần/phút (theo IP + email) thì bị chặn tạm thời (429). Đăng nhập thành công/thất bại đều ghi `audit_logs`.
-- Web: `src/proxy.ts` chuyển mọi cổng (`/admin`, `/bgh`, `/bien-tap`, `/giao-vien`, `/hoc-sinh`) về `/dang-nhap` khi chưa đăng nhập và tự refresh khi access token hết hạn. Web và API phải cùng tên miền gốc để dùng chung cookie (dev: cùng `localhost`).
+- Web: `src/proxy.ts` chuyển mọi cổng (`/admin`, `/bgh`, `/bien-tap`, `/thu-thu`, `/giao-vien`, `/hoc-sinh`) về `/dang-nhap` khi chưa đăng nhập và tự refresh khi access token hết hạn. Web và API phải cùng tên miền gốc để dùng chung cookie (dev: cùng `localhost`).
 - Chế độ thử nghiệm: `DEV_AUTH=true` (API, chỉ khi `NODE_ENV=development`) + `NEXT_PUBLIC_DEV_AUTH=true` (web) → trang Trợ lý AI có ô chọn vai trò (header `x-dev-user-email`).
 
 ## Các cổng giao diện theo vai trò (bước 15)
@@ -114,13 +114,23 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
 | Cổng | Vai trò | Nội dung |
 |---|---|---|
 | `/admin` | ADMIN | tình trạng hệ thống, người dùng, nhập Excel và phiếu tài khoản, vai trò và quyền, cấu hình, nhật ký |
-| `/bgh` | PRINCIPAL | tổng quan toàn trường, học vụ, bài viết và duyệt bài, giao việc, lịch sự kiện, Trợ lý AI |
+| `/bgh` | PRINCIPAL | tổng quan toàn trường, học vụ, bài viết và duyệt bài, thư viện số, giao việc, lịch sự kiện, Trợ lý AI |
 | `/bien-tap` | EDITOR | bài viết, chuyên mục, liên hệ, lịch sự kiện, Trợ lý AI |
-| `/giao-vien` | TEACHER | tổng quan (lớp chủ nhiệm, lối tắt, việc của tôi), thời khoá biểu, nhập điểm, sổ điểm, lớp chủ nhiệm, thông báo, bài viết của tôi, việc của tôi, Trợ lý AI |
-| `/hoc-sinh` | STUDENT | trang của em (hôm nay học gì, sự kiện, thông báo mới), thời khoá biểu, điểm, thông báo, lịch, hồ sơ, đổi mật khẩu |
+| `/thu-thu` | LIBRARIAN | thống kê lượt đọc, hàng chờ duyệt, kho tài liệu, danh mục, tài liệu tôi gửi |
+| `/giao-vien` | TEACHER | tổng quan (lớp chủ nhiệm, lối tắt, việc của tôi), thời khoá biểu, nhập điểm, sổ điểm, lớp chủ nhiệm, thông báo, bài viết của tôi, việc của tôi, tài liệu tôi gửi, tủ sách, Trợ lý AI |
+| `/hoc-sinh` | STUDENT | trang của em (hôm nay học gì, sự kiện, thông báo mới), thời khoá biểu, điểm, thông báo, lịch, tủ sách, hồ sơ, đổi mật khẩu |
 
-- Sau đăng nhập/kích hoạt tự vào cổng chính (ADMIN → PRINCIPAL → EDITOR → TEACHER → STUDENT); `next` hợp lệ và thuộc cổng của người đó thì ưu tiên. Người nhiều vai trò có nút **Đổi cổng**. Vào cổng không thuộc mình, hoặc dùng đường dẫn cũ `/admin/bai-viet…`, thì `src/proxy.ts` chuyển hướng (308) sang trang tương ứng của cổng mình.
+- Sau đăng nhập/kích hoạt tự vào cổng chính (ADMIN → PRINCIPAL → EDITOR → LIBRARIAN → TEACHER → STUDENT); `next` hợp lệ và thuộc cổng của người đó thì ưu tiên. Người nhiều vai trò có nút **Đổi cổng**. Vào cổng không thuộc mình, hoặc dùng đường dẫn cũ `/admin/bai-viet…`, thì `src/proxy.ts` chuyển hướng (308) sang trang tương ứng của cổng mình.
 - **Ẩn menu/chuyển hướng không phải bảo mật:** API luôn kiểm tra quyền trong service. Proxy chọn cổng theo claim `roles` trong access token (chỉ để định tuyến); đổi vai trò người dùng thì thu hồi mọi phiên đăng nhập của họ.
+
+## Thư viện số (bước 21)
+
+- **Trang công khai** `/thu-vien`: tìm kiếm (gõ không dấu cũng được: "toan" ra "Toán"), danh mục, loại (sách/tài liệu PDF, sách nói MP3, video MP4/WebM), mới thêm, đọc nhiều. Khách xem được danh mục và thẻ tài liệu **toàn trường**; **đọc/nghe/xem phải đăng nhập**. Người đăng nhập thấy thêm tài liệu dành cho khối/lớp mình (học sinh) hoặc mọi tài liệu kể cả "chỉ giáo viên" (nhân sự). Thư viện ảnh cũ chuyển sang `/thu-vien/anh`.
+- **Trang tài liệu** `/thu-vien/tai-lieu/<slug>`: thông tin, nguồn và giấy phép; trình đọc PDF trong trang (pdf.js từ gói `pdfjs-dist`), trình phát âm thanh/video, "Đọc tiếp" đúng trang/giây, Yêu thích, Tải về (chỉ khi tài liệu cho phép). **Ẩn nút tải về chỉ hạn chế, không ngăn được sao chép hoàn toàn.**
+- **File nằm trong kho riêng tư** (bucket R2 thứ hai `R2_PRIVATE_BUCKET`, hoặc thư mục `uploads-private/` khi dev), không có URL công khai: API kiểm tra quyền rồi cấp URL đọc hết hạn sau 5 phút. Hướng dẫn tạo bucket và CORS: `docs/05-huong-dan-cloudflare-r2.md` mục 4b (gói miễn phí R2 chỉ 10 GB).
+- **Gửi và duyệt:** giáo viên (và thủ thư, BGH) soạn tài liệu ở "Tài liệu tôi gửi", **bắt buộc ghi nguồn và giấy phép**, chọn đối tượng xem (toàn trường / khối / lớp / chỉ giáo viên), tải file và ảnh bìa, gửi duyệt; thủ thư (vai trò mới `LIBRARIAN`, tài khoản mẫu `thuthu@pvh.edu.vn`, cổng `/thu-thu`) hoặc BGH (`/bgh/thu-vien-so`) duyệt/từ chối kèm lý do, ẩn, sửa, quản lý danh mục và xem thống kê lượt (hôm nay, hôm qua, tháng này, tháng trước, tổng, đọc nhiều nhất). ADMIN không duyệt nội dung thư viện.
+- **Tủ sách** (`/giao-vien/tu-sach`, `/hoc-sinh/tu-sach`): đang đọc dở và yêu thích.
+- **AI Agent:** tool `search_library` (chỉ đọc, chỉ nhân sự) trả tiêu đề và đường dẫn trang tài liệu, không bao giờ trả URL file.
 
 ## Cổng học sinh và thông báo theo lớp/khối (bước 20)
 
