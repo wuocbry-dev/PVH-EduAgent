@@ -17,276 +17,13 @@ import { SystemService } from './../src/features/system/system.service.js';
 import { UsersService } from './../src/features/users/users.service.js';
 import { PrismaService } from './../src/infrastructure/database/prisma.service.js';
 import { resetLimits } from './reset-limits.js';
+import { ROUTES } from './routes.js';
 
 const PASSWORD = 'Pvh@2026';
 const SEED_TEACHER = 'gv.toan@pvh.edu.vn';
 const TAG = `SEC-${Date.now()}`.toLowerCase();
 const NOBODY = `${TAG}.hs@test.pvh.edu.vn`; // vai trò STUDENT: không có quyền nào
 const EVIL = 'https://evil.example';
-
-type Access = 'public' | 'self' | string[];
-
-// Bảng endpoint → quyền (nguồn duy nhất; docs/04-bang-endpoint-quyen.md được viết từ bảng này).
-//   public  = không cần đăng nhập (đã có biện pháp riêng: rate limit, secret, chỉ dữ liệu đã công bố)
-//   self    = cần đăng nhập, chỉ thao tác trên dữ liệu của chính mình (hoặc từng thao tác tự kiểm quyền trong tool)
-//   [..]    = cần ít nhất các quyền này (service gọi assertPermission/can; một số còn kiểm tra quyền sở hữu)
-const ROUTES: Record<string, Access> = {
-  'POST /auth/login': 'public',
-  'POST /auth/activate': 'public', // mã kích hoạt dùng một lần; giới hạn theo IP và mã đăng nhập
-  'POST /auth/refresh': 'public',
-  'POST /auth/logout': 'public',
-  'GET /auth/me': 'self',
-  'POST /auth/change-password': 'self',
-  'POST /auth/forgot-password': 'public',
-  'POST /auth/reset-password': 'public',
-
-  'GET /academic/me': 'self', // chỉ thông tin học vụ của chính mình
-  'GET /academic/school-years': ['academic:manage'],
-  'POST /academic/school-years': ['academic:manage'],
-  'PATCH /academic/school-years/:id': ['academic:manage'],
-  'DELETE /academic/school-years/:id': ['academic:manage'],
-  'GET /academic/semesters': ['academic:manage'],
-  'POST /academic/semesters': ['academic:manage'],
-  'PATCH /academic/semesters/:id': ['academic:manage'],
-  'DELETE /academic/semesters/:id': ['academic:manage'],
-  'GET /academic/grades': ['academic:manage'],
-  'GET /academic/departments': ['academic:manage'],
-  'POST /academic/departments': ['academic:manage'],
-  'PATCH /academic/departments/:id': ['academic:manage'],
-  'DELETE /academic/departments/:id': ['academic:manage'],
-  'GET /academic/subjects': ['academic:manage'],
-  'POST /academic/subjects': ['academic:manage'],
-  'PATCH /academic/subjects/:id': ['academic:manage'],
-  'DELETE /academic/subjects/:id': ['academic:manage'],
-  'GET /academic/rooms': ['academic:manage'],
-  'POST /academic/rooms': ['academic:manage'],
-  'PATCH /academic/rooms/:id': ['academic:manage'],
-  'DELETE /academic/rooms/:id': ['academic:manage'],
-  'GET /academic/teachers': ['academic:manage'],
-  'GET /academic/classes': ['academic:manage'],
-  'POST /academic/classes': ['academic:manage'],
-  'PATCH /academic/classes/sessions': ['academic:manage'],
-  'PATCH /academic/classes/:id': ['academic:manage'],
-  'DELETE /academic/classes/:id': ['academic:manage'],
-  'GET /academic/classes/:id/students': ['academic:manage'], // hoặc giáo viên chủ nhiệm đúng lớp
-  'POST /academic/students/:userId/transfer': ['academic:manage'],
-
-  'POST /agent/chat': 'self',
-  'GET /agent/actions': 'self',
-  'POST /agent/actions/:id/confirm': 'self',
-  'POST /agent/actions/:id/cancel': 'self',
-
-  'GET /audit-logs': ['system:read'],
-  'GET /audit-logs/filters': ['system:read'],
-
-  'GET /categories': 'public',
-  'POST /categories': ['post:approve'],
-  'PATCH /categories/:id': ['post:approve'],
-  'DELETE /categories/:id': ['post:approve'],
-
-  'POST /contacts': 'public',
-  'GET /contacts': ['post:approve'],
-  'PATCH /contacts/:id/status': ['post:approve'],
-
-  'GET /events': 'public',
-  'GET /events/mine': 'self', // sự kiện toàn trường + đúng đối tượng (bước 20)
-  'GET /events/targets': ['post:approve'],
-  'POST /events': ['post:approve'],
-  'PATCH /events/:id': ['post:approve'],
-  'DELETE /events/:id': ['post:approve'],
-
-  'POST /media/presign': ['post:create'],
-  'POST /media/:id/complete': ['post:create'],
-  'GET /media': ['post:create'],
-  'DELETE /media/:id': ['post:create'],
-  'PUT /media/local-upload/:id': 'public', // xác thực bằng token HMAC trong query
-  'GET /media/files/:name': 'public',
-
-  'GET /posts/manage': ['post:create'],
-  'GET /posts/manage/:id': ['post:create'],
-  'POST /posts': ['post:create'],
-  'PATCH /posts/:id': ['post:create'],
-  'POST /posts/:id/submit': ['post:create'],
-  'POST /posts/:id/approve': ['post:approve', 'post:schedule'],
-  'POST /posts/:id/reject': ['post:approve'],
-  'POST /posts/:id/reschedule': ['post:schedule'],
-  'POST /posts/:id/publish': ['post:schedule'],
-  'POST /posts/:id/cancel-schedule': ['post:schedule'],
-  'POST /posts/:id/unpublish': ['post:unpublish'],
-  'POST /posts/:id/restore': ['post:unpublish'],
-  'DELETE /posts/:id': ['post:create'],
-
-  'GET /public/posts': 'public',
-  'GET /public/posts/:slug': 'public',
-  'POST /public/posts/:slug/view': 'public',
-  'GET /public/admission': 'public',
-  'GET /public/settings': 'public',
-  'GET /public/gallery': 'public',
-
-  'GET /roster/templates/:kind': ['student:import'],
-  'POST /roster/import/:kind/preview': ['student:import'],
-  'POST /roster/import/:previewId/confirm': ['student:import'],
-  'POST /roster/users/:userId/activation-code': ['student:import'], // hoặc giáo viên chủ nhiệm của học sinh đó
-  'POST /roster/classes/:classId/activation-codes': ['student:import'],
-
-  'GET /roles': ['user:manage'],
-  'PUT /roles/:code/permissions': ['user:manage'],
-
-  'GET /settings': ['system:read'],
-  'PATCH /settings': ['setting:manage'],
-
-  'GET /system/health': 'public',
-  'GET /system/status': ['system:read'],
-  'GET /system/dashboard': 'self',
-  'GET /system/overview': ['academic:manage'],
-
-  'GET /tasks/deadlines': ['task:read:all', 'task:read:own'],
-  'GET /tasks/assignees': ['task:assign', 'task:read:all'],
-  'GET /tasks': ['task:read:all', 'task:read:own'],
-  'GET /tasks/:id': ['task:read:all', 'task:read:own'],
-  'POST /tasks': ['task:assign'],
-  'PATCH /tasks/:id': ['task:assign'],
-  'PATCH /tasks/:id/status': ['task:assign'],
-  'DELETE /tasks/:id': ['task:assign'],
-
-  'POST /telegram/webhook': 'public',
-  'GET /timetable/frame': 'self',
-  'PUT /timetable/frame': ['timetable:manage'], // hoặc setting:manage (ADMIN)
-  'GET /timetable/versions': ['timetable:read'],
-  'POST /timetable/versions': ['timetable:manage'],
-  'DELETE /timetable/versions/:id': ['timetable:manage'],
-  'POST /timetable/versions/:id/publish': ['timetable:manage'],
-  'GET /timetable/versions/:id/slots': ['timetable:read'],
-  'POST /timetable/versions/:id/slots': ['timetable:manage'],
-  'GET /timetable/versions/:id/options': ['timetable:read'],
-  'GET /timetable/versions/:id/stats': ['timetable:read'],
-  'PATCH /timetable/slots/:id': ['timetable:manage'],
-  'DELETE /timetable/slots/:id': ['timetable:manage'],
-  'GET /timetable/fixed': 'self',
-  'POST /timetable/fixed': ['timetable:manage'],
-  'DELETE /timetable/fixed/:id': ['timetable:manage'],
-  'GET /timetable/unavailability': ['timetable:read'],
-  'GET /timetable/unavailability/mine': 'self',
-  'PUT /timetable/unavailability/mine': 'self', // chỉ giáo viên (có hồ sơ giáo viên)
-  'GET /timetable/view/mine': 'self',
-  'GET /timetable/view/class/:classId': 'self', // quản lý/ADMIN mọi lớp; học sinh lớp mình; giáo viên lớp mình dạy
-  'GET /timetable/view/teacher/:teacherId': 'self', // quản lý/ADMIN mọi giáo viên; giáo viên chỉ của mình
-  'GET /timetable/export': ['timetable:read'],
-
-  'GET /teaching/quotas': ['teaching:read'],
-  'PUT /teaching/quotas': ['teaching:assign'],
-  'PUT /teaching/quotas/class': ['teaching:assign'],
-  'GET /teaching/assignments': ['teaching:read'],
-  'POST /teaching/assignments': ['teaching:assign'],
-  'POST /teaching/assignments/copy': ['teaching:assign'],
-  'PATCH /teaching/assignments/:id': ['teaching:assign'],
-  'DELETE /teaching/assignments/:id': ['teaching:assign'],
-  'GET /teaching/summary': ['teaching:read'],
-  'GET /teaching/summary/export': ['teaching:read'],
-  'GET /teaching/mine': 'self', // chỉ phân công của chính mình
-  'PUT /teaching/teachers/:userId/quota': ['teaching:assign'],
-
-  // Điểm (bước 18): ngoài quyền còn kiểm tra phạm vi phân công lớp–môn–học kỳ trong service; ADMIN không có quyền điểm.
-  'GET /scores/context': ['score:enter'], // hoặc assessment:manage / score:read:all
-  'GET /scores/progress': ['score:read:all'],
-  'GET /scores/assessments': ['score:enter'], // hoặc score:read:all (BGH xem mọi đợt)
-  'POST /scores/assessments': ['score:enter'], // thường xuyên; giữa kỳ/cuối kỳ cần assessment:manage
-  'PATCH /scores/assessments/:id': ['score:enter'], // người tạo đợt thường xuyên, hoặc assessment:manage
-  'DELETE /scores/assessments/:id': ['score:enter'], // như trên; đã có lịch sử điểm thì không xoá được
-  'GET /scores/assessments/:id/classes/:classId': ['score:enter'], // trong phạm vi phân công, hoặc score:read:all
-  'PUT /scores/assessments/:id/classes/:classId': ['score:enter'], // chỉ giáo viên được phân công, trong hạn nhập
-  'POST /scores/assessments/:id/classes/:classId/publish': ['score:enter'], // hoặc assessment:manage
-  'PUT /scores/assessments/:id/classes/:classId/exemptions/:studentId': ['assessment:manage'],
-  'GET /scores/assessments/:id/classes/:classId/template': ['score:enter'],
-  'POST /scores/assessments/:id/classes/:classId/import/preview': ['score:enter'],
-  'POST /scores/import/:previewId/confirm': ['score:enter'],
-  // Bước 19 – xem điểm, thống kê, hạn nhập/khoá sổ, điều chỉnh sau hạn.
-  'GET /scores/me': 'self', // chỉ học sinh, chỉ điểm của chính mình đã công bố
-  'GET /scores/students/:studentId/report': ['score:read:all'], // hoặc chủ nhiệm lớp hiện tại của học sinh (score:enter)
-  'GET /scores/gradebook': ['score:enter'], // giáo viên được phân công / chủ nhiệm (đã công bố) / score:read:all
-  'GET /scores/gradebook/export': ['score:enter'], // như trên
-  'GET /scores/classes/:classId/summary': ['score:enter'], // chủ nhiệm lớp, hoặc score:read:all
-  'GET /scores/classes/:classId/summary/export': ['score:enter'], // như trên
-  'GET /scores/stats': ['score:read:all'],
-  'GET /scores/formula': 'self', // công thức ĐTB, không chứa điểm của ai
-  'PUT /scores/formula': ['assessment:manage'], // hoặc setting:manage (ADMIN)
-  'GET /scores/locks': ['score:read:all'], // hoặc assessment:manage
-  'PUT /scores/deadlines': ['assessment:manage'],
-  'PUT /scores/locks/:semesterId': ['assessment:manage'],
-  'GET /scores/adjustments': ['score:enter'], // giáo viên: của mình; assessment:manage: mọi đề nghị
-  'POST /scores/adjustments': ['score:enter'], // giáo viên được phân công, đợt đã khoá
-  'POST /scores/adjustments/:id/approve': ['assessment:manage'],
-  'POST /scores/adjustments/:id/reject': ['assessment:manage'],
-  'POST /scores/adjustments/:id/cancel': ['score:enter'], // chính người gửi
-  // Bước 20 – thông báo theo đối tượng, hộp thông báo.
-  'GET /announcements/inbox': 'self', // thông báo đúng đối tượng của chính mình + thông báo hệ thống của mình
-  'GET /announcements/unread-count': 'self',
-  'POST /announcements/inbox/read': 'self', // chỉ mục mình thấy / của chính mình
-  'GET /announcements/targets': ['announcement:send'],
-  'GET /announcements/sent': ['announcement:send'],
-  'POST /announcements': ['announcement:send'], // giáo viên: lớp mình dạy/chủ nhiệm; announcement:manage: mọi đối tượng
-  'DELETE /announcements/:id': ['announcement:send'], // người gửi hoặc announcement:manage
-
-  // Thư viện số (bước 21): danh mục công khai chỉ tài liệu toàn trường; đọc phải đăng nhập và đúng đối tượng xem.
-  'GET /public/library/home': 'public',
-  'GET /public/library/items': 'public',
-  'GET /public/library/items/:slug': 'public',
-  'PUT /library/local-upload/:id': 'public', // chỉ driver local; token HMAC `put` trong query
-  'GET /library/files/:id': 'public', // chỉ driver local; token HMAC `get` hết hạn 5 phút, cấp sau khi kiểm tra quyền
-  'GET /library/items': 'self', // lọc theo đối tượng xem của chính mình
-  'GET /library/items/by-slug/:slug': 'self',
-  'POST /library/items/:id/access': 'self', // kiểm tra đối tượng xem mỗi lần cấp URL; giới hạn 30/phút
-  'PUT /library/items/:id/progress': 'self',
-  'PUT /library/items/:id/favorite': 'self',
-  'DELETE /library/items/:id/favorite': 'self',
-  'GET /library/me': 'self',
-  'GET /library/form-options': ['library:submit'], // hoặc library:manage
-  'GET /library/submissions': ['library:submit'], // scope=all cần library:manage
-  'POST /library/items': ['library:submit'],
-  'GET /library/items/:id': ['library:submit'], // tài liệu của mình; library:manage mọi tài liệu
-  'PATCH /library/items/:id': ['library:submit'], // của mình khi nháp/bị từ chối; library:manage mọi lúc
-  'DELETE /library/items/:id': ['library:submit'],
-  'POST /library/items/:id/upload': ['library:submit'],
-  'POST /library/items/:id/upload/complete': ['library:submit'],
-  'POST /library/items/:id/submit': ['library:submit'],
-  'POST /library/items/:id/review': ['library:manage'],
-  'GET /library/categories': ['library:manage'],
-  'POST /library/categories': ['library:manage'],
-  'PATCH /library/categories/:id': ['library:manage'],
-  'DELETE /library/categories/:id': ['library:manage'],
-  'GET /library/stats': ['library:manage'],
-
-  // Trắc nghiệm ôn tập (bước 22): không tính vào điểm. Học sinh làm bài đúng đối tượng; đề không có đáp án đúng.
-  'GET /quizzes/available': 'self', // chỉ học sinh; quiz đang mở đúng đối tượng + các lần làm của chính mình
-  'POST /quizzes/:id/attempts': 'self', // chỉ học sinh đúng đối tượng (khác → 403); hết số lần → 409; giới hạn quiz-start
-  'GET /quizzes/attempts/:attemptId': 'self', // chỉ lần làm của chính mình
-  'PUT /quizzes/attempts/:attemptId/answers': 'self', // quá giờ → tự nộp + 409; giới hạn quiz-write
-  'POST /quizzes/attempts/:attemptId/submit': 'self', // chấm ở server; quá giờ → 409
-  'GET /quizzes/form-options': ['quiz:create'], // hoặc quiz:manage
-  'GET /quizzes/manage': ['quiz:create'], // scope=all cần quiz:manage
-  'GET /quizzes/import-template': ['quiz:create'],
-  'POST /quizzes/images': ['quiz:create'],
-  'POST /quizzes/images/:mediaId/complete': ['quiz:create'],
-  'POST /quizzes': ['quiz:create'], // giáo viên: môn mình dạy, khối/lớp mình dạy; quiz:manage: mọi đối tượng
-  'GET /quizzes/:id': ['quiz:create'], // người soạn hoặc quiz:manage (có đáp án đúng)
-  'PATCH /quizzes/:id': ['quiz:create'],
-  'PUT /quizzes/:id/questions': ['quiz:create'], // khoá khi đã có lượt làm
-  'POST /quizzes/:id/status': ['quiz:create'],
-  'DELETE /quizzes/:id': ['quiz:create'],
-  'GET /quizzes/:id/stats': ['quiz:create'],
-  'POST /quizzes/:id/import/preview': ['quiz:create'],
-  'POST /quizzes/import/:previewId/confirm': ['quiz:create'], // chỉ người tải lên, dùng một lần
-
-  'GET /telegram/link': 'self',
-  'POST /telegram/link-code': 'self',
-  'DELETE /telegram/link': 'self',
-
-  'GET /users': ['user:manage'],
-  'POST /users': ['user:manage'],
-  'PATCH /users/:id': ['user:manage'],
-  'PATCH /users/:id/status': ['user:manage'],
-  'POST /users/:id/reset-password': ['user:manage'],
-};
 
 const METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'ALL', 'OPTIONS', 'HEAD'];
 const joinPath = (...parts: unknown[]) =>
@@ -564,6 +301,76 @@ describe('Rà soát bảo mật (bước 10, e2e)', () => {
       const prompt = buildSystemPrompt({ user, channel: 'telegram' });
       expect(prompt).toContain('Dữ liệu cá nhân của học sinh');
       expect(prompt).toContain('từ chối');
+    });
+  });
+
+  describe('bí mật không nằm trong dữ liệu lưu lại (bước 23)', () => {
+    // Quét TOÀN BỘ bảng (cả dữ liệu do các test khác và người dùng thật tạo ra), không chỉ dữ liệu của test này.
+    const PATTERNS: [string, RegExp][] = [
+      ['URL ký sẵn', /X-Amz-Signature|X-Amz-Credential|[?&]token=/i],
+      ['token bot Telegram', /\d{6,}:[A-Za-z0-9_-]{30,}/],
+      ['mã kích hoạt', /\b[A-Z0-9]{5}-[A-Z0-9]{5}\b/],
+      ['mật khẩu', /Pvh@2026|"(password|newPassword|currentPassword|passwordHash)"\s*:/],
+      ['JWT', /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/],
+    ];
+    const ENV_SECRETS = [
+      'JWT_ACCESS_SECRET', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'TELEGRAM_BOT_TOKEN', 'TELEGRAM_WEBHOOK_SECRET',
+      'REVALIDATE_SECRET', 'ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN',
+    ];
+
+    function leaks(text: string): string[] {
+      const found = PATTERNS.filter(([, re]) => re.test(text)).map(([name]) => name);
+      for (const key of ENV_SECRETS) {
+        const value = process.env[key];
+        if (value && value.length >= 8 && text.includes(value)) found.push(key);
+      }
+      return found;
+    }
+
+    async function scan<T extends { id: bigint }>(name: string, page: (after: bigint) => Promise<T[]>, text: (row: T) => string) {
+      const problems: string[] = [];
+      let rows = 0;
+      for (let after = 0n; ; ) {
+        const batch = await page(after);
+        if (batch.length === 0) break;
+        for (const row of batch) {
+          rows++;
+          const found = leaks(text(row));
+          if (found.length) problems.push(`${name} #${row.id}: ${found.join(', ')}`);
+        }
+        after = batch[batch.length - 1].id;
+      }
+      expect(problems, problems.slice(0, 20).join('\n')).toEqual([]);
+      return rows;
+    }
+
+    it('audit_logs, thông báo và yêu cầu xác nhận của agent không chứa URL ký sẵn, token, khoá, mật khẩu, mã kích hoạt', async () => {
+      const take = 5000;
+      const audit = await scan(
+        'audit_logs',
+        (after) => prisma.auditLog.findMany({ where: { id: { gt: after } }, orderBy: { id: 'asc' }, take, select: { id: true, payload: true } }),
+        (r) => JSON.stringify(r.payload),
+      );
+      expect(audit).toBeGreaterThan(0);
+      await scan(
+        'notifications',
+        (after) => prisma.notification.findMany({ where: { id: { gt: after } }, orderBy: { id: 'asc' }, take, select: { id: true, title: true, body: true } }),
+        (r) => `${r.title}\n${r.body}`,
+      );
+      await scan(
+        'agent_actions',
+        (after) => prisma.agentAction.findMany({ where: { id: { gt: after } }, orderBy: { id: 'asc' }, take, select: { id: true, args: true, result: true } }),
+        (r) => JSON.stringify([r.args, r.result]),
+      );
+    });
+
+    it('mẫu nhận dạng hoạt động (tự kiểm tra bộ quét)', () => {
+      expect(leaks('https://x.r2.cloudflarestorage.com/a?X-Amz-Signature=abc')).toContain('URL ký sẵn');
+      expect(leaks('/library/files/9?token=abc.def')).toContain('URL ký sẵn');
+      expect(leaks('123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsawQ')).toContain('token bot Telegram');
+      expect(leaks('{"code":"AB2CD-EF3GH"}')).toContain('mã kích hoạt');
+      expect(leaks('{"password":"x"}')).toContain('mật khẩu');
+      expect(leaks('{"params":{"email":"a@pvh.edu.vn"},"ok":true}')).toEqual([]);
     });
   });
 });

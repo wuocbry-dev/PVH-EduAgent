@@ -41,8 +41,12 @@ const isScorePermission = (p: Permission) => (SCORE_PERMISSIONS as readonly Perm
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   // ADMIN chỉ xem phân công giảng dạy và thời khoá biểu (teaching:read, timetable:read); xếp và công bố là việc của Ban giám hiệu.
   // Thông báo cho học sinh/giáo viên (bước 20) là việc của BGH và giáo viên, không phải của quản trị hệ thống.
+  // Bước 23: bài viết (duyệt/đăng/gỡ) là việc của BGH và biên tập viên, giao việc là của BGH; cổng /admin không có các trang này.
+  // ADMIN vẫn xoá vĩnh viễn được bài đã gỡ (luật theo vai trò ở posts.state-machine.ts, không theo quyền).
   ADMIN: PERMISSIONS.filter(
     (p) =>
+      !p.startsWith('post:') &&
+      !p.startsWith('task:') &&
       p !== 'teaching:assign' &&
       p !== 'timetable:manage' &&
       !isScorePermission(p) &&

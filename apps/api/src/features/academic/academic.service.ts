@@ -325,6 +325,9 @@ export class AcademicService {
     assertPermission(actor, 'academic:manage');
     const current = await this.prisma.room.findUnique({ where: { id: parseId(id) } });
     if (!current) throw new NotFoundException('Không tìm thấy phòng');
+    // Khoá ngoại từ timetable_slots là SET NULL: không chặn ở đây thì các tiết đã xếp lặng lẽ mất phòng.
+    const slots = await this.prisma.timetableSlot.count({ where: { roomId: current.id } });
+    if (slots > 0) throw new ConflictException(`Phòng đang được xếp ${slots} tiết trong thời khoá biểu, không thể xóa`);
     try {
       await this.prisma.room.delete({ where: { id: current.id } });
     } catch {
@@ -440,10 +443,11 @@ export class AcademicService {
 
   // Quản lý học vụ hoặc giáo viên chủ nhiệm của đúng lớp đó.
   async listClassStudents(actor: AuthUser, id: string): Promise<ClassStudentDto[]> {
-    const cls = await this.classOrThrow(id);
-    if (!can(actor, 'academic:manage') && !(await isHomeroomOf(this.prisma, actor, cls.id))) {
+    // Kiểm tra quyền trước khi tìm lớp: người không phải chủ nhiệm luôn nhận 403, không dò được lớp nào tồn tại.
+    if (!can(actor, 'academic:manage') && !(await isHomeroomOf(this.prisma, actor, parseId(id)))) {
       assertPermission(actor, 'academic:manage');
     }
+    const cls = await this.classOrThrow(id);
     const rows = await this.prisma.classEnrollment.findMany({
       where: { classId: cls.id },
       include: { student: { include: { studentProfile: true } } },

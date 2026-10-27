@@ -357,7 +357,7 @@ describe('Đợt thi và nhập điểm (bước 18, e2e)', () => {
       // Chưa ghi gì trước khi xác nhận.
       expect(await prisma.score.count({ where: { assessmentId: BigInt(tx.id) } })).toBe(0);
 
-      await principal.post(`/scores/import/${preview.previewId}/confirm`).expect(404); // không phải người tải lên
+      await principal.post(`/scores/import/${preview.previewId}/confirm`).expect(403); // BGH không nhập điểm (score:enter), cũng không phải người tải lên
       const done = (await teacher1.post(`/scores/import/${preview.previewId}/confirm`).expect(200)).body;
       expect(done).toMatchObject({ created: 1, skipped: 4 });
       expect((done.sheet as ScoreSheetDto).rows.find((r) => r.studentId === a!.id)?.value).toBe('7.5');

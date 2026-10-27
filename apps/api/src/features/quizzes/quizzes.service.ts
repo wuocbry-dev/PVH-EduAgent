@@ -33,7 +33,7 @@ export const QUIZ_INCLUDE = {
 } satisfies Prisma.QuizInclude;
 export type QuizRow = Prisma.QuizGetPayload<{ include: typeof QUIZ_INCLUDE }>;
 
-const canAuthor = (user: AuthUser) => {
+export const canAuthor = (user: AuthUser) => {
   if (!can(user, 'quiz:create') && !can(user, 'quiz:manage')) assertPermission(user, 'quiz:create');
 };
 

@@ -207,6 +207,8 @@ export class TasksService {
     status: SettableTaskStatus,
     meta: ActionMeta = {},
   ): Promise<TaskDto> {
+    // Người không thể có việc (không có quyền xem việc nào) bị chặn trước khi đọc, không dò được id.
+    if (!can(user, 'task:assign')) this.readScope(user);
     const existing = await this.findOrThrow(id);
     const isAssignee = existing.assigneeId.toString() === user.id;
     if (!isAssignee && !can(user, 'task:assign')) {

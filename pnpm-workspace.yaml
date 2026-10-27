@@ -6,3 +6,17 @@ allowBuilds:
   unrs-resolver: true
   "@prisma/engines": true
   prisma: true
+  # Không cần build: esbuild dùng gói nhị phân theo nền tảng, msgpackr-extract là phần tăng tốc tuỳ chọn của bullmq.
+  esbuild: false
+  msgpackr-extract: false
+
+# Bước 23 (pnpm audit): ép bản đã vá cho phụ thuộc gián tiếp còn bị khoá ở bản cũ.
+minimumReleaseAgeExclude:
+  - "@nestjs/testing@12.3.2"
+  - "@nestjs/common@12.3.2"
+  - "@nestjs/core@12.3.2"
+  - "@nestjs/platform-express@12.3.2"
+
+overrides:
+  body-parser@>=2.0.0 <2.4.0: ^2.4.0
+  fast-uri@>=3.0.0 <3.1.9: ^3.1.9

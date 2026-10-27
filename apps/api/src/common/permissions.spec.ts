@@ -38,6 +38,17 @@ describe('bảng quyền (@pvh/shared)', () => {
     }
   });
 
+  it('ADMIN chỉ giữ quyền hệ thống: không có quyền bài viết, giao việc (bước 23); BGH và biên tập viên duyệt/đăng bài', () => {
+    expect([...ROLE_PERMISSIONS.ADMIN].sort()).toEqual(
+      ['academic:manage', 'setting:manage', 'student:import', 'system:read', 'teaching:read', 'timetable:read', 'user:manage'].sort(),
+    );
+    for (const role of ['PRINCIPAL', 'EDITOR'] as const) {
+      expect(ROLE_PERMISSIONS[role]).toEqual(expect.arrayContaining(['post:create', 'post:approve', 'post:schedule', 'post:unpublish']));
+    }
+    expect(ROLE_PERMISSIONS.PRINCIPAL).toContain('task:assign');
+    expect(ROLE_PERMISSIONS.STUDENT).toEqual([]);
+  });
+
   it('mọi quyền của vai trò đều nằm trong danh sách PERMISSIONS', () => {
     for (const role of ROLES) for (const p of ROLE_PERMISSIONS[role]) expect(PERMISSIONS).toContain(p);
   });

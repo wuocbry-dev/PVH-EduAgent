@@ -15,7 +15,7 @@ import ExcelJS from 'exceljs';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { RedisService } from '../../infrastructure/queue/redis.service.js';
 import { readSheet, type ColumnSpec, type RawRow } from '../roster/excel.js';
-import { QuizzesService } from './quizzes.service.js';
+import { canAuthor, QuizzesService } from './quizzes.service.js';
 
 const PREVIEW_TTL_SEC = 30 * 60;
 
@@ -115,6 +115,7 @@ export class QuizImportService {
 
   // Dùng một lần, chỉ người tải lên; kiểm tra lại quyền và khoá câu hỏi lúc xác nhận. Dòng lỗi bị bỏ qua.
   async confirm(user: AuthUser, previewId: string, ip?: string): Promise<QuizEditDto> {
+    canAuthor(user);
     const client = this.redis.client;
     if (!client) throw new ServiceUnavailableException('Nhập câu hỏi từ Excel cần Redis (REDIS_URL)');
     if (!/^[0-9a-f-]{36}$/.test(previewId)) throw new NotFoundException('Bản xem trước không tồn tại hoặc đã hết hạn');

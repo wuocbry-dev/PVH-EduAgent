@@ -203,7 +203,8 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
 
 ## Bảo mật (bước 10)
 
-- Bảng endpoint → quyền: [docs/04-bang-endpoint-quyen.md](docs/04-bang-endpoint-quyen.md) (có test tự động đối chiếu với route thật).
+- Bảng endpoint → quyền và ma trận vai trò × quyền: [docs/04-bang-endpoint-quyen.md](docs/04-bang-endpoint-quyen.md). Có test tự động đối chiếu với route thật, và `role-matrix.e2e-spec.ts` gọi mọi endpoint bằng mỗi vai trò.
+- Đối chiếu chức năng với tài liệu đồ án (F01–F17, A01–A09, chức năng mở rộng, bảng CSDL mới so với ERD, kết quả rà soát bảo mật): [docs/07-doi-chieu-chuc-nang.md](docs/07-doi-chieu-chuc-nang.md).
 - Cấu hình `apps/api/.env`: `TRUST_PROXY` (số lớp reverse proxy, để lấy IP thật), `BODY_LIMIT`, `THROTTLE_LIMIT`/`THROTTLE_TTL_SEC`. Production từ chối khởi động nếu `DEV_AUTH=true`, `WEB_ORIGIN` không phải `https://` hoặc thiếu `REDIS_URL`.
 - Cookie đăng nhập `HttpOnly` + `SameSite=Lax` (+ `Secure` ở production); request ghi mang `Origin` lạ bị từ chối (chống CSRF). Nội dung bài viết được lọc bằng `sanitize-html` trước khi lưu.
 

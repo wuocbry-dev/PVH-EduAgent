@@ -260,6 +260,7 @@ export class PostsService {
     input: ActionInput = {},
     meta: ActionMeta = {},
   ): Promise<PostDto> {
+    this.assertActionPermission(user, action);
     const post = await this.findOrThrow(id);
     const to = this.authorize(user, post, action, input);
     const now = new Date();
@@ -359,6 +360,7 @@ export class PostsService {
     action: Exclude<PostAction, 'edit' | 'delete'>,
     input: ActionInput = {},
   ): Promise<{ id: string; title: string; status: PostStatus; to: PostStatus }> {
+    this.assertActionPermission(user, action);
     const post = await this.findOrThrow(id);
     const to = this.authorize(user, post, action, input);
     return { id: post.id.toString(), title: post.title, status: post.status, to };
@@ -446,6 +448,7 @@ export class PostsService {
     id: string,
     meta: ActionMeta = {},
   ): Promise<void> {
+    this.assertActionPermission(user, 'delete');
     const post = await this.findOrThrow(id);
     this.authorize(user, post, 'delete');
     const { count } = await this.prisma.post.deleteMany({
@@ -456,6 +459,16 @@ export class PostsService {
       title: post.title,
       status: post.status,
     });
+  }
+
+  // Quyền của thao tác kiểm tra trước khi đọc bài: người không có quyền luôn nhận 403, không dò được id bài nào tồn tại.
+  // Xoá: tác giả (post:create) xoá nháp, ADMIN xoá vĩnh viễn bài đã gỡ (xem actorMay).
+  private assertActionPermission(user: AuthUser, action: PostAction): void {
+    if (action === 'delete') {
+      if (!user.roles.includes('ADMIN')) assertPermission(user, 'post:create');
+      return;
+    }
+    for (const permission of POST_RULES[action].permissions) assertPermission(user, permission);
   }
 
   // Kiểm tra quyền rồi luật chuyển trạng thái; trả về trạng thái mới.

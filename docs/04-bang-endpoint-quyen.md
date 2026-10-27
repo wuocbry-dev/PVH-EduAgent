@@ -1,22 +1,79 @@
-# Bảng endpoint → quyền (bước 10)
+# Bảng endpoint → quyền (bước 10, rà soát lại ở bước 23)
 
-Nguồn duy nhất là hằng `ROUTES` trong `apps/api/test/security.e2e-spec.ts`. Test đó:
+Nguồn duy nhất là hằng `ROUTES` trong `apps/api/test/routes.ts`, dùng chung cho hai bộ test:
 
-1. so khớp danh sách route thật của ứng dụng (đọc từ metadata controller) với bảng này, và `@Public()` phải khớp cột "Công khai";
-2. gọi từng route không công khai khi chưa đăng nhập → luôn `401`;
-3. gọi từng route cần quyền bằng tài khoản không có quyền nào (vai trò STUDENT) → luôn `4xx`.
+- `security.e2e-spec.ts`:
+  1. so khớp danh sách route thật của ứng dụng (đọc từ metadata controller) với bảng, và `@Public()` phải khớp cột "Công khai";
+  2. gọi từng route không công khai khi chưa đăng nhập → luôn `401`;
+  3. gọi từng route cần quyền bằng tài khoản không có quyền nào → luôn `4xx`;
+  4. quét toàn bộ `audit_logs`, `notifications`, `agent_actions`: không có URL ký sẵn, token bot, khoá R2/JWT, mật khẩu, mã kích hoạt.
+- `role-matrix.e2e-spec.ts` (bước 23): gọi **mọi endpoint bằng mỗi vai trò** (tài khoản tạm của 6 vai trò, id không tồn tại nên không đụng dữ liệu thật):
+  - vai trò thiếu quyền → **đúng `403`**. Lượt này tắt kiểm tra dữ liệu vào (zod), nên service phải tự chặn trước khi đọc input hay tìm bản ghi; người không có quyền không dò được id nào tồn tại.
+  - vai trò đủ quyền → không bao giờ `401` hay `403` "thiếu quyền". `403` vì ngoài phạm vi lớp/môn vẫn hợp lệ, phạm vi có test riêng ở từng feature.
+  - không ô nào trả `5xx`.
 
 Thêm endpoint mới mà chưa cập nhật bảng thì test đỏ.
 
-**Cách kiểm tra:** `JwtAuthGuard` là guard toàn cục (mọi route cần đăng nhập trừ khi có `@Public()`); quyền được kiểm tra **trong service** bằng `assertPermission` / `can`, quyền sở hữu (IDOR) kiểm tra ở service tương ứng.
+**Cách kiểm tra:** `JwtAuthGuard` là guard toàn cục (mọi route cần đăng nhập trừ khi có `@Public()`); quyền được kiểm tra **trong service** bằng `assertPermission` / `can`, **trước** khi đọc bản ghi; quyền sở hữu và phạm vi (IDOR) kiểm tra ở service tương ứng.
 
-Ký hiệu: **Công khai** = không cần đăng nhập; **Tự phục vụ** = cần đăng nhập, chỉ thao tác dữ liệu của chính mình; còn lại là quyền cần có (nhiều quyền = cần đủ hoặc theo ghi chú).
+Ký hiệu trong các bảng dưới: **Công khai** = không cần đăng nhập; **Tự phục vụ** = cần đăng nhập, chỉ thao tác dữ liệu của chính mình; còn lại là quyền cần có (nhiều quyền = cần đủ hoặc theo ghi chú). Trong `ROUTES`: mỗi phần tử của mảng phải thoả, `'a|b'` = một trong các quyền, `'role:ADMIN'` = đúng vai trò, `'student'` = chỉ học sinh.
+
+## Ma trận vai trò × quyền (bước 23)
+
+Sinh từ `ROLE_PERMISSIONS` (`packages/shared/src/roles.ts`); seed đồng bộ bảng `role_permissions` theo đó, ADMIN sửa được trên trang Vai trò (trừ việc gỡ `user:manage`/`setting:manage` khỏi ADMIN).
+
+| Quyền | Ý nghĩa | ADMIN | BGH | Biên tập | Thủ thư | Giáo viên | Học sinh |
+|---|---|:-:|:-:|:-:|:-:|:-:|:-:|
+| `system:read` | Xem trạng thái hệ thống | ✔ | ✔ | – | – | – | – |
+| `task:read:all` | Xem hạn chót của toàn trường | – | ✔ | ✔ | – | – | – |
+| `task:read:own` | Xem hạn chót của bản thân | – | ✔ | – | – | ✔ | – |
+| `task:assign` | Giao việc, đổi hạn | – | ✔ | – | – | – | – |
+| `post:create` | Tạo và xem bài viết trong CMS | – | ✔ | ✔ | – | ✔ | – |
+| `post:approve` | Duyệt bài viết | – | ✔ | ✔ | – | – | – |
+| `post:schedule` | Hẹn giờ / đăng bài | – | ✔ | ✔ | – | – | – |
+| `post:unpublish` | Gỡ / ẩn bài | – | ✔ | ✔ | – | – | – |
+| `user:manage` | Quản lý người dùng và phân quyền | ✔ | – | – | – | – | – |
+| `setting:manage` | Sửa cấu hình hệ thống | ✔ | – | – | – | – | – |
+| `academic:manage` | Quản lý năm học, lớp, môn, phòng bộ môn | ✔ | ✔ | – | – | – | – |
+| `student:import` | Nhập danh sách giáo viên/học sinh từ Excel, phát mã kích hoạt | ✔ | – | – | – | – | – |
+| `teaching:read` | Xem phân công giảng dạy và định mức tiết | ✔ | ✔ | – | – | – | – |
+| `teaching:assign` | Phân công giảng dạy, đặt định mức tiết | – | ✔ | – | – | – | – |
+| `timetable:read` | Xem toàn bộ thời khoá biểu (các phiên bản, theo lớp/giáo viên/phòng) | ✔ | ✔ | – | – | – | – |
+| `timetable:manage` | Xếp, công bố thời khoá biểu, quản lý khung tiết và tiết cố định | – | ✔ | – | – | – | – |
+| `score:enter` | Nhập điểm cho lớp–môn được phân công (giáo viên) | – | – | – | – | ✔ | – |
+| `assessment:manage` | Tạo đợt thi giữa kỳ/cuối kỳ chung, đặt hạn nhập điểm, miễn kiểm tra | – | ✔ | – | – | – | – |
+| `score:read:all` | Xem điểm và tiến độ nhập điểm toàn trường | – | ✔ | – | – | – | – |
+| `announcement:send` | Gửi thông báo cho lớp mình dạy/chủ nhiệm (giáo viên) – trong cổng | – | ✔ | – | – | ✔ | – |
+| `announcement:manage` | Gửi thông báo cho mọi đối tượng (toàn trường, khối, lớp, chỉ nhân sự) và quản lý mọi thông báo | – | ✔ | – | – | – | – |
+| `library:submit` | Gửi tài liệu lên thư viện số (soạn, tải file, gửi duyệt tài liệu của mình) | – | ✔ | – | ✔ | ✔ | – |
+| `library:manage` | Quản lý thư viện số: danh mục, duyệt/từ chối/ẩn tài liệu, thống kê lượt đọc | – | ✔ | – | ✔ | – | – |
+| `quiz:create` | Soạn trắc nghiệm ôn tập cho môn mình dạy, giao cho khối/lớp mình dạy (kết quả không tính vào điểm) | – | ✔ | – | – | ✔ | – |
+| `quiz:manage` | Quản lý mọi bộ trắc nghiệm ôn tập (sửa, ẩn, xem thống kê), giao cho mọi đối tượng | – | ✔ | – | ✔ | – | – |
+
+**Giáo viên chủ nhiệm** không phải vai trò. Quyền thêm suy ra từ `classes.homeroom_teacher_id` (`isHomeroomOf`), chỉ cho **lớp mình**:
+
+- xem danh sách học sinh và trạng thái tài khoản của lớp (`GET /academic/classes/:id/students`);
+- cấp lại mã kích hoạt cho học sinh lớp mình;
+- xem điểm **đã công bố** của lớp: sổ điểm, bảng tổng hợp, kết quả từng học sinh, xuất Excel;
+- gửi thông báo cho lớp;
+- xem thời khoá biểu của lớp.
+
+Test: `academic.e2e-spec.ts` (lớp khác 403), `roster.e2e-spec.ts` (cấp lại mã), `score-views.e2e-spec.ts` (chỉ lớp mình, chỉ điểm đã công bố), `announcements.e2e-spec.ts`, `timetable.e2e-spec.ts`.
+
+**Đối chiếu với mục 5 tài liệu phân tích** (`docs/01-phan-tich-de-tai.md`). Theo quyết định của người dùng ở bước 23:
+
+- ADMIN **không còn** quyền bài viết (tạo, duyệt, hẹn giờ, gỡ) và giao việc. Các việc này là của BGH và biên tập viên; cổng `/admin` cũng không có các trang này từ bước 15.
+- ADMIN vẫn **xoá vĩnh viễn** được bài đã gỡ (luật theo vai trò, đúng dòng "Xoá vĩnh viễn dữ liệu" của mục 5).
+- BGH và biên tập viên cùng duyệt, hẹn giờ và gỡ bài (giữ như mục 5).
+- Hạn chót của bản thân (`task:read:own`) chỉ còn BGH và giáo viên; biên tập viên xem mọi hạn chót (`task:read:all`).
+- ADMIN không có quyền điểm, thông báo, thư viện, trắc nghiệm hay xếp lịch. Đây là dữ liệu học tập, không phải việc quản trị hệ thống.
+- Học sinh và thủ thư là hai vai trò mới so với mục 5.
 
 ## Xác thực – `/auth`
 
 | Endpoint | Truy cập | Ghi chú |
 |---|---|---|
-| `POST /auth/login` | Công khai | nhận email hoặc mã học sinh/giáo viên (`identifier`); 20 lượt/phút/IP; sai 5 lần/phút theo IP + tài khoản thì khoá tạm (Redis); ghi `audit_logs` |
+| `POST /auth/login` | Công khai | nhận email hoặc mã học sinh/giáo viên (`identifier`); 20 lượt/phút/IP; sai 5 lần/phút theo IP + tài khoản, hoặc 30 lần/10 phút theo IP (mọi tài khoản cộng lại, chống thử một mật khẩu trên nhiều mã học sinh) thì khoá tạm (Redis); ghi `audit_logs` |
 | `POST /auth/activate` | Công khai | kích hoạt tài khoản bằng mã dùng một lần rồi đăng nhập luôn; 20 lượt/phút/IP; **sai** 5 lần/15 phút theo mã đăng nhập hoặc 20 lần/10 phút theo IP thì khoá tạm (429); mọi lý do thất bại cùng một thông báo (không lộ mã học sinh có tồn tại) |
 | `POST /auth/refresh` | Công khai | cần cookie `pvh_refresh` hợp lệ (xoay vòng, dùng một lần) |
 | `POST /auth/logout` | Công khai | thu hồi refresh token nếu có |
@@ -223,7 +280,7 @@ Tool AI Agent `search_library` (chỉ đọc): chỉ nhân sự (học sinh bị
 |---|---|---|
 | `GET /posts/manage`, `GET /posts/manage/:id` | `post:create` | tác giả chỉ thấy bài của mình; `post:approve` thấy tất cả |
 | `POST /posts` | `post:create` | |
-| `PATCH /posts/:id`, `POST /posts/:id/submit`, `DELETE /posts/:id` | `post:create` | chỉ tác giả (xoá bài đã gỡ chỉ ADMIN) |
+| `PATCH /posts/:id`, `POST /posts/:id/submit`, `DELETE /posts/:id` | `post:create` | chỉ tác giả; xoá vĩnh viễn bài đã gỡ chỉ vai trò ADMIN (không cần `post:create`) |
 | `POST /posts/:id/approve` | `post:approve` + `post:schedule` | |
 | `POST /posts/:id/reject` | `post:approve` | |
 | `POST /posts/:id/reschedule`, `/publish`, `/cancel-schedule` | `post:schedule` | |

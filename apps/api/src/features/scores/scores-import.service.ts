@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { ASSESSMENT_TYPE_NAMES, SCORE_IMPORT_MAX_ROWS, type ScoreImportPreviewDto } from '@pvh/shared';
 import ExcelJS from 'exceljs';
+import { assertPermission } from '../../common/guards/permission.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import { RedisService } from '../../infrastructure/queue/redis.service.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
@@ -31,6 +32,7 @@ export class ScoresImportService {
   ) {}
 
   async template(actor: AuthUser, assessmentId: string, classId: string): Promise<{ file: Buffer; filename: string }> {
+    assertPermission(actor, 'score:enter');
     const ctx = await this.scores.access(actor, assessmentId, classId);
     if (!ctx.inScope) throw new ForbiddenException('Chỉ giáo viên được phân công lớp–môn này mới nhập điểm');
     const { assessment, class: cls } = ctx.ac;
@@ -63,7 +65,14 @@ export class ScoresImportService {
     return { file: Buffer.from(out as ArrayBuffer), filename: `diem-${assessment.code}-${cls.name}.xlsx`.replace(/[^\w.-]/g, '_') };
   }
 
+  // Gọi trước khi đọc file tải lên: chỉ giáo viên (score:enter) trong phạm vi lớp–môn.
+  async checkAccess(actor: AuthUser, assessmentId: string, classId: string): Promise<void> {
+    assertPermission(actor, 'score:enter');
+    await this.scores.access(actor, assessmentId, classId);
+  }
+
   async preview(actor: AuthUser, assessmentId: string, classId: string, file: Buffer, ip?: string): Promise<ScoreImportPreviewDto> {
+    assertPermission(actor, 'score:enter');
     const ctx = await this.scores.access(actor, assessmentId, classId);
     this.scores.assertCanEdit(ctx);
     const client = this.redis.client;
@@ -102,6 +111,7 @@ export class ScoresImportService {
 
   // Mỗi bản xem trước dùng một lần; kiểm tra lại quyền, hạn nhập và danh sách lớp với CSDL hiện tại.
   async confirm(actor: AuthUser, previewId: string, ip?: string) {
+    assertPermission(actor, 'score:enter');
     const client = this.redis.client;
     if (!client) throw new ServiceUnavailableException('Nhập điểm từ Excel cần Redis (REDIS_URL)');
     if (!/^[0-9a-f-]{36}$/.test(previewId)) throw new NotFoundException('Bản xem trước không tồn tại hoặc đã hết hạn');

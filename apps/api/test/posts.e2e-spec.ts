@@ -138,7 +138,7 @@ describe('Bài viết, chuyên mục, media (F12, F13, e2e)', () => {
       await editor.post(`/posts/${post.id}/unpublish`).expect(200);
       await editor.delete(`/posts/${post.id}`).expect(403);
       await admin.delete(`/posts/${post.id}`).expect(204);
-      await admin.get(`/posts/manage/${post.id}`).expect(404);
+      await editor.get(`/posts/manage/${post.id}`).expect(404);
 
       for (const action of [
         'post.create',

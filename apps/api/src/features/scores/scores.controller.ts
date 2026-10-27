@@ -137,7 +137,7 @@ export class ScoresController {
     @Res({ passthrough: true }) res: Response,
   ) {
     // Kiểm tra quyền/phạm vi trước khi đọc file.
-    await this.scores.access(user, id, classId);
+    await this.importer.checkAccess(user, id, classId);
     const file = await readLimitedBody(req, res, ROSTER_MAX_BYTES);
     if (file.length === 0) throw new BadRequestException('Chưa chọn file Excel');
     return this.importer.preview(user, id, classId, file, req.ip);

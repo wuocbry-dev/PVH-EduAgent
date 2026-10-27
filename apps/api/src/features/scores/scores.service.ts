@@ -384,6 +384,8 @@ export class ScoresService {
   }
 
   async save(actor: AuthUser, assessmentId: string, classId: string, input: SaveScoresInput, ip?: string) {
+    // Chỉ giáo viên nhập điểm (BGH xem mọi điểm nhưng không tự nhập): chặn trước khi đọc đợt thi.
+    assertPermission(actor, 'score:enter');
     const ctx = await this.access(actor, assessmentId, classId);
     this.assertCanEdit(ctx);
     await this.limitWrites(actor);

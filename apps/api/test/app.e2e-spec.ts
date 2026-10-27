@@ -5,7 +5,9 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
+import { LOGIN_IP_MAX_FAILURES } from './../src/features/auth/login-rate-limiter.js';
 import { PrismaService } from './../src/infrastructure/database/prisma.service.js';
+import { resetLimits } from './reset-limits.js';
 
 const PASSWORD = 'Pvh@2026';
 const PRINCIPAL = 'bgh@pvh.edu.vn';
@@ -118,6 +120,26 @@ describe('API (e2e)', () => {
         .post('/auth/login')
         .send({ email: EDITOR, password: PASSWORD })
         .expect(429);
+    });
+
+    it(`sai ${LOGIN_IP_MAX_FAILURES} lần trên nhiều mã đăng nhập khác nhau từ một IP → chặn cả IP (429), kể cả tài khoản khác nhập đúng`, async () => {
+      await resetLimits(app, ['login']);
+      try {
+        // Thử một mật khẩu trên nhiều mã học sinh (mỗi mã chỉ sai 1 lần, dưới ngưỡng 5 lần của từng mã).
+        for (let i = 0; i < LOGIN_IP_MAX_FAILURES; i++) {
+          await request(app.getHttpServer())
+            .post('/auth/login')
+            .send({ identifier: `HSKHONGCO${i}`, password: PASSWORD })
+            .expect(401);
+        }
+        const blocked = await request(app.getHttpServer())
+          .post('/auth/login')
+          .send({ email: TEACHER, password: PASSWORD })
+          .expect(429);
+        expect(blocked.body.message).toMatch(/thử lại sau \d+ giây/);
+      } finally {
+        await resetLimits(app, ['login']);
+      }
     });
 
     it('refresh cấp token mới và thu hồi refresh token cũ', async () => {

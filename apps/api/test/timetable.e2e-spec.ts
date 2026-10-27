@@ -238,6 +238,9 @@ describe('Thời khoá biểu (bước 17, e2e)', () => {
       const sameRoom = await place(v.id, asg.B2, 1, 2, { roomId: room.id }).expect(409);
       expect(sameRoom.body.message).toMatch(/Phòng .* đang được lớp .* dùng/);
       expect(await prisma.timetableSlot.count({ where: { timetableId: BigInt(v.id) } })).toBe(1);
+      // Phòng đang được xếp thì không xoá được (khoá ngoại SET NULL sẽ làm tiết mất phòng).
+      const del = await admin.delete(`/academic/rooms/${room.id}`).expect(409);
+      expect(del.body.message).toMatch(/đang được xếp 1 tiết/);
 
       // Ràng buộc nằm ở CSDL, không chỉ ở service: chèn thẳng cũng bị chặn.
       const row = (a: string, over: Record<string, unknown>) => ({

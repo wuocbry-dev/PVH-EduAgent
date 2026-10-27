@@ -44,7 +44,8 @@ export function PortalShell({ portal, children }: { portal: Portal; children: Re
           </Suspense>
         </div>
       </aside>
-      <main className="flex-1 p-4 md:p-8 print:p-0">{children}</main>
+      {/* min-w-0: bảng rộng (sổ điểm, thời khoá biểu) cuộn trong khung của nó thay vì đẩy cả trang tràn ngang. */}
+      <main className="min-w-0 flex-1 p-4 md:p-8 print:p-0">{children}</main>
     </div>
   );
 }

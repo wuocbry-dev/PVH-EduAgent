@@ -40,7 +40,7 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 | [x] | 20 | Cổng học sinh hoàn chỉnh & thông báo theo lớp/khối | 2026-10-27 |
 | [x] | 21 | Thư viện số | 2026-10-27 |
 | [x] | 22 | Trắc nghiệm ôn tập trực tuyến | 2026-10-28 |
-| [ ] | 23 | Rà soát bảo mật, kiểm thử theo vai trò & đối chiếu tài liệu | |
+| [x] | 23 | Rà soát bảo mật, kiểm thử theo vai trò & đối chiếu tài liệu | 2026-10-28 |
 | [-] | 24 | *(tuỳ chọn)* Quản lý mượn trả sách giấy | |
 | [-] | 25 | *(tuỳ chọn)* Tự động gợi ý xếp thời khoá biểu | |
 
@@ -338,3 +338,53 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 - **Lệch thiết kế:** đề khi đang làm có cờ `multiple` (câu này có nhiều đáp án đúng, để hiện ô chọn nhiều) – không lộ đáp án nào đúng. Câu hỏi khoá hẳn khi đã có lượt làm (muốn đổi thì ẩn và soạn bộ mới) để kết quả và thống kê không sai. Học sinh chưa xếp lớp chỉ làm được bài toàn trường. Nhập Excel thêm câu vào cuối bộ (không thay thế).
 - **Không thuộc phạm vi:** câu hỏi tự luận; chống gian lận nâng cao (khoá màn hình, camera).
 - **Còn lại:** sao chép một bộ đã khoá thành bộ mới để sửa; thông báo cho học sinh khi có bài ôn tập mới (có thể dùng hộp thông báo của bước 20).
+
+### Bước 23 – Rà soát bảo mật, kiểm thử theo vai trò & đối chiếu tài liệu (2026-10-28)
+
+- **Đã làm:**
+  - **Quyết định của người dùng:** gỡ toàn bộ quyền bài viết (`post:*`) và giao việc (`task:*`) của ADMIN; ADMIN chỉ còn quyền hệ thống, vẫn xoá vĩnh viễn được bài đã gỡ (luật theo vai trò). Giữ nguyên việc BGH và biên tập viên cùng duyệt/hẹn giờ/gỡ bài. `pnpm audit`: cập nhật kèm overrides.
+  - **Ma trận quyền:** bảng vai trò × quyền (cả giáo viên chủ nhiệm suy từ lớp) và đối chiếu mục 5 tài liệu phân tích ở `docs/04`. Bảng `ROUTES` tách ra `test/routes.ts`, thêm cú pháp `'a|b'` (một trong), `'role:ADMIN'`, `'student'`; sửa các mục ghi thiếu quyền thay thế (điểm, thư viện, trắc nghiệm, công việc).
+  - **E2e mới `role-matrix.e2e-spec.ts`:** 205 endpoint × 6 vai trò (tài khoản tạm, id không tồn tại). Thiếu quyền → **đúng 403**: lượt này tắt zod để chắc service tự chặn trước khi đọc input. Đủ quyền → không 401/403 "thiếu quyền"; không ô nào 5xx.
+  - **Lỗi tìm thấy và đã sửa:**
+    - (1) **Dò id khi không có quyền:** chuyển trạng thái/xoá bài viết, đổi trạng thái công việc, danh sách học sinh của lớp, lưu điểm, file mẫu/xem trước/xác nhận nhập điểm, xác nhận nhập trắc nghiệm đều tìm bản ghi trước rồi mới kiểm quyền (404 hay 403 tuỳ id có tồn tại). Nay kiểm quyền trước; BGH gọi API nhập điểm nhận 403.
+    - (2) **Đăng nhập:** thêm khoá theo IP (30 lần sai/10 phút, cộng mọi tài khoản; đăng nhập đúng không xoá bộ đếm) chống thử một mật khẩu trên nhiều mã học sinh có quy luật.
+    - (3) **Xoá phòng đang được xếp trong thời khoá biểu** làm các tiết lặng lẽ mất phòng (khoá ngoại `SET NULL` từ bước 17) → nay 409.
+    - (4) **Giao diện:** cột nội dung của khung cổng thiếu `min-w-0` nên bảng rộng (sổ điểm) đẩy cả trang tràn ngang ở màn rộng.
+  - **Rà dữ liệu nhạy cảm:**
+    - Quét toàn bộ `audit_logs` (khoảng 28 nghìn dòng), `notifications`, `agent_actions`: không có URL ký sẵn, token bot, khoá R2/JWT, mật khẩu, mã kích hoạt. Thành e2e cố định trong `security.e2e-spec.ts`.
+    - Đọc lại mã nguồn: nhật ký truy cập bỏ query string; lỗi grammY không chứa token (`sensitiveLogs` tắt); không chỗ nào ghi URL ký sẵn ra log.
+    - Excel: giới hạn 2 MB, giới hạn dòng, kiểm dung lượng giải nén, không đánh giá công thức, mọi ô xuất qua `safeCell`.
+    - Kho riêng tư: không phục vụ tĩnh, token HMAC gắn khoá object.
+    - IDOR theo id (lần làm bài, hộp thông báo, media, điểm, tài liệu) đã có test ở từng feature.
+  - **`pnpm audit`:** 8 lỗi cao → 0. Nâng `@nestjs/*` 12.3.2 (multer 2.5.0), overrides `body-parser` ≥ 2.4.0 và `fast-uri` ≥ 3.1.9, gỡ `@nestjs/mau` (công cụ dev không dùng, kéo theo `undici`/`tmp` cũ). Khai báo `esbuild`, `msgpackr-extract` không chạy script build (như trước). **Còn 1 lỗi trung bình** `uuid` < 11.1.1 qua `exceljs`: chỉ ảnh hưởng `v3/v5/v6` khi truyền `buf`, exceljs chỉ dùng `v4`.
+  - **Tài liệu:** `docs/07-doi-chieu-chuc-nang.md` gồm:
+    - F01–F17, A01–A09 và chức năng bước 13–25, mỗi mục có trạng thái, nơi trong code, test, sơ đồ, phần lệch;
+    - kết quả rà soát;
+    - **42 bảng mới so với ERD** (17 → 59 bảng) và các sơ đồ nên cập nhật (không sửa `.drawio`).
+
+  Cập nhật thêm `docs/04`, `CLAUDE.md`, README.
+- **Test:** `role-matrix.e2e-spec.ts` (7 test), `security.e2e-spec.ts` (+2: quét bí mật, tự kiểm bộ quét), `app.e2e-spec.ts` (+1: khoá theo IP), `timetable.e2e-spec.ts` (xoá phòng đang dùng → 409), `permissions.spec.ts` (+1: quyền ADMIN chỉ còn quyền hệ thống); sửa `posts.e2e-spec.ts` (ADMIN không xem được bài) và `scores.e2e-spec.ts` (BGH xác nhận nhập điểm → 403). `pnpm build`, `pnpm lint`, `pnpm test` (218 unit + 364 e2e) xanh.
+- **Kiểm tra bằng Chrome headless:**
+  - Phạm vi: mọi mục menu của 6 cổng với tài khoản seed (admin, bgh, bientap, thuthu, gv.toan, `HSMAU01`) và 10 trang công khai cho khách (66 trang), ở 375 px và 1280 px, sáng và tối (264 lượt tải).
+  - Kết quả: không lỗi console/JS, không trang báo lỗi, nền tối đúng ở mọi cổng. Trang Sổ điểm giáo viên tràn ngang ở 1280 px (lỗi (4), đã sửa và kiểm lại).
+  - Hai lần báo "chuyển về /" là do kịch bản dùng lại refresh token đã xoay vòng, đã sửa kịch bản.
+  - Giữa chừng API dev ở cổng 4000 bị treo sau khi nâng cấp `node_modules`; đã tắt và bật lại theo đồng ý của người dùng.
+- **Sự cố trong lúc làm:** bản chạy thử đầu tiên của test ma trận gọi các route ghi bằng id `1` trên CSDL dev, làm **xoá/đổi dữ liệu thật**:
+  - chuyên mục "Tin tức – Sự kiện", phòng "Phòng Tin học 1", danh mục thư viện "Sách giáo khoa", tiết cố định "Chào cờ", công việc "Nộp kế hoạch giảng dạy học kỳ I", sự kiện "Họp phụ huynh học sinh khối 10";
+  - bài #1 bị gỡ rồi về nháp.
+
+  Đã khôi phục:
+  - chạy lại seed;
+  - gắn lại chuyên mục cho bài #1, #3;
+  - bài #1 đăng lại với ngày gốc 05/9/2026;
+  - tạo lại công việc và sự kiện theo seed;
+  - gắn lại phòng cho 33 tiết Tin học.
+
+  **Không lấy lại được:** id cũ (các bản ghi có id mới), bình luận/nhắc hạn của công việc cũ (xoá dây chuyền), mọi chỉnh sửa tay trước đó trên các bản ghi này. Test ma trận chính thức dùng tài khoản tạm và id không tồn tại nên không lặp lại được.
+- **Lệch thiết kế:** tài liệu đối chiếu đặt tên `docs/07-doi-chieu-chuc-nang.md` (tên `06` đã dùng cho `06-du-lieu-demo.md`). Khoá đăng nhập theo IP có thể chặn nhầm cả trường nếu nhiều học sinh dùng chung một IP NAT và cùng gõ sai nhiều (30 lần/10 phút).
+- **Còn lại (để người dùng quyết định):**
+  - chưa có khoá theo tài khoản bất kể IP (chống tấn công phân tán vào một tài khoản, nhưng dễ bị lợi dụng khoá tài khoản học sinh);
+  - email đặt lại mật khẩu chưa gửi thật;
+  - F13 chưa có thẻ (tag);
+  - cập nhật sơ đồ ERD/Use case/Class/Package/Component theo `docs/07` mục 7;
+  - các mục nhỏ còn treo: job dọn upload dở trong kho riêng tư, ảnh biên bản chấm, sao chép bộ trắc nghiệm đã khoá, thông báo bài ôn tập mới.
