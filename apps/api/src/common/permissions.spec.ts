@@ -19,12 +19,22 @@ describe('bảng quyền (@pvh/shared)', () => {
   });
 
   it('thư viện số: thủ thư và BGH quản lý, giáo viên gửi; ADMIN, biên tập, học sinh không có quyền thư viện (bước 21)', () => {
-    expect([...ROLE_PERMISSIONS.LIBRARIAN].sort()).toEqual(['library:manage', 'library:submit']);
+    expect(ROLE_PERMISSIONS.LIBRARIAN).toEqual(expect.arrayContaining(['library:manage', 'library:submit']));
     expect(ROLE_PERMISSIONS.PRINCIPAL).toEqual(expect.arrayContaining(['library:manage', 'library:submit']));
     expect(ROLE_PERMISSIONS.TEACHER).toContain('library:submit');
     expect(ROLE_PERMISSIONS.TEACHER).not.toContain('library:manage');
     for (const role of ['ADMIN', 'EDITOR', 'STUDENT'] as const) {
       expect(ROLE_PERMISSIONS[role].filter((p) => p.startsWith('library:'))).toEqual([]);
+    }
+  });
+
+  it('trắc nghiệm ôn tập: giáo viên soạn, thủ thư và BGH quản lý; ADMIN, biên tập, học sinh không có (bước 22)', () => {
+    expect(ROLE_PERMISSIONS.TEACHER).toContain('quiz:create');
+    expect(ROLE_PERMISSIONS.TEACHER).not.toContain('quiz:manage');
+    expect(ROLE_PERMISSIONS.LIBRARIAN).toContain('quiz:manage');
+    expect(ROLE_PERMISSIONS.PRINCIPAL).toEqual(expect.arrayContaining(['quiz:create', 'quiz:manage']));
+    for (const role of ['ADMIN', 'EDITOR', 'STUDENT'] as const) {
+      expect(ROLE_PERMISSIONS[role].filter((p) => p.startsWith('quiz:'))).toEqual([]);
     }
   });
 

@@ -129,6 +129,32 @@ Thông báo về điểm (có điểm mới được công bố cho học sinh; 
 | `POST /announcements` | `announcement:send` | giáo viên chỉ `CLASS` cho lớp mình dạy/chủ nhiệm (khác → 403); BGH mọi đối tượng; thiếu khối/lớp, hạn hiển thị đã qua, nội dung rỗng sau khi làm sạch → 400 |
 | `DELETE /announcements/:id` | người gửi hoặc `announcement:manage` | |
 
+## Trắc nghiệm ôn tập – `/quizzes` (bước 22)
+
+Kết quả **chỉ để ôn tập, không tính vào điểm học tập**: chỉ ghi `quiz_attempts`/`quiz_answers`, không đụng `scores`/`score_history`. Chấm ở server; đề gửi xuống khi làm bài **không có** đáp án đúng hay giải thích (chỉ có cờ `multiple` để hiện ô chọn nhiều). Câu nhiều đáp án đúng phải chọn **đủ và chỉ** các đáp án đúng mới được điểm; điểm thang 10 = số câu đúng / tổng số câu. Hạn nộp tính ở server lúc bắt đầu (`deadline`); quá hạn + 15 giây bù mạng thì không nhận câu trả lời mới, lần làm tự nộp với các câu đã lưu (khi học sinh gọi API, khi xem danh sách/thống kê, hoặc khi bắt đầu lần mới). Đối tượng làm bài dùng chung mô hình với thư viện số (`ALL`/`GRADE`/`CLASS`; quiz không có "chỉ giáo viên"). Audit `quiz.create/update/questions/import/publish/archive/unpublish/delete`, không ghi từng lần làm bài.
+
+| Endpoint | Quyền | Ghi chú |
+|---|---|---|
+| `GET /quizzes/available` | đăng nhập, chỉ học sinh | quiz đang mở đúng đối tượng (toàn trường, khối mình, lớp mình) + các lần làm của chính mình, số lần còn lại; `libraryItemId` để lọc theo tài liệu thư viện |
+| `POST /quizzes/:id/attempts` | chỉ học sinh, đúng đối tượng | ngoài đối tượng → 403, chưa công bố → 404, hết số lần → 409; đang có lần làm dở thì trả lại lần đó (index duy nhất một phần chặn hai lần làm dở); 20 lần/10 phút (`quiz-start`) → 429 |
+| `GET /quizzes/attempts/:attemptId` | chính học sinh đó | đang làm: đề không có đáp án + câu đã chọn + `deadline`, `serverNow`; đã nộp: điểm, đúng/sai từng câu, đáp án đúng và giải thích chỉ khi quiz cho xem |
+| `PUT /quizzes/attempts/:attemptId/answers` | chính học sinh đó | lưu một câu; đáp án không thuộc câu → 409; quá giờ → tự nộp + 409; 120 lần/phút (`quiz-write`) |
+| `POST /quizzes/attempts/:attemptId/submit` | chính học sinh đó | lưu các câu gửi kèm rồi chấm; quá giờ → tự nộp phần đã lưu, 409; đã nộp → trả kết quả |
+| `GET /quizzes/form-options` | `quiz:create` hoặc `quiz:manage` | giáo viên: môn mình dạy năm hiện hành kèm khối/lớp của môn đó; người quản lý: mọi môn, mọi lớp |
+| `GET /quizzes/manage` | `quiz:create` hoặc `quiz:manage` | `scope=mine`; `scope=all` cần `quiz:manage` |
+| `GET /quizzes/import-template` | `quiz:create` hoặc `quiz:manage` | file mẫu .xlsx (Câu hỏi, A–F, Đáp án đúng, Giải thích) |
+| `POST /quizzes/images` | `quiz:create` hoặc `quiz:manage` | URL ký sẵn tải ảnh câu hỏi (luồng media bước 11, chỉ ảnh) |
+| `POST /quizzes/images/:mediaId/complete` | `quiz:create` hoặc `quiz:manage` | kiểm tra magic bytes |
+| `POST /quizzes` | `quiz:create` (môn mình dạy, khối/lớp mình dạy môn đó; không giao toàn trường) hoặc `quiz:manage` (mọi đối tượng) | ngoài phạm vi → 403 |
+| `GET /quizzes/:id` | người soạn (còn dạy môn đó) hoặc `quiz:manage` | bản đầy đủ có đáp án đúng; người khác → 403 |
+| `PATCH /quizzes/:id` | như trên | đã có lượt làm thì không đổi môn/khối |
+| `PUT /quizzes/:id/questions` | như trên | thay toàn bộ câu hỏi (2–6 đáp án, ít nhất một đúng; nội dung qua `sanitizeContent`, chỉ ảnh của kho hệ thống); **đã có lượt làm → 409** |
+| `POST /quizzes/:id/status` | như trên | `PUBLISHED` (cần ít nhất một câu), `ARCHIVED`, `DRAFT` (chỉ khi chưa có lượt làm) |
+| `DELETE /quizzes/:id` | như trên | đã có lượt làm → 409 (hãy ẩn) |
+| `GET /quizzes/:id/stats` | như trên | số lượt nộp, số học sinh, điểm trung bình, phổ điểm, câu sai nhiều nhất (bỏ trống tính là sai) |
+| `POST /quizzes/:id/import/preview` | như trên | file .xlsx gửi thẳng (≤ 2 MB, 200 dòng), không đánh giá công thức; từng dòng hợp lệ/lỗi kèm lý do; bản xem trước giữ 30 phút trong Redis |
+| `POST /quizzes/import/:previewId/confirm` | chính người tải lên | dùng một lần; kiểm tra lại quyền và khoá câu hỏi; thêm câu hợp lệ vào cuối bộ |
+
 ## Thư viện số – `/library`, `/public/library` (bước 21)
 
 File tài liệu (PDF, MP3, MP4/WebM) nằm trong **kho riêng tư** (`PrivateStorageService`: bucket `R2_PRIVATE_BUCKET`, hoặc thư mục `PRIVATE_UPLOAD_DIR` với driver local), **không có URL công khai**. Muốn đọc phải gọi `POST /library/items/:id/access`: service kiểm tra lại đối tượng xem rồi cấp URL ký sẵn hết hạn sau 5 phút (R2: URL GET ký sẵn của bucket; local: `GET /library/files/:id?token=`). URL không bao giờ được ghi vào log, `audit_logs` hay CSDL. Đối tượng xem (`library-audience.ts`): khách chỉ thấy danh mục tài liệu **toàn trường** và không đọc được; học sinh đọc toàn trường + khối mình + lớp mình, **không bao giờ thấy "chỉ giáo viên"**; nhân sự đọc mọi tài liệu đã đăng; người gửi đọc tài liệu của mình ở mọi trạng thái; `library:manage` (thủ thư, BGH) mọi tài liệu. Tài liệu không đọc được luôn trả 404 (không lộ là có tồn tại). Nguồn và giấy phép bắt buộc (zod + CHECK ở CSDL). Ẩn nút tải về chỉ **hạn chế**, không ngăn được việc sao chép hoàn toàn (người đọc vẫn có thể chụp màn hình hay lưu luồng dữ liệu).

@@ -256,6 +256,27 @@ const ROUTES: Record<string, Access> = {
   'DELETE /library/categories/:id': ['library:manage'],
   'GET /library/stats': ['library:manage'],
 
+  // Trắc nghiệm ôn tập (bước 22): không tính vào điểm. Học sinh làm bài đúng đối tượng; đề không có đáp án đúng.
+  'GET /quizzes/available': 'self', // chỉ học sinh; quiz đang mở đúng đối tượng + các lần làm của chính mình
+  'POST /quizzes/:id/attempts': 'self', // chỉ học sinh đúng đối tượng (khác → 403); hết số lần → 409; giới hạn quiz-start
+  'GET /quizzes/attempts/:attemptId': 'self', // chỉ lần làm của chính mình
+  'PUT /quizzes/attempts/:attemptId/answers': 'self', // quá giờ → tự nộp + 409; giới hạn quiz-write
+  'POST /quizzes/attempts/:attemptId/submit': 'self', // chấm ở server; quá giờ → 409
+  'GET /quizzes/form-options': ['quiz:create'], // hoặc quiz:manage
+  'GET /quizzes/manage': ['quiz:create'], // scope=all cần quiz:manage
+  'GET /quizzes/import-template': ['quiz:create'],
+  'POST /quizzes/images': ['quiz:create'],
+  'POST /quizzes/images/:mediaId/complete': ['quiz:create'],
+  'POST /quizzes': ['quiz:create'], // giáo viên: môn mình dạy, khối/lớp mình dạy; quiz:manage: mọi đối tượng
+  'GET /quizzes/:id': ['quiz:create'], // người soạn hoặc quiz:manage (có đáp án đúng)
+  'PATCH /quizzes/:id': ['quiz:create'],
+  'PUT /quizzes/:id/questions': ['quiz:create'], // khoá khi đã có lượt làm
+  'POST /quizzes/:id/status': ['quiz:create'],
+  'DELETE /quizzes/:id': ['quiz:create'],
+  'GET /quizzes/:id/stats': ['quiz:create'],
+  'POST /quizzes/:id/import/preview': ['quiz:create'],
+  'POST /quizzes/import/:previewId/confirm': ['quiz:create'], // chỉ người tải lên, dùng một lần
+
   'GET /telegram/link': 'self',
   'POST /telegram/link-code': 'self',
   'DELETE /telegram/link': 'self',

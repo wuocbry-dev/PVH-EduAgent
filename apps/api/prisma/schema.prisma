@@ -109,6 +109,9 @@ model User {
   libraryFavorites      LibraryFavorite[]
   libraryProgress       LibraryReadingProgress[]
 
+  createdQuizzes Quiz[]        @relation("QuizCreator")
+  quizAttempts   QuizAttempt[] @relation("QuizAttemptStudent")
+
   @@map("users")
 }
 
@@ -510,6 +513,7 @@ model Subject {
   teachingAssignments TeachingAssignment[]
   assessments         Assessment[]
   libraryItems        LibraryItem[]
+  quizzes             Quiz[]
 
   @@map("subjects")
 }
@@ -551,6 +555,7 @@ model SchoolClass {
   announcements     Announcement[]
   events            Event[]
   libraryItems      LibraryItemClass[]
+  quizzes           QuizClass[]
 
   @@unique([schoolYearId, name])
   @@index([homeroomTeacherId])
@@ -1049,6 +1054,7 @@ model LibraryItem {
   favorites LibraryFavorite[]
   progress  LibraryReadingProgress[]
   views     LibraryViewDaily[]
+  quizzes   Quiz[]
 
   @@index([status, publishedAt])
   @@index([categoryId])
@@ -1108,4 +1114,126 @@ model LibraryViewDaily {
   @@id([itemId, day])
   @@index([day])
   @@map("library_views")
+}
+
+// ───────────────────────────── Trắc nghiệm ôn tập (bước 22) ─────────────────────────────
+// Kết quả ôn tập KHÔNG liên quan bảng scores (điểm học tập chính thức).
+
+enum QuizStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Quiz {
+  id               BigInt          @id @default(autoincrement())
+  title            String          @db.VarChar(200)
+  description      String?
+  subjectId        BigInt          @map("subject_id")
+  gradeLevel       Int             @map("grade_level")
+  // Đối tượng làm bài, cùng mô hình với thư viện số (ALL/GRADE/CLASS; quiz không dùng TEACHERS_ONLY).
+  audience         LibraryAudience @default(GRADE)
+  gradeLevels      Int[]           @default([]) @map("grade_levels")
+  durationMinutes  Int?            @map("duration_minutes")
+  maxAttempts      Int?            @map("max_attempts")
+  shuffleQuestions Boolean         @default(false) @map("shuffle_questions")
+  shuffleOptions   Boolean         @default(false) @map("shuffle_options")
+  showAnswers      Boolean         @default(true) @map("show_answers")
+  status           QuizStatus      @default(DRAFT)
+  libraryItemId    BigInt?         @map("library_item_id")
+  createdBy        BigInt          @map("created_by")
+  publishedAt      DateTime?       @map("published_at") @db.Timestamptz
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  subject     Subject        @relation(fields: [subjectId], references: [id])
+  libraryItem LibraryItem?   @relation(fields: [libraryItemId], references: [id], onDelete: SetNull)
+  creator     User           @relation("QuizCreator", fields: [createdBy], references: [id])
+  classes     QuizClass[]
+  questions   QuizQuestion[]
+  attempts    QuizAttempt[]
+
+  @@index([status, gradeLevel])
+  @@index([createdBy])
+  @@index([libraryItemId])
+  @@map("quizzes")
+}
+
+model QuizClass {
+  quizId  BigInt @map("quiz_id")
+  classId BigInt @map("class_id")
+
+  quiz  Quiz        @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  class SchoolClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@id([quizId, classId])
+  @@index([classId])
+  @@map("quiz_classes")
+}
+
+model QuizQuestion {
+  id          BigInt  @id @default(autoincrement())
+  quizId      BigInt  @map("quiz_id")
+  position    Int
+  content     String // HTML đã làm sạch (sanitizeContent, chỉ ảnh từ kho media của hệ thống)
+  explanation String?
+
+  quiz    Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  options QuizOption[]
+  answers QuizAnswer[]
+
+  @@unique([quizId, position])
+  @@map("quiz_questions")
+}
+
+model QuizOption {
+  id         BigInt  @id @default(autoincrement())
+  questionId BigInt  @map("question_id")
+  position   Int
+  content    String  @db.VarChar(1000)
+  isCorrect  Boolean @default(false) @map("is_correct")
+
+  question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, position])
+  @@map("quiz_options")
+}
+
+// Một lần làm bài. Hạn nộp (deadline) tính ở server lúc bắt đầu; thứ tự câu/đáp án đã xáo lưu lại để mở lại không đổi.
+model QuizAttempt {
+  id            BigInt    @id @default(autoincrement())
+  quizId        BigInt    @map("quiz_id")
+  studentId     BigInt    @map("student_id")
+  startedAt     DateTime  @default(now()) @map("started_at") @db.Timestamptz
+  deadline      DateTime? @db.Timestamptz
+  submittedAt   DateTime? @map("submitted_at") @db.Timestamptz
+  autoSubmitted Boolean   @default(false) @map("auto_submitted")
+  questionOrder BigInt[]  @map("question_order")
+  optionOrder   Json      @map("option_order") // { [questionId]: optionId[] }
+  score         Decimal?  @db.Decimal(4, 2) // thang 10, chỉ để ôn tập
+  correctCount  Int?      @map("correct_count")
+  totalCount    Int       @map("total_count")
+
+  quiz    Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  student User         @relation("QuizAttemptStudent", fields: [studentId], references: [id], onDelete: Cascade)
+  answers QuizAnswer[]
+
+  @@index([quizId, studentId])
+  @@index([studentId, startedAt])
+  @@map("quiz_attempts")
+}
+
+model QuizAnswer {
+  attemptId  BigInt   @map("attempt_id")
+  questionId BigInt   @map("question_id")
+  optionIds  BigInt[] @map("option_ids")
+  isCorrect  Boolean? @map("is_correct") // chấm lúc nộp
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  attempt  QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@id([attemptId, questionId])
+  @@index([questionId])
+  @@map("quiz_answers")
 }

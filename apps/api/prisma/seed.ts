@@ -41,6 +41,8 @@ const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   'announcement:manage': 'Gửi thông báo cho mọi đối tượng (toàn trường, khối, lớp, chỉ nhân sự) và quản lý mọi thông báo',
   'library:submit': 'Gửi tài liệu lên thư viện số (soạn, tải file, gửi duyệt tài liệu của mình)',
   'library:manage': 'Quản lý thư viện số: danh mục, duyệt/từ chối/ẩn tài liệu, thống kê lượt đọc',
+  'quiz:create': 'Soạn trắc nghiệm ôn tập cho môn mình dạy, giao cho khối/lớp mình dạy (kết quả không tính vào điểm)',
+  'quiz:manage': 'Quản lý mọi bộ trắc nghiệm ôn tập (sửa, ẩn, xem thống kê), giao cho mọi đối tượng',
 };
 
 // Mật khẩu chung cho tài khoản mẫu, chỉ dùng trên máy phát triển.

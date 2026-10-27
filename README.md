@@ -114,14 +114,20 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
 | Cổng | Vai trò | Nội dung |
 |---|---|---|
 | `/admin` | ADMIN | tình trạng hệ thống, người dùng, nhập Excel và phiếu tài khoản, vai trò và quyền, cấu hình, nhật ký |
-| `/bgh` | PRINCIPAL | tổng quan toàn trường, học vụ, bài viết và duyệt bài, thư viện số, giao việc, lịch sự kiện, Trợ lý AI |
+| `/bgh` | PRINCIPAL | tổng quan toàn trường, học vụ, bài viết và duyệt bài, thư viện số, trắc nghiệm ôn tập, giao việc, lịch sự kiện, Trợ lý AI |
 | `/bien-tap` | EDITOR | bài viết, chuyên mục, liên hệ, lịch sự kiện, Trợ lý AI |
-| `/thu-thu` | LIBRARIAN | thống kê lượt đọc, hàng chờ duyệt, kho tài liệu, danh mục, tài liệu tôi gửi |
-| `/giao-vien` | TEACHER | tổng quan (lớp chủ nhiệm, lối tắt, việc của tôi), thời khoá biểu, nhập điểm, sổ điểm, lớp chủ nhiệm, thông báo, bài viết của tôi, việc của tôi, tài liệu tôi gửi, tủ sách, Trợ lý AI |
-| `/hoc-sinh` | STUDENT | trang của em (hôm nay học gì, sự kiện, thông báo mới), thời khoá biểu, điểm, thông báo, lịch, tủ sách, hồ sơ, đổi mật khẩu |
+| `/thu-thu` | LIBRARIAN | thống kê lượt đọc, hàng chờ duyệt, kho tài liệu, danh mục, tài liệu tôi gửi, trắc nghiệm ôn tập |
+| `/giao-vien` | TEACHER | tổng quan (lớp chủ nhiệm, lối tắt, việc của tôi), thời khoá biểu, nhập điểm, sổ điểm, lớp chủ nhiệm, thông báo, bài viết của tôi, việc của tôi, tài liệu tôi gửi, trắc nghiệm ôn tập, tủ sách, Trợ lý AI |
+| `/hoc-sinh` | STUDENT | trang của em (hôm nay học gì, sự kiện, thông báo mới), thời khoá biểu, điểm, thông báo, lịch, tủ sách, trắc nghiệm ôn tập, hồ sơ, đổi mật khẩu |
 
 - Sau đăng nhập/kích hoạt tự vào cổng chính (ADMIN → PRINCIPAL → EDITOR → LIBRARIAN → TEACHER → STUDENT); `next` hợp lệ và thuộc cổng của người đó thì ưu tiên. Người nhiều vai trò có nút **Đổi cổng**. Vào cổng không thuộc mình, hoặc dùng đường dẫn cũ `/admin/bai-viet…`, thì `src/proxy.ts` chuyển hướng (308) sang trang tương ứng của cổng mình.
 - **Ẩn menu/chuyển hướng không phải bảo mật:** API luôn kiểm tra quyền trong service. Proxy chọn cổng theo claim `roles` trong access token (chỉ để định tuyến); đổi vai trò người dùng thì thu hồi mọi phiên đăng nhập của họ.
+
+## Trắc nghiệm ôn tập (bước 22)
+
+- **Giáo viên** (`/giao-vien/trac-nghiem`): soạn bộ câu hỏi cho môn mình dạy (theo phân công), giao cho khối hoặc lớp mình dạy; câu hỏi có ảnh, một hoặc nhiều đáp án đúng, giải thích; xem trước như học sinh thấy; **nhập từ Excel** theo file mẫu (xem trước từng dòng rồi xác nhận); tuỳ chọn thời gian làm, số lần làm, xáo câu/đáp án, cho xem đáp án sau khi nộp, gắn với tài liệu thư viện; công bố/ẩn; **thống kê**: số lượt, điểm trung bình, phổ điểm, **câu sai nhiều nhất**. Thủ thư và BGH (`/thu-thu/trac-nghiem`, `/bgh/trac-nghiem`) quản lý mọi bộ và giao được cho toàn trường.
+- **Học sinh** (`/hoc-sinh/trac-nghiem`, và ở trang tài liệu thư viện có gắn quiz): danh sách bài được làm, làm bài trên điện thoại với đồng hồ đếm ngược theo giờ máy chủ, mỗi lựa chọn lưu ngay; hết giờ tự nộp; xem điểm, câu đúng/sai, đáp án và giải thích (nếu thầy cô cho xem), lịch sử các lần làm.
+- **Chấm ở máy chủ**, đáp án không gửi xuống trình duyệt trước khi nộp; câu nhiều đáp án đúng phải chọn đúng hết. **Kết quả ôn tập, không tính vào điểm học tập** (không đụng bảng điểm). Chưa có: câu tự luận, chống gian lận nâng cao (không thuộc phạm vi).
 
 ## Thư viện số (bước 21)
 

@@ -1,5 +1,6 @@
 import { LIBRARY_KIND_NAMES, LIBRARY_SOURCE_NAMES, type LibraryItemDto } from "@pvh/shared";
 import Link from "next/link";
+import { LibraryQuizzes } from "@/features/quizzes";
 import { formatDate } from "@/shared/lib/format";
 import { mediaSrc } from "@/shared/lib/media-url";
 import { KIND_ICON } from "./library-card";
@@ -59,6 +60,7 @@ export function LibraryItemView({ item }: { item: LibraryItemDto }) {
         </div>
       </div>
       <LibraryReader item={item} />
+      {item.favorite !== undefined && <LibraryQuizzes libraryItemId={item.id} />}
     </article>
   );
 }

@@ -61,11 +61,11 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 | Cổng | Vai trò | Ghi chú |
 |---|---|---|
 | `/admin` | ADMIN | hệ thống: người dùng, nhập Excel, vai trò/quyền, cấu hình, nhật ký (không có duyệt bài/giao việc) |
-| `/bgh` | PRINCIPAL | tổng quan toàn trường, học vụ, bài viết + duyệt, thư viện số, giao việc, lịch, Trợ lý AI |
+| `/bgh` | PRINCIPAL | tổng quan toàn trường, học vụ, bài viết + duyệt, thư viện số, trắc nghiệm, giao việc, lịch, Trợ lý AI |
 | `/bien-tap` | EDITOR | bài viết, chuyên mục, liên hệ, lịch, Trợ lý AI |
-| `/thu-thu` | LIBRARIAN | thư viện số: thống kê, hàng chờ duyệt, kho tài liệu, danh mục, tài liệu tôi gửi |
-| `/giao-vien` | TEACHER | tổng quan, thời khoá biểu, nhập điểm, sổ điểm, lớp chủ nhiệm, thông báo, bài của tôi, việc của tôi, tài liệu tôi gửi, tủ sách, Trợ lý AI |
-| `/hoc-sinh` | STUDENT | trang của em, thời khoá biểu, điểm, thông báo, lịch, tủ sách, hồ sơ, đổi mật khẩu |
+| `/thu-thu` | LIBRARIAN | thư viện số: thống kê, hàng chờ duyệt, kho tài liệu, danh mục, tài liệu tôi gửi, trắc nghiệm |
+| `/giao-vien` | TEACHER | tổng quan, thời khoá biểu, nhập điểm, sổ điểm, lớp chủ nhiệm, thông báo, bài của tôi, việc của tôi, tài liệu tôi gửi, trắc nghiệm, tủ sách, Trợ lý AI |
+| `/hoc-sinh` | STUDENT | trang của em, thời khoá biểu, điểm, thông báo, lịch, tủ sách, trắc nghiệm, hồ sơ, đổi mật khẩu |
 
 - Bảng cổng nằm ở **một nơi**: `PORTAL_INFO` trong `packages/shared/src/portals.ts` (đường dẫn, tên, vai trò, menu `nav` theo `slug`, `portalRedirect`); proxy, menu và API (liên kết trong Telegram) đều dùng nó. **Thêm trang mới:** thêm mục vào `nav` của cổng cần có, tạo `apps/web/src/app/<cổng>/<slug>/page.tsx` (trang mỏng gọi component của feature; trang dùng ở nhiều cổng thì mỗi cổng một route gọi chung một component, không sao chép code), rồi chạy `portals.spec.ts` (kiểm mọi mục menu có trang). Component dùng chung giữa cổng dựng liên kết bằng `usePortalBase()` (client) hoặc prop `base` (server), không viết cứng `/admin`.
 - `src/proxy.ts` đọc claim `roles` trong access token (do `TokenService.issue` thêm) **chỉ để chọn cổng/chuyển hướng**; không bao giờ dùng claim làm bằng chứng quyền (API đọc lại quyền từ CSDL mỗi request). Đổi vai trò của người dùng thu hồi mọi refresh token (`UsersAdminService.update`).
@@ -82,6 +82,11 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 - **Kho riêng tư:** file tài liệu (PDF, MP3, MP4/WebM) chỉ đi qua `PrivateStorageService` (`infrastructure/storage`: bucket `R2_PRIVATE_BUCKET`, hoặc thư mục `PRIVATE_UPLOAD_DIR` với driver local; production bắt buộc có bucket). Kho này **không có URL công khai**: chỉ cấp URL đọc ký sẵn hết hạn 5 phút (`presignGet`) **sau khi** service kiểm tra đối tượng xem; không bao giờ ghi URL ký sẵn vào log, `audit_logs`, CSDL hay kết quả tool Agent. Khoá object `lib-<uuid>.<đuôi>` (`newPrivateKey`), loại thật nhận dạng bằng magic bytes (`private-types.ts`). Ảnh bìa vẫn đi luồng media công khai (`MediaService.presign/complete` nhận hàm kiểm tra quyền riêng). Dữ liệu sau này cần riêng tư (ảnh biên bản chấm, minh chứng điều chỉnh điểm…) dùng kho này.
 - **Ai đọc được gì** ở một chỗ: `features/library/library-audience.ts` (`publishedWhere` cho danh sách, `canRead` trước khi cấp URL). Khách chỉ thấy danh mục tài liệu `ALL`; học sinh `ALL` + khối/lớp mình, **không bao giờ `TEACHERS_ONLY`**; nhân sự mọi tài liệu đã đăng; tài liệu không đọc được luôn 404. Danh mục công khai qua `use cache` + `cacheTag('library')`; người đăng nhập gọi API kèm cookie (không cache).
 - **Nguồn và giấy phép bắt buộc** (zod + CHECK CSDL). Quyền `library:submit` (TEACHER, LIBRARIAN, PRINCIPAL), `library:manage` (LIBRARIAN, PRINCIPAL); **ADMIN không có quyền thư viện**. Luồng `DRAFT` → `PENDING_REVIEW` → `PUBLISHED`/`REJECTED` (lý do bắt buộc), `ARCHIVED`; chuyển trạng thái có điều kiện (chống duyệt hai lần). Tìm không dấu bằng cột `search_text` (`normalizeSearch` ở `@pvh/shared`) + index pg_trgm, không dùng `unaccent`. Lượt đọc gộp theo ngày (`library_views`), một lượt/người/tài liệu/30 phút. Giới hạn `library-access` (30/phút), `library-submit` (20/giờ).
+
+## Trắc nghiệm ôn tập (bước 22)
+
+- `features/quizzes`: kết quả **chỉ để ôn tập, không bao giờ ghi vào `scores`/`score_history`** (e2e kiểm tra số dòng bảng điểm không đổi). Chấm **ở server** (`QuizAttemptsService.finalize`, hàm thuần `grade`/`isAnswerCorrect`): API đề khi đang làm không bao giờ trả đáp án đúng hay giải thích; câu nhiều đáp án phải đúng hết mới được điểm. Hạn nộp lưu ở `quiz_attempts.deadline`, quá hạn + `QUIZ_SUBMIT_GRACE_SEC` thì tự nộp phần đã lưu và không nhận câu mới (`acceptsAnswers`); câu hỏi bị khoá khi quiz đã có lượt làm.
+- Quyền `quiz:create` (TEACHER, PRINCIPAL; giáo viên chỉ môn mình dạy theo `teaching_assignments` năm hiện hành, chỉ giao cho khối/lớp mình dạy môn đó, chỉ sửa quiz của mình – `teacherScope`, `teacherTargetProblem` ở `quiz-rules.ts`), `quiz:manage` (LIBRARIAN, PRINCIPAL: mọi quiz, giao toàn trường); ADMIN không có. Chỉ học sinh làm bài, đúng đối tượng (`openQuizWhere`/`canTake`, cùng mô hình với thư viện số). Giáo viên tự công bố (không qua duyệt). Giới hạn `quiz-start`, `quiz-write`. Nhập Excel dùng `readSheet` chung (xem trước → xác nhận, Redis 30 phút). Không có tool AI Agent.
 
 ## Thông báo theo đối tượng (bước 20)
 

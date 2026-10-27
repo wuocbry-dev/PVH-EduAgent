@@ -14,3 +14,4 @@ export * from './timetable.js';
 export * from './scores.js';
 export * from './announcements.js';
 export * from './library.js';
+export * from './quiz.js';

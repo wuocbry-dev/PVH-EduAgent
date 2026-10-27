@@ -174,7 +174,7 @@ describe('Thư viện số (bước 21, e2e)', () => {
     it('thủ thư đăng nhập vào cổng /thu-thu (vai trò LIBRARIAN, quyền library:*)', async () => {
       const me = (await librarian.get('/auth/me').expect(200)).body;
       expect(me.roles).toEqual(['LIBRARIAN']);
-      expect([...me.permissions].sort((a: string, b: string) => a.localeCompare(b))).toEqual(['library:manage', 'library:submit']);
+      expect([...me.permissions].sort((a: string, b: string) => a.localeCompare(b))).toEqual(['library:manage', 'library:submit', 'quiz:manage']);
     });
   });
 

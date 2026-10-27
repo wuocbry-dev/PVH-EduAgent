@@ -25,6 +25,8 @@ export const PERMISSIONS = [
   'announcement:manage',
   'library:submit',
   'library:manage',
+  'quiz:create',
+  'quiz:manage',
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
@@ -46,7 +48,9 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
       !isScorePermission(p) &&
       !p.startsWith('announcement:') &&
       // Thư viện số (bước 21): duyệt nội dung là việc của thủ thư và BGH, không phải của quản trị hệ thống.
-      !p.startsWith('library:'),
+      !p.startsWith('library:') &&
+      // Trắc nghiệm ôn tập (bước 22) cũng là nội dung học tập.
+      !p.startsWith('quiz:'),
   ),
   // BGH tạo đợt thi chung và xem mọi điểm nhưng không tự nhập điểm (score:enter là của giáo viên được phân công).
   PRINCIPAL: PERMISSIONS.filter(
@@ -54,9 +58,10 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   ),
   EDITOR: ['task:read:all', 'post:create', 'post:approve', 'post:schedule', 'post:unpublish'],
   // Thủ thư (bước 21): quản lý danh mục, duyệt/ẩn tài liệu, xem thống kê thư viện số; cũng tự gửi tài liệu.
-  LIBRARIAN: ['library:submit', 'library:manage'],
+  // quiz:manage (bước 22): quản lý mọi bộ trắc nghiệm ôn tập; quiz:create (giáo viên) chỉ môn mình dạy.
+  LIBRARIAN: ['library:submit', 'library:manage', 'quiz:manage'],
   // announcement:send của giáo viên chỉ cho lớp mình dạy/chủ nhiệm (kiểm tra trong service); announcement:manage = mọi đối tượng.
-  TEACHER: ['task:read:own', 'post:create', 'score:enter', 'announcement:send', 'library:submit'],
+  TEACHER: ['task:read:own', 'post:create', 'score:enter', 'announcement:send', 'library:submit', 'quiz:create'],
   STUDENT: [],
 };
 
