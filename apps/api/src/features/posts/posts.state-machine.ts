@@ -16,8 +16,6 @@ interface Rule {
   permissions: readonly Permission[];
   // Chỉ tác giả của bài được làm.
   authorOnly?: boolean;
-  // Chỉ vai trò ADMIN (xóa vĩnh viễn).
-  adminOnly?: boolean;
 }
 
 export const POST_RULES: Record<PostAction, Rule> = {
@@ -33,7 +31,7 @@ export const POST_RULES: Record<PostAction, Rule> = {
   cancel_schedule: { from: ['SCHEDULED'], permissions: ['post:schedule'] },
   unpublish: { from: ['PUBLISHED'], permissions: ['post:unpublish'] },
   restore: { from: ['ARCHIVED'], permissions: ['post:unpublish'] },
-  // Xóa nháp (tác giả) hoặc xóa vĩnh viễn bài đã gỡ (ADMIN); xem canDelete().
+  // Xóa nháp (tác giả có post:create) hoặc xóa vĩnh viễn bài đã gỡ (post:delete, chỉ BGH); quyền theo trạng thái: DELETE_PERMISSION.
   delete: { from: ['DRAFT', 'ARCHIVED'], permissions: [] },
 };
 
@@ -116,7 +114,12 @@ export interface PostRef {
   authorId: string;
 }
 
-// Người dùng có đủ điều kiện (quyền, tác giả, vai trò) cho thao tác này không — chưa xét trạng thái.
+// Quyền cần để xoá bài: nháp là bài của tác giả (post:create), bài đã gỡ thì xoá vĩnh viễn (post:delete).
+export const DELETE_PERMISSION = { DRAFT: 'post:create', ARCHIVED: 'post:delete' } as const satisfies Partial<
+  Record<PostStatus, Permission>
+>;
+
+// Người dùng có đủ điều kiện (quyền, tác giả) cho thao tác này không — chưa xét trạng thái.
 export function actorMay(
   action: PostAction,
   post: PostRef,
@@ -127,9 +130,10 @@ export function actorMay(
     return false;
   }
   if (action === 'delete') {
-    return post.status === 'DRAFT'
-      ? post.authorId === actor.id
-      : actor.roles.includes('ADMIN');
+    if (post.status === 'DRAFT') {
+      return actor.permissions.includes(DELETE_PERMISSION.DRAFT) && post.authorId === actor.id;
+    }
+    return actor.permissions.includes(DELETE_PERMISSION.ARCHIVED);
   }
   return !rule.authorOnly || post.authorId === actor.id;
 }

@@ -26,6 +26,7 @@ const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   'post:approve': 'Duyệt bài viết',
   'post:schedule': 'Hẹn giờ / đăng bài',
   'post:unpublish': 'Gỡ / ẩn bài',
+  'post:delete': 'Xoá vĩnh viễn bài viết đã gỡ',
   'user:manage': 'Quản lý người dùng và phân quyền',
   'setting:manage': 'Sửa cấu hình hệ thống',
   'academic:manage': 'Quản lý năm học, lớp, môn, phòng bộ môn',

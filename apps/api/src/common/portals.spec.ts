@@ -10,6 +10,7 @@ import {
   portalSections,
   portalsFor,
   primaryPortal,
+  ROLE_PERMISSIONS,
   sectionOfPath,
   type Role,
 } from '@pvh/shared';
@@ -90,10 +91,45 @@ describe('cổng theo vai trò (@pvh/shared)', () => {
       expect(go(['STUDENT'], '/thu-thu')).toBe('/hoc-sinh');
     });
 
+    it('trang nghiệp vụ đã bỏ khỏi cổng admin (bước 28) về trang chủ cổng, BGH vẫn vào được trang của mình', () => {
+      expect(go(['ADMIN'], '/admin/phan-cong')).toBe('/admin');
+      expect(go(['ADMIN'], '/admin/thoi-khoa-bieu')).toBe('/admin');
+      expect(go(['ADMIN'], '/admin/hoc-vu')).toBeNull();
+      expect(go(['ADMIN'], '/admin/loi-he-thong')).toBeNull();
+      expect(go(['PRINCIPAL'], '/admin/phan-cong')).toBe('/bgh/phan-cong');
+      expect(go(['PRINCIPAL'], '/admin/thoi-khoa-bieu')).toBe('/bgh/thoi-khoa-bieu');
+    });
+
     it('đường dẫn ngoài các cổng không bị đụng tới; không có vai trò nào thì về trang chủ', () => {
       expect(go(['TEACHER'], '/tin-tuc')).toBeNull();
       expect(go([], '/bgh')).toBe('/');
     });
+  });
+
+  it('menu admin chỉ có việc hệ thống, theo nhóm Tài khoản → Dữ liệu trường → Hệ thống (bước 28)', () => {
+    const nav = PORTAL_INFO.admin.nav;
+    expect(nav.some((n) => n.slug === 'phan-cong' || n.slug === 'thoi-khoa-bieu')).toBe(false);
+    expect(nav.map((n) => [n.group ?? '', n.label])).toEqual([
+      ['', 'Tổng quan hệ thống'],
+      ['Tài khoản', 'Người dùng'],
+      ['Tài khoản', 'Nhập danh sách'],
+      ['Tài khoản', 'Vai trò và quyền'],
+      ['Tài khoản', 'Bảo mật và đăng nhập'],
+      ['Dữ liệu trường', 'Học vụ'],
+      ['Hệ thống', 'Cấu hình'],
+      ['Hệ thống', 'Trợ lý AI'],
+      ['Hệ thống', 'Nhật ký hoạt động'],
+      ['Hệ thống', 'Lỗi và hàng đợi'],
+    ]);
+    // Mỗi nhóm liền một khối (menu hiện tiêu đề khi nhóm đổi, nhóm lặp lại sẽ bị hiện hai lần).
+    const groups = nav.map((n) => n.group).filter((g, i, all) => g !== all[i - 1]);
+    expect(new Set(groups).size).toBe(groups.length);
+    // Mục admin chỉ cần quyền ADMIN đang có: không mục nào ẩn mất với ADMIN.
+    for (const item of nav) {
+      expect(!item.permissions || item.permissions.some((p) => ROLE_PERMISSIONS.ADMIN.includes(p)), item.slug).toBe(true);
+    }
+    // Cổng khác không khai nhóm: menu phẳng như cũ.
+    for (const portal of PORTALS.filter((p) => p !== 'admin')) expect(PORTAL_INFO[portal].nav.every((n) => !n.group)).toBe(true);
   });
 
   it('mọi mục trong menu và trang chung đều có trang tương ứng trong apps/web/src/app (không menu trỏ vào 404)', () => {
@@ -112,5 +148,8 @@ describe('cổng theo vai trò (@pvh/shared)', () => {
     }
     expect(existsSync(resolve(app, 'hoc-sinh', 'doi-mat-khau', 'page.tsx'))).toBe(true);
     expect(portalSections('bgh')).toContain('bai-viet');
+    // Trang đã bỏ khỏi menu thì thư mục trang cũng đã xoá (bước 28).
+    expect(existsSync(resolve(app, 'admin', 'phan-cong'))).toBe(false);
+    expect(existsSync(resolve(app, 'admin', 'thoi-khoa-bieu'))).toBe(false);
   });
 });

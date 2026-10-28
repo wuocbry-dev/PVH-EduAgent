@@ -44,7 +44,7 @@ const ASSIGNMENT_INCLUDE = {
 } satisfies Prisma.TeachingAssignmentInclude;
 type AssignmentRow = Prisma.TeachingAssignmentGetPayload<{ include: typeof ASSIGNMENT_INCLUDE }>;
 
-// Phân công giảng dạy (bước 16). Xem: `teaching:read` (BGH, ADMIN); sửa: `teaching:assign` (chỉ BGH).
+// Phân công giảng dạy (bước 16). Xem: `teaching:read` (chỉ BGH, bước 28); sửa: `teaching:assign` (chỉ BGH).
 // Giáo viên chỉ xem phân công của chính mình (`mine`). Mọi thay đổi ghi audit `teaching.*`.
 @Injectable()
 export class TeachingService {

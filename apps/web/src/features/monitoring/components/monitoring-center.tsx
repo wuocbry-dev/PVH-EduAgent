@@ -2,9 +2,10 @@
 
 import { ALERT_KIND_NAMES, ROLE_NAMES, USER_STATUS_NAMES, type BulkUserAction, type BulkUserActionResultDto, type UserDto } from "@pvh/shared";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { formatDateTime } from "@/shared/lib/format";
 import { errorText, useData } from "@/shared/lib/use-data";
+import { usePortalBase } from "@/shared/lib/use-portal-base";
 import { errorClass, inputClass } from "@/shared/ui/form-styles";
 import {
   bulkUserAction,
@@ -22,13 +23,17 @@ import {
   unblock,
 } from "../api/monitoring-api";
 
+// Bước 28: hai mục menu cùng dùng trang này. "Lỗi và hàng đợi" (nhóm Hệ thống) và "Bảo mật và đăng nhập" (nhóm Tài khoản).
+export type MonitoringSection = "system" | "security";
+const SECTION_SLUG: Record<MonitoringSection, string> = { system: "loi-he-thong", security: "giam-sat" };
+
 const TABS = [
-  { id: "canh-bao", label: "Cảnh báo" },
-  { id: "loi", label: "Nhật ký lỗi" },
-  { id: "hang-doi", label: "Hàng đợi" },
-  { id: "bao-mat", label: "Bảo mật đăng nhập" },
-  { id: "phien", label: "Phiên đăng nhập" },
-] as const;
+  { id: "canh-bao", label: "Cảnh báo", section: "system" },
+  { id: "loi", label: "Nhật ký lỗi", section: "system" },
+  { id: "hang-doi", label: "Hàng đợi", section: "system" },
+  { id: "bao-mat", label: "Bảo mật đăng nhập", section: "security" },
+  { id: "phien", label: "Phiên đăng nhập", section: "security" },
+] as const satisfies readonly { id: string; label: string; section: MonitoringSection }[];
 type TabId = (typeof TABS)[number]["id"];
 
 const smallButton = "rounded border border-black/20 px-2 py-1 text-sm hover:bg-black/5 disabled:opacity-50 dark:border-white/25 dark:hover:bg-white/10";
@@ -54,18 +59,28 @@ function useAction(reload: () => void) {
   return { busy, error, run };
 }
 
-// Trang Giám sát và bảo mật của cổng /admin (bước 26). Thẻ đang mở nằm trên URL (?tab=…, ?user=…) để liên kết thẳng được.
-export function MonitoringCenter() {
+// Trang giám sát của cổng /admin (bước 26). Thẻ đang mở nằm trên URL (?tab=…, ?user=…) để liên kết thẳng được.
+// Liên kết cũ trỏ tới thẻ của mục kia (vd. /admin/giam-sat?tab=loi) được chuyển sang đúng trang, giữ tham số.
+export function MonitoringCenter({ section }: { section: MonitoringSection }) {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const tab: TabId = TABS.some((t) => t.id === params.get("tab")) ? (params.get("tab") as TabId) : "canh-bao";
+  const base = usePortalBase();
+  const tabs = TABS.filter((t) => t.section === section);
+  const requested = TABS.find((t) => t.id === params.get("tab"));
+  const tab: TabId = requested?.section === section ? requested.id : tabs[0].id;
   const select = (id: TabId) => router.replace(`${pathname}?tab=${id}`, { scroll: false });
+
+  useEffect(() => {
+    if (requested && requested.section !== section) {
+      router.replace(`${base}/${SECTION_SLUG[requested.section]}?${params.toString()}`);
+    }
+  }, [requested, section, base, params, router]);
 
   return (
     <div className="space-y-4">
       <div role="tablist" aria-label="Mục giám sát" className="flex flex-wrap gap-2">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button
             key={t.id}
             type="button"

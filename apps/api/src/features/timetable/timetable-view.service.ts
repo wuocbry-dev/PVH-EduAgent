@@ -56,7 +56,7 @@ export class TimetableViewService {
     return this.build({ kind: 'teacher', teacherId: id, title: `Lịch dạy của ${teacher.fullName}` }, date);
   }
 
-  // Quản lý/ADMIN xem mọi lớp; học sinh lớp mình học; giáo viên lớp mình dạy hoặc chủ nhiệm.
+  // BGH (timetable:read) xem mọi lớp; học sinh lớp mình học; giáo viên lớp mình dạy hoặc chủ nhiệm.
   async canViewClass(actor: AuthUser, classId: bigint): Promise<boolean> {
     if (can(actor, 'timetable:read')) return true;
     const userId = BigInt(actor.id);

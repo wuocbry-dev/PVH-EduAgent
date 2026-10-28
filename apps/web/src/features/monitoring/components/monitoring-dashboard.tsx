@@ -135,8 +135,8 @@ function Overview({
               </li>
             ))}
           </ul>
-          <Link href={`${base}/giam-sat`} className="text-sm underline">
-            Xem và xử lý ở trang Giám sát và bảo mật
+          <Link href={`${base}/loi-he-thong`} className="text-sm underline">
+            Xem và xử lý ở trang Lỗi và hàng đợi
           </Link>
         </section>
       )}
@@ -161,10 +161,10 @@ function Overview({
       </section>
 
       <section aria-label="Số liệu chính" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <Tile label="Lỗi máy chủ (24 giờ)" value={errors24h.toLocaleString("vi-VN")} alert={errors24h > 0} href={`${base}/giam-sat?tab=loi`} />
+        <Tile label="Lỗi máy chủ (24 giờ)" value={errors24h.toLocaleString("vi-VN")} alert={errors24h > 0} href={`${base}/loi-he-thong?tab=loi`} />
         <Tile label="Đăng nhập sai (24 giờ)" value={data.failedLogins24h.toLocaleString("vi-VN")} href={`${base}/giam-sat?tab=bao-mat`} />
         <Tile label="Đang bị chặn tạm" value={data.blockedCount.toLocaleString("vi-VN")} note="IP / tài khoản nhập sai nhiều" href={`${base}/giam-sat?tab=bao-mat`} />
-        <Tile label="Job thất bại đang lưu" value={failedJobs.toLocaleString("vi-VN")} alert={failedJobs > 0} href={`${base}/giam-sat?tab=hang-doi`} />
+        <Tile label="Job thất bại đang lưu" value={failedJobs.toLocaleString("vi-VN")} alert={failedJobs > 0} href={`${base}/loi-he-thong?tab=hang-doi`} />
         <Tile
           label={data.storage?.driver === "local" ? "Dung lượng kho (local)" : "Dung lượng R2"}
           value={data.storage ? `${data.storage.percent.toLocaleString("vi-VN")}%` : "Chưa đo"}

@@ -91,7 +91,7 @@ export const ROUTES: Record<string, Access> = {
   'POST /posts/:id/cancel-schedule': ['post:schedule'],
   'POST /posts/:id/unpublish': ['post:unpublish'],
   'POST /posts/:id/restore': ['post:unpublish'],
-  'DELETE /posts/:id': ['post:create|role:ADMIN'],
+  'DELETE /posts/:id': ['post:create|post:delete'], // nháp: tác giả (post:create); bài đã gỡ: post:delete (chỉ BGH)
 
   'GET /public/posts': 'public',
   'GET /public/posts/:slug': 'public',
@@ -146,8 +146,8 @@ export const ROUTES: Record<string, Access> = {
   'GET /timetable/unavailability/mine': 'self',
   'PUT /timetable/unavailability/mine': 'self', // chỉ giáo viên (có hồ sơ giáo viên)
   'GET /timetable/view/mine': 'self',
-  'GET /timetable/view/class/:classId': 'self', // quản lý/ADMIN mọi lớp; học sinh lớp mình; giáo viên lớp mình dạy
-  'GET /timetable/view/teacher/:teacherId': 'self', // quản lý/ADMIN mọi giáo viên; giáo viên chỉ của mình
+  'GET /timetable/view/class/:classId': 'self', // BGH (timetable:read) mọi lớp; học sinh lớp mình; giáo viên lớp mình dạy
+  'GET /timetable/view/teacher/:teacherId': 'self', // BGH (timetable:read) mọi giáo viên; giáo viên chỉ của mình
   'GET /timetable/export': ['timetable:read'],
 
   'GET /teaching/quotas': ['teaching:read'],

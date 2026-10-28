@@ -11,6 +11,8 @@ export interface PortalNavItem {
   label: string;
   // Hiện mục khi người dùng có ít nhất một quyền trong danh sách; bỏ trống = hiện cho mọi người trong cổng.
   permissions?: readonly Permission[];
+  // Tiêu đề nhóm: menu hiện tiêu đề nhỏ mỗi khi nhóm đổi so với mục trước. Cổng không khai nhóm thì menu phẳng như cũ.
+  group?: string;
 }
 
 export interface PortalInfo {
@@ -28,16 +30,19 @@ export const PORTAL_INFO: Record<Portal, PortalInfo> = {
     name: 'Quản trị hệ thống',
     roles: ['ADMIN'],
     nav: [
-      { slug: '', label: 'Tổng quan' },
-      { slug: 'nguoi-dung', label: 'Người dùng', permissions: ['user:manage'] },
-      { slug: 'nhap-danh-sach', label: 'Nhập danh sách', permissions: ['student:import'] },
-      { slug: 'vai-tro', label: 'Vai trò và quyền', permissions: ['user:manage'] },
-      { slug: 'phan-cong', label: 'Phân công giảng dạy', permissions: ['teaching:read'] },
-      { slug: 'thoi-khoa-bieu', label: 'Thời khoá biểu', permissions: ['timetable:read'] },
-      { slug: 'cau-hinh', label: 'Cấu hình', permissions: ['system:read'] },
-      { slug: 'nhat-ky', label: 'Nhật ký hoạt động', permissions: ['system:read'] },
-      { slug: 'giam-sat', label: 'Giám sát và bảo mật', permissions: ['system:read'] },
-      { slug: 'giam-sat-ai', label: 'Giám sát Trợ lý AI', permissions: ['system:read'] },
+      // Bước 28: chỉ việc hệ thống và dữ liệu học vụ gốc (phân công, thời khoá biểu là của BGH). Slug giam-sat, giam-sat-ai
+      // giữ nguyên vì tin Telegram và cảnh báo cũ dẫn tới đó.
+      { slug: '', label: 'Tổng quan hệ thống' },
+      { slug: 'nguoi-dung', label: 'Người dùng', permissions: ['user:manage'], group: 'Tài khoản' },
+      { slug: 'nhap-danh-sach', label: 'Nhập danh sách', permissions: ['student:import'], group: 'Tài khoản' },
+      { slug: 'vai-tro', label: 'Vai trò và quyền', permissions: ['user:manage'], group: 'Tài khoản' },
+      { slug: 'giam-sat', label: 'Bảo mật và đăng nhập', permissions: ['system:read'], group: 'Tài khoản' },
+      { slug: 'hoc-vu', label: 'Học vụ', permissions: ['academic:manage'], group: 'Dữ liệu trường' },
+      { slug: 'cau-hinh', label: 'Cấu hình', permissions: ['system:read'], group: 'Hệ thống' },
+      { slug: 'giam-sat-ai', label: 'Trợ lý AI', permissions: ['system:read'], group: 'Hệ thống' },
+      { slug: 'nhat-ky', label: 'Nhật ký hoạt động', permissions: ['system:read'], group: 'Hệ thống' },
+      // Cùng trang giám sát với 'giam-sat' nhưng chỉ các thẻ cảnh báo, lỗi máy chủ, hàng đợi job.
+      { slug: 'loi-he-thong', label: 'Lỗi và hàng đợi', permissions: ['system:read'], group: 'Hệ thống' },
     ],
   },
   bgh: {

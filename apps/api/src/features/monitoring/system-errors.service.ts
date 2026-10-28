@@ -71,7 +71,7 @@ export class SystemErrorsService implements ErrorSink {
         'error_spike',
         ERROR_SPIKE_KEY,
         `${count} lỗi máy chủ (5xx) trong ${ERROR_SPIKE_WINDOW_SEC / 60} phút`,
-        `Lỗi gần nhất: ${route} (${report.statusCode}) – ${message}. Xem trang Giám sát và bảo mật để biết các nhóm lỗi.`,
+        `Lỗi gần nhất: ${route} (${report.statusCode}) – ${message}. Xem trang Lỗi và hàng đợi để biết các nhóm lỗi.`,
       );
     }
   }
@@ -89,7 +89,7 @@ export class SystemErrorsService implements ErrorSink {
           'job_failures',
           `job_failures:${queue}`,
           `Hàng đợi ${queue}: ${count} job thất bại liên tiếp`,
-          `Job gần nhất: ${jobName}, đã thử ${attemptsMade} lần – ${message}. Có thể chạy lại ở trang Giám sát và bảo mật.`,
+          `Job gần nhất: ${jobName}, đã thử ${attemptsMade} lần – ${message}. Có thể chạy lại ở trang Lỗi và hàng đợi.`,
         );
       }
     } catch (err) {

@@ -6,7 +6,7 @@ So sánh yêu cầu ở `docs/01-phan-tich-de-tai.md` (mục 4: F01–F17, A01�
 - **Code:** API ở `apps/api/src/features/<tên>`, giao diện ở `apps/web/src/features/<tên>` và các trang trong `apps/web/src/app`.
 - **Test:** tên file trong `apps/api/test/` (e2e, cần PostgreSQL + Redis) hoặc `*.spec.ts` (unit).
 - **Sơ đồ:** file trong `docs/diagrams/drawio/`.
-- **Số liệu (cập nhật ở bước 27):** 232 unit test + 393 e2e test xanh, 244 endpoint (220 cần đăng nhập), 62 bảng CSDL.
+- **Số liệu (cập nhật ở bước 28):** 235 unit test + 393 e2e test xanh, 244 endpoint (220 cần đăng nhập), 62 bảng CSDL.
 
 ## 1. Phân hệ Website công khai
 
@@ -54,23 +54,24 @@ So sánh yêu cầu ở `docs/01-phan-tich-de-tai.md` (mục 4: F01–F17, A01�
 | 13 | Telegram báo người duyệt khi có bài gửi duyệt | Đủ | `telegram` (`telegram-review.service.ts`) | `telegram-review.e2e-spec.ts` | Từ bước 23 ADMIN không còn nhận (không có quyền duyệt) |
 | 14 | Học vụ (năm học, học kỳ, khối, lớp, môn, tổ, phòng), tài khoản hàng loạt, mã kích hoạt | Đủ | `academic`, `roster`, `activation` / `/bgh/hoc-vu`, `/admin/nhap-danh-sach`, `/kich-hoat` | `academic.e2e-spec.ts`, `roster.e2e-spec.ts` | Chỉ lưu dữ liệu học sinh tối thiểu; mã kích hoạt chỉ lưu HMAC |
 | 15 | Cổng theo vai trò | Đủ | `packages/shared/src/portals.ts`, `apps/web/src/proxy.ts` / `/admin`, `/bgh`, `/bien-tap`, `/thu-thu`, `/giao-vien`, `/hoc-sinh` | `portals.e2e-spec.ts`, `portals.spec.ts` | Claim `roles` trong token chỉ để chọn cổng |
-| 16 | Phân công giảng dạy | Đủ | `teaching` / `/bgh/phan-cong`, `/admin/phan-cong` | `teaching.e2e-spec.ts`, `teaching-summary.spec.ts` | Định mức và phân công seed là **mẫu** |
-| 17 | Thời khoá biểu | Đủ | `timetable` / `…/thoi-khoa-bieu` | `timetable.e2e-spec.ts` | Chặn trùng giáo viên/lớp/phòng ở CSDL; từ bước 23 không xoá được phòng đang được xếp |
+| 16 | Phân công giảng dạy | Đủ | `teaching` / `/bgh/phan-cong` | `teaching.e2e-spec.ts`, `teaching-summary.spec.ts` | Định mức và phân công seed là **mẫu** |
+| 17 | Thời khoá biểu | Đủ | `timetable` / `/bgh/thoi-khoa-bieu`, `/giao-vien/thoi-khoa-bieu`, `/hoc-sinh/thoi-khoa-bieu` | `timetable.e2e-spec.ts` | Chặn trùng giáo viên/lớp/phòng ở CSDL; từ bước 23 không xoá được phòng đang được xếp |
 | 18 | Đợt thi có mã, nhập điểm | Đủ | `scores` / `/giao-vien/nhap-diem`, `/bgh/diem` | `scores.e2e-spec.ts`, `scores.spec.ts` | Ảnh biên bản chấm chưa làm (chờ dùng kho riêng tư) |
 | 19 | Xem điểm, thống kê, khoá sổ, điều chỉnh | Đủ | `scores` (`score-views`, `score-calendar`, `score-adjustments`) / `…/so-diem`, `/hoc-sinh/diem` | `score-views.e2e-spec.ts`, `score-average.spec.ts` | ĐTB luôn tính lại theo Thông tư 22/2021, không lưu bảng ĐTB |
 | 20 | Cổng học sinh, thông báo theo lớp/khối | Đủ | `announcements`, `events` / `/hoc-sinh/*`, `…/thong-bao` | `announcements.e2e-spec.ts` | – |
 | 21 | Thư viện số (kho riêng tư) | Đủ | `library`, `infrastructure/storage` (private) / `/thu-vien`, `/thu-thu/*`, `…/tu-sach` | `library.e2e-spec.ts` | Đã thử với bucket R2 riêng tư thật |
 | 22 | Trắc nghiệm ôn tập | Đủ | `quizzes` / `…/trac-nghiem` | `quizzes.e2e-spec.ts`, `quiz.spec.ts` | Không tính vào điểm học tập; không có tool AI Agent |
 | 23 | Rà soát bảo mật, ma trận quyền | Đủ | `test/routes.ts`, `test/role-matrix.e2e-spec.ts` | `role-matrix.e2e-spec.ts`, `security.e2e-spec.ts` | Xem mục 6 |
-| 26 | Trung tâm giám sát hệ thống, cảnh báo Telegram cho ADMIN, bảo vệ tài khoản | Đủ | `monitoring`, `users` (phiên đăng nhập) / `/admin`, `/admin/giam-sat` | `monitoring.e2e-spec.ts`, `monitoring-rules.spec.ts` | Thêm trạng thái `OFF` (dịch vụ không dùng/chưa cấu hình) ngoài OK/DEGRADED/DOWN; buộc đăng xuất có độ trễ tối đa 15 phút (access token) |
+| 26 | Trung tâm giám sát hệ thống, cảnh báo Telegram cho ADMIN, bảo vệ tài khoản | Đủ | `monitoring`, `users` (phiên đăng nhập) / `/admin`, `/admin/giam-sat` (bảo mật và đăng nhập), `/admin/loi-he-thong` (lỗi và hàng đợi, tách ở bước 28) | `monitoring.e2e-spec.ts`, `monitoring-rules.spec.ts` | Thêm trạng thái `OFF` (dịch vụ không dùng/chưa cấu hình) ngoài OK/DEGRADED/DOWN; buộc đăng xuất có độ trễ tối đa 15 phút (access token) |
 | 27 | Giám sát AI Agent, công tắc khẩn cấp, hạn mức | Đủ | `agent` (`agent-guard.service.ts`), `monitoring` (`agent-watch`, `agent-stats`) / `/admin/giam-sat-ai` | `agent-guard.e2e-spec.ts`, `agent-guard-rules.spec.ts`, `telegram.e2e-spec.ts` | Thống kê đếm từ `audit_logs` (không thêm bảng); trần chi phí theo `total_cost_usd` mà SDK báo (ước tính của SDK, không phải hoá đơn Anthropic) |
+| 28 | Gọn cổng quản trị: thêm Học vụ, bỏ phân công/thời khoá biểu, xoá vĩnh viễn bài → BGH | Đủ | `posts` (`DELETE_PERMISSION`), `@pvh/shared` (`roles.ts`, `portals.ts`) / `/admin/hoc-vu`, `/bgh/bai-viet` | `posts.e2e-spec.ts`, `teaching.e2e-spec.ts`, `timetable.e2e-spec.ts`, `permissions.spec.ts`, `portals.spec.ts` | Trang giám sát tách thành hai mục menu (Bảo mật và đăng nhập / Lỗi và hàng đợi) theo lựa chọn của người dùng |
 | 24, 25 | Mượn trả sách giấy, tự động xếp thời khoá biểu | Chưa (đã bỏ khỏi lộ trình) | – | – | Tuỳ chọn |
 
 ## 5. Phân quyền (mục 5 tài liệu phân tích)
 
 Ma trận đầy đủ vai trò × quyền, cùng giáo viên chủ nhiệm, ở `docs/04-bang-endpoint-quyen.md`. Khác so với bảng ở mục 5:
 
-- **ADMIN** chỉ còn quyền hệ thống: người dùng, cấu hình, nhật ký, học vụ, nhập danh sách, xem phân công và thời khoá biểu. Không còn quyền duyệt/đăng/gỡ bài và giao việc (quyết định ở bước 23). ADMIN vẫn **xoá vĩnh viễn** được bài đã gỡ.
+- **ADMIN** chỉ còn quyền hệ thống: người dùng, cấu hình, nhật ký, học vụ, nhập danh sách. Không còn quyền duyệt/đăng/gỡ bài và giao việc (bước 23), không xem phân công và thời khoá biểu (bước 28). **Xoá vĩnh viễn** bài đã gỡ là quyền `post:delete`, chỉ BGH (bước 28).
 - **BGH và biên tập viên** cùng duyệt, hẹn giờ và gỡ bài, đúng như mục 5.
 - **Agent không có quyền riêng**, kế thừa đúng quyền của người đã liên kết. Không có tool nào cho người dùng/phân quyền/cấu hình hay cho điểm số. Học sinh không có trợ lý AI và không liên kết Telegram.
 - **Dữ liệu cá nhân học sinh không đi qua Telegram/Agent:** test trong `security.e2e-spec.ts` quét mã nguồn agent/telegram và danh sách tool.

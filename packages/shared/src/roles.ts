@@ -10,6 +10,7 @@ export const PERMISSIONS = [
   'post:approve',
   'post:schedule',
   'post:unpublish',
+  'post:delete',
   'user:manage',
   'setting:manage',
   'academic:manage',
@@ -39,16 +40,16 @@ export const SCORE_PERMISSIONS = ['score:enter', 'assessment:manage', 'score:rea
 const isScorePermission = (p: Permission) => (SCORE_PERMISSIONS as readonly Permission[]).includes(p);
 
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
-  // ADMIN chỉ xem phân công giảng dạy và thời khoá biểu (teaching:read, timetable:read); xếp và công bố là việc của Ban giám hiệu.
+  // Bước 28: phân công giảng dạy và thời khoá biểu (cả xem lẫn xếp) là việc của Ban giám hiệu; ADMIN chỉ lo hệ thống và dữ liệu học vụ gốc.
   // Thông báo cho học sinh/giáo viên (bước 20) là việc của BGH và giáo viên, không phải của quản trị hệ thống.
   // Bước 23: bài viết (duyệt/đăng/gỡ) là việc của BGH và biên tập viên, giao việc là của BGH; cổng /admin không có các trang này.
-  // ADMIN vẫn xoá vĩnh viễn được bài đã gỡ (luật theo vai trò ở posts.state-machine.ts, không theo quyền).
+  // Xoá vĩnh viễn bài đã gỡ (post:delete) cũng là của BGH (bước 28).
   ADMIN: PERMISSIONS.filter(
     (p) =>
       !p.startsWith('post:') &&
       !p.startsWith('task:') &&
-      p !== 'teaching:assign' &&
-      p !== 'timetable:manage' &&
+      !p.startsWith('teaching:') &&
+      !p.startsWith('timetable:') &&
       !isScorePermission(p) &&
       !p.startsWith('announcement:') &&
       // Thư viện số (bước 21): duyệt nội dung là việc của thủ thư và BGH, không phải của quản trị hệ thống.

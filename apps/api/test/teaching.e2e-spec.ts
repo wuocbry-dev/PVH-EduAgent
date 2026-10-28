@@ -105,21 +105,18 @@ describe('Phân công giảng dạy (bước 16, e2e)', () => {
   });
 
   describe('quyền', () => {
-    it('BGH xem và sửa; ADMIN chỉ xem; biên tập viên, giáo viên, học sinh bị 403 mọi API quản lý', async () => {
+    it('chỉ BGH xem và sửa; ADMIN (bước 28), biên tập viên, giáo viên, học sinh bị 403 mọi API quản lý', async () => {
       await principal.get('/teaching/summary').expect(200);
-      await admin.get('/teaching/summary').expect(200);
-      await admin.get('/teaching/assignments').expect(200);
-      await admin.get('/teaching/quotas').expect(200);
-      // ADMIN không có quyền phân công.
-      await admin.put('/teaching/quotas').send({ gradeLevel: 10, subjectId: subjectA.id, periodsPerWeek: 2 }).expect(403);
-      await admin.post('/teaching/assignments').send({ classId: cls1.id, subjectId: subjectA.id, teacherId: t1.id, periodsPerWeek: 2 }).expect(403);
+      await principal.get('/teaching/assignments').expect(200);
+      await principal.get('/teaching/quotas').expect(200);
+      // ADMIN không còn quyền xem phân công (bước 28) và chưa bao giờ có quyền phân công.
       await admin.put(`/teaching/teachers/${t1.id}/quota`).send({ weeklyQuota: 10 }).expect(403);
       const me = (await admin.get('/auth/me').expect(200)).body;
-      expect(me.permissions).toContain('teaching:read');
+      expect(me.permissions).not.toContain('teaching:read');
       expect(me.permissions).not.toContain('teaching:assign');
+      expect((await admin.get('/teaching/mine').expect(200)).body.items).toEqual([]); // trang "của tôi" vẫn trả rỗng, không lỗi
 
-      for (const who of [EDITOR, SEED_TEACHER, STUDENT]) {
-        const a = await loginAs(who);
+      for (const a of [admin, ...(await Promise.all([EDITOR, SEED_TEACHER, STUDENT].map((w) => loginAs(w))))]) {
         for (const path of ['/teaching/summary', '/teaching/assignments', '/teaching/quotas', '/teaching/summary/export']) {
           await a.get(path).expect(403);
         }

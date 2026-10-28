@@ -57,7 +57,7 @@ const vnDate = (iso: string) => iso.split('-').reverse().join('/');
 const CONCURRENT = 'Vừa có người khác xếp trùng tiết này, hãy tải lại lưới rồi thử lại';
 
 // Thời khoá biểu (bước 17): khung tiết, phiên bản, xếp tiết trên lưới, tiết cố định, tiết bận, công bố.
-// Xem: `timetable:read` (BGH, ADMIN); xếp/công bố: `timetable:manage` (chỉ BGH). Trùng giáo viên/lớp/phòng bị CSDL chặn
+// Xem: `timetable:read` (chỉ BGH, bước 28); xếp/công bố: `timetable:manage` (chỉ BGH). Trùng giáo viên/lớp/phòng bị CSDL chặn
 // bằng ràng buộc duy nhất; service kiểm tra trước để báo lý do dễ hiểu, và bắt lỗi ràng buộc khi hai người sửa cùng lúc.
 @Injectable()
 export class TimetableService {

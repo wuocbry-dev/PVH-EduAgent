@@ -18,7 +18,7 @@ Thêm endpoint mới mà chưa cập nhật bảng thì test đỏ.
 
 Ký hiệu trong các bảng dưới: **Công khai** = không cần đăng nhập; **Tự phục vụ** = cần đăng nhập, chỉ thao tác dữ liệu của chính mình; còn lại là quyền cần có (nhiều quyền = cần đủ hoặc theo ghi chú). Trong `ROUTES`: mỗi phần tử của mảng phải thoả, `'a|b'` = một trong các quyền, `'role:ADMIN'` = đúng vai trò, `'student'` = chỉ học sinh.
 
-## Ma trận vai trò × quyền (bước 23)
+## Ma trận vai trò × quyền (bước 23, cập nhật bước 28)
 
 Sinh từ `ROLE_PERMISSIONS` (`packages/shared/src/roles.ts`); seed đồng bộ bảng `role_permissions` theo đó, ADMIN sửa được trên trang Vai trò (trừ việc gỡ `user:manage`/`setting:manage` khỏi ADMIN).
 
@@ -32,13 +32,14 @@ Sinh từ `ROLE_PERMISSIONS` (`packages/shared/src/roles.ts`); seed đồng bộ
 | `post:approve` | Duyệt bài viết | – | ✔ | ✔ | – | – | – |
 | `post:schedule` | Hẹn giờ / đăng bài | – | ✔ | ✔ | – | – | – |
 | `post:unpublish` | Gỡ / ẩn bài | – | ✔ | ✔ | – | – | – |
+| `post:delete` | Xoá vĩnh viễn bài viết đã gỡ | – | ✔ | – | – | – | – |
 | `user:manage` | Quản lý người dùng và phân quyền | ✔ | – | – | – | – | – |
 | `setting:manage` | Sửa cấu hình hệ thống | ✔ | – | – | – | – | – |
 | `academic:manage` | Quản lý năm học, lớp, môn, phòng bộ môn | ✔ | ✔ | – | – | – | – |
 | `student:import` | Nhập danh sách giáo viên/học sinh từ Excel, phát mã kích hoạt | ✔ | – | – | – | – | – |
-| `teaching:read` | Xem phân công giảng dạy và định mức tiết | ✔ | ✔ | – | – | – | – |
+| `teaching:read` | Xem phân công giảng dạy và định mức tiết | – | ✔ | – | – | – | – |
 | `teaching:assign` | Phân công giảng dạy, đặt định mức tiết | – | ✔ | – | – | – | – |
-| `timetable:read` | Xem toàn bộ thời khoá biểu (các phiên bản, theo lớp/giáo viên/phòng) | ✔ | ✔ | – | – | – | – |
+| `timetable:read` | Xem toàn bộ thời khoá biểu (các phiên bản, theo lớp/giáo viên/phòng) | – | ✔ | – | – | – | – |
 | `timetable:manage` | Xếp, công bố thời khoá biểu, quản lý khung tiết và tiết cố định | – | ✔ | – | – | – | – |
 | `score:enter` | Nhập điểm cho lớp–môn được phân công (giáo viên) | – | – | – | – | ✔ | – |
 | `assessment:manage` | Tạo đợt thi giữa kỳ/cuối kỳ chung, đặt hạn nhập điểm, miễn kiểm tra | – | ✔ | – | – | – | – |
@@ -63,10 +64,10 @@ Test: `academic.e2e-spec.ts` (lớp khác 403), `roster.e2e-spec.ts` (cấp lạ
 **Đối chiếu với mục 5 tài liệu phân tích** (`docs/01-phan-tich-de-tai.md`). Theo quyết định của người dùng ở bước 23:
 
 - ADMIN **không còn** quyền bài viết (tạo, duyệt, hẹn giờ, gỡ) và giao việc. Các việc này là của BGH và biên tập viên; cổng `/admin` cũng không có các trang này từ bước 15.
-- ADMIN vẫn **xoá vĩnh viễn** được bài đã gỡ (luật theo vai trò, đúng dòng "Xoá vĩnh viễn dữ liệu" của mục 5).
+- **Xoá vĩnh viễn** bài đã gỡ dùng quyền `post:delete`, **chỉ BGH** (bước 28; trước đó là luật theo vai trò ADMIN theo dòng "Xoá vĩnh viễn dữ liệu" của mục 5). Cổng `/admin` không có trang bài viết nên quyền này chuyển cho BGH, người bấm được ở `/bgh/bai-viet`.
 - BGH và biên tập viên cùng duyệt, hẹn giờ và gỡ bài (giữ như mục 5).
 - Hạn chót của bản thân (`task:read:own`) chỉ còn BGH và giáo viên; biên tập viên xem mọi hạn chót (`task:read:all`).
-- ADMIN không có quyền điểm, thông báo, thư viện, trắc nghiệm hay xếp lịch. Đây là dữ liệu học tập, không phải việc quản trị hệ thống.
+- ADMIN không có quyền điểm, thông báo, thư viện, trắc nghiệm, xem/xếp phân công giảng dạy hay thời khoá biểu (bỏ `teaching:read`, `timetable:read` ở bước 28). Đây là dữ liệu học tập, không phải việc quản trị hệ thống.
 - Học sinh và thủ thư là hai vai trò mới so với mục 5.
 
 ## Xác thực – `/auth`
@@ -139,7 +140,7 @@ Web chọn cổng giao diện (`/admin`, `/bgh`, `/bien-tap`, `/thu-thu`, `/giao
 |---|---|---|
 | `GET /timetable/frame`, `GET /timetable/fixed` | Tự phục vụ | khung tiết và tiết cố định ai đăng nhập cũng xem |
 | `PUT /timetable/frame` | `timetable:manage` hoặc `setting:manage` | khung sai/thu hẹp khi còn tiết ngoài khung → 400/409 |
-| `GET /timetable/versions`, `/versions/:id/slots`, `/options`, `/stats`, `/unavailability`, `/export` | `timetable:read` | BGH, ADMIN |
+| `GET /timetable/versions`, `/versions/:id/slots`, `/options`, `/stats`, `/unavailability`, `/export` | `timetable:read` | chỉ BGH |
 | `POST/DELETE /timetable/versions`, `POST /versions/:id/publish`, `POST /versions/:id/slots`, `PATCH/DELETE /slots/:id`, `POST/DELETE /fixed` | `timetable:manage` | chỉ BGH; chỉ sửa bản nháp; trùng giáo viên/lớp/phòng/tiết cố định → 409; giáo viên báo bận cần `confirmUnavailable` (ghi audit); công bố khi còn thiếu tiết bị từ chối |
 | `GET/PUT /timetable/unavailability/mine` | Tự phục vụ | PUT chỉ giáo viên (có hồ sơ giáo viên) |
 | `GET /timetable/view/mine` | Tự phục vụ | giáo viên: tiết mình dạy; học sinh: lớp mình |
@@ -270,7 +271,7 @@ Tool AI Agent `search_library` (chỉ đọc): chỉ nhân sự (học sinh bị
 
 | Endpoint | Quyền | Ghi chú |
 |---|---|---|
-| `GET /teaching/quotas`, `/teaching/assignments`, `/teaching/summary`, `/teaching/summary/export` | `teaching:read` | BGH và ADMIN; thống kê/cảnh báo, xuất Excel chống Excel injection |
+| `GET /teaching/quotas`, `/teaching/assignments`, `/teaching/summary`, `/teaching/summary/export` | `teaching:read` | chỉ BGH; thống kê/cảnh báo, xuất Excel chống Excel injection |
 | `PUT /teaching/quotas`, `PUT /teaching/quotas/class` | `teaching:assign` | chỉ BGH; số tiết 0–10, `null` = xoá định mức |
 | `POST /teaching/assignments`, `PATCH/DELETE /teaching/assignments/:id` | `teaching:assign` | chỉ BGH; một lớp–môn một giáo viên chính (409), khác tổ chuyên môn cần `confirmCrossDepartment`, giáo viên khoá/không có hồ sơ → 400 |
 | `POST /teaching/assignments/copy` | `teaching:assign` | sao chép từ năm học/học kỳ khác theo tên lớp, không tạo trùng, liệt kê dòng bị bỏ qua |
@@ -298,7 +299,8 @@ Tool AI Agent `search_library` (chỉ đọc): chỉ nhân sự (học sinh bị
 |---|---|---|
 | `GET /posts/manage`, `GET /posts/manage/:id` | `post:create` | tác giả chỉ thấy bài của mình; `post:approve` thấy tất cả |
 | `POST /posts` | `post:create` | |
-| `PATCH /posts/:id`, `POST /posts/:id/submit`, `DELETE /posts/:id` | `post:create` | chỉ tác giả; xoá vĩnh viễn bài đã gỡ chỉ vai trò ADMIN (không cần `post:create`) |
+| `PATCH /posts/:id`, `POST /posts/:id/submit` | `post:create` | chỉ tác giả |
+| `DELETE /posts/:id` | `post:create` hoặc `post:delete` | xoá nháp: chỉ tác giả (`post:create`); xoá vĩnh viễn bài đã gỡ: `post:delete` (chỉ BGH, bước 28), kể cả tác giả cũng không. Thiếu cả hai quyền → 403 trước khi tìm bài; bài đang ở trạng thái khác (vd. đã đăng) → 400 |
 | `POST /posts/:id/approve` | `post:approve` + `post:schedule` | |
 | `POST /posts/:id/reject` | `post:approve` | |
 | `POST /posts/:id/reschedule`, `/publish`, `/cancel-schedule` | `post:schedule` | |

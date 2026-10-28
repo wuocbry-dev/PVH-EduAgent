@@ -224,7 +224,7 @@ export function UserManager() {
                         <button type="button" className="underline" onClick={() => resetPassword(user)}>
                           Đặt lại mật khẩu
                         </button>
-                        {/* Bước 26: xem/thu hồi phiên, buộc đăng xuất ở trang Giám sát và bảo mật. */}
+                        {/* Bước 26: xem/thu hồi phiên, buộc đăng xuất ở trang Bảo mật và đăng nhập. */}
                         <Link className="underline" href={`${base}/giam-sat?tab=phien&user=${user.id}`}>
                           Phiên đăng nhập
                         </Link>

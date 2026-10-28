@@ -113,7 +113,7 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
 
 | Cổng | Vai trò | Nội dung |
 |---|---|---|
-| `/admin` | ADMIN | tình trạng hệ thống, người dùng, nhập Excel và phiếu tài khoản, vai trò và quyền, cấu hình, nhật ký |
+| `/admin` | ADMIN | menu theo nhóm (bước 28): tổng quan hệ thống; **Tài khoản**: người dùng, nhập Excel và phiếu tài khoản, vai trò và quyền, bảo mật và đăng nhập; **Dữ liệu trường**: học vụ (năm học, học kỳ, lớp, môn, tổ, phòng); **Hệ thống**: cấu hình, Trợ lý AI, nhật ký hoạt động, lỗi và hàng đợi. Không có bài viết, giao việc, phân công hay thời khoá biểu (việc của BGH) |
 | `/bgh` | PRINCIPAL | tổng quan toàn trường, học vụ, bài viết và duyệt bài, thư viện số, trắc nghiệm ôn tập, giao việc, lịch sự kiện, Trợ lý AI |
 | `/bien-tap` | EDITOR | bài viết, chuyên mục, liên hệ, lịch sự kiện, Trợ lý AI |
 | `/thu-thu` | LIBRARIAN | thống kê lượt đọc, hàng chờ duyệt, kho tài liệu, danh mục, tài liệu tôi gửi, trắc nghiệm ôn tập |
@@ -130,14 +130,15 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
   - độ trễ 24 giờ, lỗi máy chủ theo giờ, nhóm lỗi hay gặp, hàng đợi;
   - dung lượng R2 so với gói (mặc định 10 GB), đăng nhập sai, IP đang bị chặn, cảnh báo đang mở;
   - nút "Kiểm tra ngay".
-- **Trang `/admin/giam-sat`:**
+- **Trang "Lỗi và hàng đợi" `/admin/loi-he-thong`** (bước 28 tách khỏi trang giám sát cũ):
   - cảnh báo (đánh dấu đã xử lý);
   - nhật ký lỗi (gom nhóm, thông điệp đã làm sạch);
-  - job thất bại (chạy lại);
+  - job thất bại (chạy lại).
+- **Trang "Bảo mật và đăng nhập" `/admin/giam-sat`:**
   - bảo mật đăng nhập (IP/tài khoản bị chặn, gỡ chặn; đăng nhập sai 24 giờ);
   - phiên đăng nhập của từng người (thu hồi từng phiên, buộc đăng xuất), khoá hoặc buộc đăng xuất **hàng loạt** (phải nhập lại mật khẩu).
 
-  Trang Người dùng có liên kết "Phiên đăng nhập" tới đây.
+  Trang Người dùng có liên kết "Phiên đăng nhập" tới đây. Liên kết cũ `/admin/giam-sat?tab=loi` (hoặc `canh-bao`, `hang-doi`) tự chuyển sang trang Lỗi và hàng đợi.
 - **Job định kỳ (BullMQ, cần Redis):** kiểm tra sức khoẻ mỗi phút, đo dung lượng kho mỗi giờ, dọn dữ liệu cũ mỗi ngày 03:15. Tắt bằng `MONITORING_ENABLED=false`.
 - **Cảnh báo** qua Telegram cho người có quyền xem hệ thống đã liên kết bot; người chưa liên kết nhận trong hộp thông báo. Gửi khi:
   - dịch vụ ngừng hoặc hồi phục (chỉ khi trạng thái đổi);
@@ -154,7 +155,7 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
 
 ## Giám sát Trợ lý AI (bước 27)
 
-- **Trang `/admin/giam-sat-ai`:**
+- **Trang "Trợ lý AI" `/admin/giam-sat-ai`:**
   - số lệnh mỗi ngày (web, Telegram, theo vai trò), tool được gọi (lượt, lỗi, thiếu quyền), thao tác chờ xác nhận / đã xác nhận / hết hạn / bị huỷ;
   - mức dùng hôm nay so với hạn mức (số lệnh, chi phí Claude);
   - cảnh báo về Trợ lý AI.
@@ -213,12 +214,12 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
 
 ## Thời khoá biểu (bước 17)
 
-- **BGH** (`/bgh/thoi-khoa-bieu`; ADMIN xem ở `/admin/thoi-khoa-bieu`): xếp tiết trên lưới thứ × tiết (chọn phân công hoặc kéo thả, ô xanh đặt được / vàng giáo viên báo bận / đỏ không đặt được kèm lý do), xem theo giáo viên và phòng, phiên bản nháp → **công bố kèm ngày hiệu lực** (bản cũ vẫn dùng tới ngày đó), khung tiết và tiết cố định, xuất Excel và in. Buổi học của từng lớp (sáng/chiều/cả hai) chỉnh ở trang Học vụ, có nút áp dụng cho cả khối.
+- **BGH** (`/bgh/thoi-khoa-bieu`; chỉ BGH xem và xếp, ADMIN không có từ bước 28): xếp tiết trên lưới thứ × tiết (chọn phân công hoặc kéo thả, ô xanh đặt được / vàng giáo viên báo bận / đỏ không đặt được kèm lý do), xem theo giáo viên và phòng, phiên bản nháp → **công bố kèm ngày hiệu lực** (bản cũ vẫn dùng tới ngày đó), khung tiết và tiết cố định, xuất Excel và in. Buổi học của từng lớp (sáng/chiều/cả hai) chỉnh ở trang Học vụ, có nút áp dụng cho cả khối.
 - **Giáo viên** (`/giao-vien/thoi-khoa-bieu`): lịch dạy theo tuần và đăng ký tiết bận (chỉ để BGH tham khảo). **Học sinh** (`/hoc-sinh/thoi-khoa-bieu`): lịch của lớp. Trên điện thoại hiển thị theo từng ngày. Giáo viên được báo khi công bố hoặc khi đổi giáo viên của phân công; AI Agent tra cứu bằng tool `get_timetable` (chỉ đọc).
 
 ## Phân công giảng dạy (bước 16)
 
-- **BGH** (`/bgh/phan-cong`, quyền `teaching:assign`; ADMIN xem ở `/admin/phan-cong`): chọn năm học và phạm vi (cả năm / học kỳ), bốn tab: **Theo lớp** (hàng là môn, chọn giáo viên và số tiết, ô thiếu/thừa tô màu), **Theo giáo viên** (lớp–môn đang dạy, tiết so với định mức, định mức riêng cho giáo viên giảm tiết), **Định mức môn** (số tiết/tuần theo khối, ghi đè theo lớp), **Cảnh báo và thống kê** (môn chưa có giáo viên, lớp thiếu/thừa tiết, giáo viên vượt/thiếu định mức, dạy chéo tổ; thống kê theo lớp/tổ/toàn trường; xuất Excel; sao chép phân công từ năm học/học kỳ trước).
+- **BGH** (`/bgh/phan-cong`, quyền `teaching:read`/`teaching:assign`, chỉ BGH từ bước 28): chọn năm học và phạm vi (cả năm / học kỳ), bốn tab: **Theo lớp** (hàng là môn, chọn giáo viên và số tiết, ô thiếu/thừa tô màu), **Theo giáo viên** (lớp–môn đang dạy, tiết so với định mức, định mức riêng cho giáo viên giảm tiết), **Định mức môn** (số tiết/tuần theo khối, ghi đè theo lớp), **Cảnh báo và thống kê** (môn chưa có giáo viên, lớp thiếu/thừa tiết, giáo viên vượt/thiếu định mức, dạy chéo tổ; thống kê theo lớp/tổ/toàn trường; xuất Excel; sao chép phân công từ năm học/học kỳ trước).
 - Định mức tiết/tuần mặc định của giáo viên là 17, đổi ở **Cấu hình hệ thống** (`teaching.default_quota`). Giao môn cho giáo viên khác tổ chuyên môn cần xác nhận rõ ràng.
 - **Giáo viên** xem "Lớp tôi dạy" ở `/giao-vien/lop-toi-day`. Số liệu trong seed (định mức khối 10 theo GDPT 2018, phân công Toán 10A1) chỉ là **mẫu**, cần đối chiếu với kế hoạch giáo dục của nhà trường.
 

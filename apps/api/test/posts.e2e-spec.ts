@@ -92,6 +92,7 @@ describe('Bài viết, chuyên mục, media (F12, F13, e2e)', () => {
       const teacher = await loginAs(TEACHER);
       const editor = await loginAs(EDITOR);
       const admin = await loginAs(ADMIN);
+      const principal = await loginAs(PRINCIPAL);
 
       const post = await draft(teacher, 'vòng đời');
       expect(post.status).toBe('DRAFT');
@@ -131,14 +132,24 @@ describe('Bài viết, chuyên mục, media (F12, F13, e2e)', () => {
       const restored = await editor.post(`/posts/${post.id}/restore`).expect(200);
       expect(restored.body.status).toBe('DRAFT');
 
-      // Gửi duyệt lại, duyệt đăng ngay, gỡ, rồi ADMIN xóa vĩnh viễn.
+      // Gửi duyệt lại, duyệt đăng ngay, gỡ, rồi BGH xóa vĩnh viễn (post:delete, bước 28).
       await teacher.post(`/posts/${post.id}/submit`).expect(200);
       const live = await editor.post(`/posts/${post.id}/approve`).send({}).expect(200);
       expect(live.body.status).toBe('PUBLISHED');
-      await editor.post(`/posts/${post.id}/unpublish`).expect(200);
-      await editor.delete(`/posts/${post.id}`).expect(403);
-      await admin.delete(`/posts/${post.id}`).expect(204);
+      // Bài chưa gỡ: BGH nhận lỗi sai trạng thái (400), không phải 403.
+      const notArchived = await principal.delete(`/posts/${post.id}`).expect(400);
+      expect(notArchived.body.message).toMatch(/Không thể xóa bài viết đang ở trạng thái "Đã đăng"/);
+      const archived2 = await editor.post(`/posts/${post.id}/unpublish`).expect(200);
+      expect(archived2.body.actions).not.toContain('delete');
+      const forbidden = await editor.delete(`/posts/${post.id}`).expect(403);
+      expect(forbidden.body.message).toBe('Chỉ Ban giám hiệu được xoá vĩnh viễn bài viết');
+      await teacher.delete(`/posts/${post.id}`).expect(403); // tác giả cũng không
+      await admin.delete(`/posts/${post.id}`).expect(403); // ADMIN không còn quyền bài viết nào
+      expect((await principal.get(`/posts/manage/${post.id}`).expect(200)).body.actions).toContain('delete');
+      await principal.delete(`/posts/${post.id}`).expect(204);
       await editor.get(`/posts/manage/${post.id}`).expect(404);
+      const deletedBy = await prisma.auditLog.findFirstOrThrow({ where: { action: 'post.delete', targetId: BigInt(post.id) } });
+      expect(deletedBy.userId?.toString()).toBe((await principal.get('/auth/me').expect(200)).body.id);
 
       for (const action of [
         'post.create',
@@ -219,7 +230,7 @@ describe('Bài viết, chuyên mục, media (F12, F13, e2e)', () => {
       expect((await editor.get(`/posts/manage/${post.id}`)).body.status).toBe('PENDING_REVIEW');
     });
 
-    it('phân quyền: giáo viên không duyệt/đăng/gỡ, người khác không sửa bài của tác giả, BGH không xóa vĩnh viễn', async () => {
+    it('phân quyền: giáo viên không duyệt/đăng/gỡ, người khác không sửa bài của tác giả, chỉ BGH xóa vĩnh viễn', async () => {
       const teacher = await loginAs(TEACHER);
       const editor = await loginAs(EDITOR);
       const principal = await loginAs(PRINCIPAL);
@@ -236,7 +247,14 @@ describe('Bài viết, chuyên mục, media (F12, F13, e2e)', () => {
       await editor.post(`/posts/${post.id}/approve`).send({}).expect(200);
       await teacher.post(`/posts/${post.id}/unpublish`).expect(403);
       await editor.post(`/posts/${post.id}/unpublish`).expect(200);
-      await principal.delete(`/posts/${post.id}`).expect(403);
+      await editor.delete(`/posts/${post.id}`).expect(403);
+      // BGH không xoá nháp của người khác; tác giả vẫn xoá được nháp của mình.
+      await principal.delete(`/posts/${mine.id}`).expect(403);
+      await teacher.delete(`/posts/${mine.id}`).expect(204);
+      await principal.delete(`/posts/${post.id}`).expect(204);
+      // ADMIN bị chặn trước khi tìm bài: id không tồn tại cũng 403 (không dò được id).
+      const admin = await loginAs(ADMIN);
+      await admin.delete('/posts/999999999').expect(403);
 
       // Chưa đăng nhập.
       await request(app.getHttpServer()).post(`/posts/${post.id}/approve`).send({}).expect(401);

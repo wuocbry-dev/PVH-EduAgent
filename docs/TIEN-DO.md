@@ -45,6 +45,7 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 | [-] | 25 | *(tuỳ chọn)* Tự động gợi ý xếp thời khoá biểu | |
 | [x] | 26 | Trung tâm giám sát hệ thống & cảnh báo Telegram cho ADMIN | 2026-10-28 |
 | [x] | 27 | Giám sát AI Agent, công tắc khẩn cấp & hạn mức | 2026-10-28 |
+| [x] | 28 | Gọn cổng quản trị: thêm Học vụ, bỏ mục nghiệp vụ, xoá vĩnh viễn bài → BGH | 2026-10-28 |
 
 Ô `[-]` nghĩa là bỏ bước đó: `/buoc tiep` sẽ bỏ qua.
 
@@ -471,3 +472,32 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
   - Hạn mức riêng theo vai trò.
   - Biểu đồ chi phí theo giờ.
   - Nhận diện tiêm lệnh tốt hơn quy tắc (hiện chỉ đánh dấu).
+
+### Bước 28 – Gọn cổng quản trị: thêm Học vụ, bỏ mục nghiệp vụ, xoá vĩnh viễn bài → BGH (2026-10-28)
+
+- **Đã làm:**
+  - **Quyền `post:delete`** ("Xoá vĩnh viễn bài viết đã gỡ", chỉ PRINCIPAL; thêm vào `PERMISSIONS`, seed). `actorMay` và `assertActionPermission` không còn kiểm tra tên vai trò ADMIN: xoá nháp cần `post:create` + là tác giả, xoá bài `ARCHIVED` cần `post:delete` (`DELETE_PERMISSION` ở `posts.state-machine.ts`). Thiếu cả hai quyền → 403 trước khi tìm bài; đúng quyền nhưng sai trạng thái → 400. Nút "Xóa vĩnh viễn" ở `/bgh/bai-viet/:id` hiện theo `post.actions` do server tính bằng cùng luật.
+  - **ADMIN bỏ `teaching:read`, `timetable:read`** (lọc mọi `teaching:*`, `timetable:*`); xoá trang `/admin/phan-cong`, `/admin/thoi-khoa-bieu` (đường dẫn cũ về `/admin` qua `portalRedirect`). Không chỗ nào khác của ADMIN dựa vào hai quyền này; ADMIN vẫn sửa khung tiết qua `setting:manage`.
+  - **Trang `/admin/hoc-vu`** dùng lại `AcademicManager` (mọi API chỉ cần `academic:manage`, không có liên kết viết cứng `/bgh`).
+  - **Menu admin theo nhóm:** trường tuỳ chọn `group` trong `PortalNavItem`, `PortalNav` hiện tiêu đề nhóm khi nhóm đổi (điện thoại: tiêu đề chiếm cả dòng). Đổi nhãn "Tổng quan hệ thống", "Bảo mật và đăng nhập", "Trợ lý AI"; giữ slug `giam-sat`, `giam-sat-ai`.
+  - **Tài liệu:** `CLAUDE.md`, `docs/04` (ma trận, `DELETE /posts/:id`), `docs/06`, `docs/07`, README.
+- **Lệch so với mô tả (người dùng chọn):** trang giám sát cũ có cả thẻ lỗi/hàng đợi nên **tách thành hai mục menu** dùng chung `MonitoringCenter` (prop `section`):
+  - "Bảo mật và đăng nhập" `/admin/giam-sat` (nhóm Tài khoản): thẻ bảo mật đăng nhập, phiên đăng nhập;
+  - "Lỗi và hàng đợi" `/admin/loi-he-thong` (nhóm Hệ thống, cuối nhóm): cảnh báo, nhật ký lỗi, hàng đợi.
+
+  Liên kết cũ `/admin/giam-sat?tab=loi|canh-bao|hang-doi` tự chuyển sang trang mới; chữ trong tin cảnh báo Telegram đổi theo tên trang mới.
+- **Test:**
+  - `permissions.spec.ts`: ADMIN không có `post:delete`, `teaching:read`, `timetable:read`; chỉ PRINCIPAL có `post:delete`.
+  - `posts.state-machine.spec.ts`: luật xoá theo quyền.
+  - `portals.spec.ts`: thứ tự và nhóm menu admin, mọi mục ADMIN đều thấy, cổng khác không có nhóm, trang đã xoá không còn, đường dẫn cũ chuyển hướng.
+  - `posts.e2e-spec.ts`: BGH xoá vĩnh viễn (204, audit ghi đúng người), ADMIN/biên tập/tác giả 403, tác giả xoá nháp, BGH xoá bài đang đăng nhận 400, ADMIN với id không tồn tại vẫn 403.
+  - `teaching`/`timetable.e2e-spec.ts`: ADMIN nhận 403 ở mọi route đọc.
+  - `ROUTES`: `DELETE /posts/:id` → `post:create|post:delete`.
+  - `pnpm build`, `pnpm lint`, `pnpm test` (235 unit + 393 e2e) xanh.
+- **Kiểm tra giao diện (Chrome headless, dev server thật):**
+  - `/admin`, `/admin/hoc-vu`, `/admin/giam-sat`, `/admin/loi-he-thong`, `/admin/giam-sat-ai` ở 375 px và 1280 px, sáng và tối: menu đúng thứ tự và nhóm, không tràn ngang, không lỗi console.
+  - ADMIN tạo được lớp trong Học vụ; BGH gỡ bài rồi bấm "Xóa vĩnh viễn" được.
+  - Dữ liệu thử (lớp, bài) đã dọn. Lần đăng nhập thử bằng `bgh@pvh.edu.vn` từ trình duyệt headless làm mở một cảnh báo "Đăng nhập từ nơi lạ".
+- **Còn lại:**
+  - Chế độ `readOnly` của `TeachingManager`/`TimetableManager` không còn trang nào dùng; có thể gỡ khi dọn code.
+  - `docs/01-phan-tich-de-tai.md` (mục 5, dòng "Xoá vĩnh viễn dữ liệu" cho ADMIN) là tài liệu phân tích gốc nên giữ nguyên; độ lệch ghi ở `docs/04`.

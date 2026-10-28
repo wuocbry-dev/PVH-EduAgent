@@ -5,7 +5,7 @@ import { jsonResult, type AgentContext, type AgentToolProvider } from '../agent/
 import { TimetableViewService } from './timetable-view.service.js';
 
 // Tool chỉ đọc: tra cứu thời khoá biểu ĐÃ CÔNG BỐ. Service tự kiểm tra phạm vi quyền của người hỏi (giáo viên: lịch của mình và
-// các lớp mình dạy; học sinh: lớp mình; BGH/ADMIN: tất cả). Không có tool sửa lịch.
+// các lớp mình dạy; học sinh: lớp mình; BGH (timetable:read): tất cả). Không có tool sửa lịch.
 @Injectable()
 export class TimetableAgentTools implements AgentToolProvider {
   constructor(private readonly views: TimetableViewService) {}

@@ -38,15 +38,21 @@ describe('bảng quyền (@pvh/shared)', () => {
     }
   });
 
-  it('ADMIN chỉ giữ quyền hệ thống: không có quyền bài viết, giao việc (bước 23); BGH và biên tập viên duyệt/đăng bài', () => {
+  it('ADMIN chỉ giữ quyền hệ thống: không có quyền bài viết, giao việc (bước 23), phân công và thời khoá biểu (bước 28); BGH và biên tập viên duyệt/đăng bài', () => {
     expect([...ROLE_PERMISSIONS.ADMIN].sort()).toEqual(
-      ['academic:manage', 'setting:manage', 'student:import', 'system:read', 'teaching:read', 'timetable:read', 'user:manage'].sort(),
+      ['academic:manage', 'setting:manage', 'student:import', 'system:read', 'user:manage'].sort(),
     );
+    for (const p of ['post:delete', 'teaching:read', 'timetable:read'] as const) expect(hasPermission('ADMIN', p)).toBe(false);
     for (const role of ['PRINCIPAL', 'EDITOR'] as const) {
       expect(ROLE_PERMISSIONS[role]).toEqual(expect.arrayContaining(['post:create', 'post:approve', 'post:schedule', 'post:unpublish']));
     }
     expect(ROLE_PERMISSIONS.PRINCIPAL).toContain('task:assign');
     expect(ROLE_PERMISSIONS.STUDENT).toEqual([]);
+  });
+
+  it('xoá vĩnh viễn bài đã gỡ (post:delete) chỉ BGH có (bước 28)', () => {
+    expect(ROLES.filter((r) => hasPermission(r, 'post:delete'))).toEqual(['PRINCIPAL']);
+    expect(ROLES.filter((r) => hasPermission(r, 'teaching:read') || hasPermission(r, 'timetable:read'))).toEqual(['PRINCIPAL']);
   });
 
   it('mọi quyền của vai trò đều nằm trong danh sách PERMISSIONS', () => {

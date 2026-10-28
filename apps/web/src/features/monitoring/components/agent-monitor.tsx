@@ -23,7 +23,7 @@ const dayLabel = (day: string) => `${day.slice(8, 10)}/${day.slice(5, 7)}`;
 const usd = (v: number) => `${v.toLocaleString("vi-VN", { maximumFractionDigits: 4 })} USD`;
 const percent = (used: number, limit: number) => (limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0);
 
-// Trang Giám sát Trợ lý AI của cổng /admin (bước 27): chỉ số lượng và tên tool, không có nội dung hội thoại.
+// Trang Trợ lý AI của cổng /admin (bước 27): chỉ số lượng và tên tool, không có nội dung hội thoại.
 export function AgentMonitor() {
   const [days, setDays] = useState<number>(14);
   const { data, error, reload } = useData(getAgentStats, days);

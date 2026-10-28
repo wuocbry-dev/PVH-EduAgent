@@ -62,7 +62,7 @@ export class AccountWatchService implements OnModuleInit {
       'login_failures',
       `login_failures:${userId}:${vnDay(at)}`,
       `${user.fullName} (${roleNames(user.roles)}) sai mật khẩu ${count} lần trong ${LOGIN_FAILURE_WINDOW_SEC / 60} phút`,
-      `Lần gần nhất từ IP ${entry.ip ?? 'không rõ'} lúc ${formatVnTime(at)}. Có thể khoá tài khoản hoặc gỡ chặn ở trang Giám sát và bảo mật.`,
+      `Lần gần nhất từ IP ${entry.ip ?? 'không rõ'} lúc ${formatVnTime(at)}. Có thể khoá tài khoản hoặc gỡ chặn ở trang Bảo mật và đăng nhập.`,
     );
   }
 

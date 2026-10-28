@@ -34,8 +34,8 @@ Lệnh xoá chỉ đụng đúng dữ liệu demo (tài khoản `GV<MÔN>1–3`,
 
 | Vai trò | Đăng nhập | Thử |
 |---|---|---|
-| Quản trị | `admin@pvh.edu.vn` | `/admin`: danh sách người dùng (lọc vai trò Giáo viên/Học sinh), lớp/môn/phòng, nhập Excel, phân quyền, nhật ký |
-| Ban giám hiệu | `bgh@pvh.edu.vn` | Phân công giảng dạy (cảnh báo định mức), **thời khoá biểu**: mở bản nháp, xếp tiết cho 12A3, thử đặt trùng giáo viên/phòng Tin, xếp vào tiết bận của giáo viên số 3, công bố. Tiến độ nhập điểm giữa kỳ khối 12, thống kê điểm, khoá sổ, gửi thông báo |
+| Quản trị | `admin@pvh.edu.vn` | `/admin` (menu theo nhóm Tài khoản / Dữ liệu trường / Hệ thống): danh sách người dùng (lọc vai trò Giáo viên/Học sinh), **Học vụ** (tạo năm học, học kỳ, lớp, môn, tổ, phòng rồi nhập danh sách vào lớp mới), nhập Excel, phân quyền, nhật ký, bảo mật và đăng nhập. Phân công giảng dạy và thời khoá biểu không còn ở đây (xem bằng tài khoản BGH) |
+| Ban giám hiệu | `bgh@pvh.edu.vn` | Bài viết: gỡ một bài đã đăng rồi **xoá vĩnh viễn** (chỉ BGH có quyền `post:delete`). Phân công giảng dạy (cảnh báo định mức), **thời khoá biểu**: mở bản nháp, xếp tiết cho 12A3, thử đặt trùng giáo viên/phòng Tin, xếp vào tiết bận của giáo viên số 3, công bố. Tiến độ nhập điểm giữa kỳ khối 12, thống kê điểm, khoá sổ, gửi thông báo |
 | Giáo viên | `gv.toan2@pvh.edu.vn` | Lịch dạy, sổ điểm 10A2/11A1/12A1, nhập điểm giữa kỳ khối 12 còn thiếu, **lớp chủ nhiệm 11A2**, gửi thông báo cho lớp |
 | Giáo viên có tiết bận | `gv.toan3@pvh.edu.vn` | Xem/sửa tiết bận đã đăng ký |
 | Chủ nhiệm 10A2 | `gv.li1@pvh.edu.vn` | Lớp chủ nhiệm, thông báo đã gửi cho 10A2 |

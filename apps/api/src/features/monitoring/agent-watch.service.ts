@@ -51,11 +51,11 @@ export class AgentWatchService implements OnModuleInit {
       'agent_abuse',
       `agent_abuse:${event.reason}:${event.userId}:${Math.floor(Date.now() / (event.windowSec * 1000))}`,
       `${name} ${REASON_TEXT[event.reason]}`,
-      `${event.count} lần trong ${hours} giờ gần nhất. Xem trang Giám sát Trợ lý AI; có thể khoá tài khoản hoặc tắt Trợ lý AI nếu cần.`,
+      `${event.count} lần trong ${hours} giờ gần nhất. Xem trang Trợ lý AI của cổng quản trị; có thể khoá tài khoản hoặc tắt Trợ lý AI nếu cần.`,
     );
   }
 
-  // Đổi công tắc khẩn cấp ở trang Cấu hình / Giám sát Trợ lý AI (audit setting.update) → báo ADMIN.
+  // Đổi công tắc khẩn cấp ở trang Cấu hình / Trợ lý AI (audit setting.update) → báo ADMIN.
   async onAudit(entry: AuditEntry, at: Date): Promise<void> {
     if (entry.action !== 'setting.update' || !entry.ok) return;
     const changes = (entry.params as { changes?: Record<string, { from: string | null; to: string | null }> } | undefined)?.changes ?? {};

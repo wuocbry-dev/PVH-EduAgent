@@ -34,6 +34,7 @@ import type {
 import {
   actorMay,
   allowedActions,
+  DELETE_PERMISSION,
   nextStatus,
   PostTransitionError,
   POST_RULES,
@@ -58,6 +59,7 @@ export interface ActionInput {
 }
 
 const MAX_LIST = 100;
+const DELETE_FORBIDDEN = 'Chỉ Ban giám hiệu được xoá vĩnh viễn bài viết';
 
 // Người nghe sự kiện "bài vừa chuyển sang chờ duyệt" (bot Telegram báo người duyệt). Chạy nền, lỗi không ảnh hưởng.
 export type SubmittedListener = (postId: string) => Promise<unknown>;
@@ -442,7 +444,7 @@ export class PostsService {
     return posts.map((p) => ({ id: p.id.toString(), publishAt: p.publishAt! }));
   }
 
-  // Xóa nháp (tác giả) hoặc xóa vĩnh viễn bài đã gỡ (ADMIN).
+  // Xóa nháp (tác giả) hoặc xóa vĩnh viễn bài đã gỡ (post:delete, chỉ BGH).
   async remove(
     user: AuthUser,
     id: string,
@@ -462,10 +464,12 @@ export class PostsService {
   }
 
   // Quyền của thao tác kiểm tra trước khi đọc bài: người không có quyền luôn nhận 403, không dò được id bài nào tồn tại.
-  // Xoá: tác giả (post:create) xoá nháp, ADMIN xoá vĩnh viễn bài đã gỡ (xem actorMay).
+  // Xoá: cần post:create (xoá nháp của mình) hoặc post:delete (xoá vĩnh viễn bài đã gỡ); trạng thái cụ thể xét ở actorMay.
   private assertActionPermission(user: AuthUser, action: PostAction): void {
     if (action === 'delete') {
-      if (!user.roles.includes('ADMIN')) assertPermission(user, 'post:create');
+      if (!Object.values(DELETE_PERMISSION).some((p) => can(user, p))) {
+        throw new ForbiddenException('Bạn không có quyền xoá bài viết');
+      }
       return;
     }
     for (const permission of POST_RULES[action].permissions) assertPermission(user, permission);
@@ -487,7 +491,7 @@ export class PostsService {
     if (rule.from.includes(post.status) && !actorMay(action, ref, user)) {
       throw new ForbiddenException(
         action === 'delete' && post.status !== 'DRAFT'
-          ? 'Chỉ quản trị viên được xóa vĩnh viễn bài viết'
+          ? DELETE_FORBIDDEN
           : 'Bạn không có quyền thao tác với bài viết này (chỉ tác giả được sửa/gửi duyệt/xóa nháp)',
       );
     }

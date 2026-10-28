@@ -120,14 +120,15 @@ describe('posts.state-machine', () => {
       expect(allowedActions(post('ARCHIVED'), editor)).toEqual(['restore']);
     });
 
-    it('chỉ ADMIN xóa vĩnh viễn bài đã gỡ', () => {
-      expect(allowedActions(post('ARCHIVED'), actor('9', 'ADMIN'))).toContain('delete');
-      expect(allowedActions(post('ARCHIVED'), actor('9', 'PRINCIPAL'))).not.toContain(
-        'delete',
-      );
+    it('chỉ người có post:delete (BGH) xóa vĩnh viễn bài đã gỡ, kể cả tác giả cũng không (bước 28)', () => {
+      expect(allowedActions(post('ARCHIVED'), actor('9', 'PRINCIPAL'))).toContain('delete');
+      expect(allowedActions(post('ARCHIVED'), actor('9', 'ADMIN'))).not.toContain('delete');
       expect(allowedActions(post('ARCHIVED'), actor('2', 'EDITOR'))).not.toContain(
         'delete',
       );
+      expect(allowedActions(post('ARCHIVED', '1'), actor('1', 'TEACHER'))).toEqual([]);
+      // BGH không xoá nháp của người khác (nháp chỉ tác giả xoá).
+      expect(allowedActions(post('DRAFT', '1'), actor('9', 'PRINCIPAL'))).not.toContain('delete');
     });
 
     it('học sinh (không có quyền nào) không làm được gì', () => {

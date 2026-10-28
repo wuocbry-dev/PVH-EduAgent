@@ -148,21 +148,17 @@ describe('Thời khoá biểu (bước 17, e2e)', () => {
   });
 
   describe('quyền', () => {
-    it('BGH xếp và công bố; ADMIN chỉ xem; biên tập viên, giáo viên, học sinh không vào được API quản lý', async () => {
+    it('chỉ BGH xem, xếp và công bố; ADMIN (bước 28), biên tập viên, giáo viên, học sinh không vào được API quản lý', async () => {
       const v = await newVersion('Quyền');
       await principal.get('/timetable/versions').expect(200);
-      await admin.get('/timetable/versions').expect(200);
-      await admin.get(`/timetable/versions/${v.id}/slots`).expect(200);
-      await admin.post('/timetable/versions').send({ semesterId: sem1, name: 'x' }).expect(403);
-      await admin.post(`/timetable/versions/${v.id}/slots`).send({ assignmentId: asg.A1, day: 1, period: 2 }).expect(403);
-      await admin.post(`/timetable/versions/${v.id}/publish`).send({ effectiveDate: TODAY }).expect(403);
+      await principal.get(`/timetable/versions/${v.id}/slots`).expect(200);
       await admin.post('/timetable/fixed').send({ name: 'x', kind: 'SCHOOL', day: 5, period: 9 }).expect(403);
       const me = (await admin.get('/auth/me').expect(200)).body;
-      expect(me.permissions).toContain('timetable:read');
+      expect(me.permissions).not.toContain('timetable:read');
       expect(me.permissions).not.toContain('timetable:manage');
 
-      for (const who of [EDITOR, t1.email, SEED_STUDENT]) {
-        const a = await loginAs(who);
+      // ADMIN vẫn sửa khung tiết qua setting:manage, nhưng đó chỉ là cấu hình (xem mục khung tiết bên dưới).
+      for (const a of [admin, ...(await Promise.all([EDITOR, t1.email, SEED_STUDENT].map((w) => loginAs(w))))]) {
         await a.get('/timetable/versions').expect(403);
         await a.get(`/timetable/versions/${v.id}/slots`).expect(403);
         await a.get(`/timetable/versions/${v.id}/options`).query({ assignmentId: asg.A1 }).expect(403);
@@ -174,7 +170,7 @@ describe('Thời khoá biểu (bước 17, e2e)', () => {
         await a.delete('/timetable/slots/1').expect(403);
         await a.post(`/timetable/versions/${v.id}/publish`).send({ effectiveDate: TODAY }).expect(403);
         await a.delete(`/timetable/versions/${v.id}`).expect(403);
-        await a.put('/timetable/frame').send({ days: [1], periods: [{ no: 1, session: 'MORNING', start: '07:00', end: '07:45' }] }).expect(403);
+        if (a !== admin) await a.put('/timetable/frame').send({ days: [1], periods: [{ no: 1, session: 'MORNING', start: '07:00', end: '07:45' }] }).expect(403);
         await a.get('/timetable/frame').expect(200); // khung tiết ai cũng xem được
       }
       await http().get('/timetable/versions').expect(401);
@@ -457,7 +453,7 @@ describe('Thời khoá biểu (bước 17, e2e)', () => {
   });
 
   describe('xem lịch trong phạm vi quyền', () => {
-    it('giáo viên xem lịch của mình và các lớp mình dạy; học sinh chỉ lớp mình; ADMIN và BGH xem hết', async () => {
+    it('giáo viên xem lịch của mình và các lớp mình dạy; học sinh chỉ lớp mình; BGH xem hết, ADMIN không (bước 28)', async () => {
       const teacher1 = await loginAs(t1.email);
       const mine = (await teacher1.get('/timetable/view/mine').query({ date: TODAY }).expect(200)).body as WeekViewDto;
       expect(mine.title).toContain(t1.name);
@@ -483,8 +479,9 @@ describe('Thời khoá biểu (bước 17, e2e)', () => {
       expect(seedMine.title).toBe('Thời khoá biểu lớp 10A1'); // học sinh thấy lịch lớp của mình (năm học hiện hành)
       expect(seedMine.days.flatMap((d) => d.slots).every((s) => s.className === '10A1')).toBe(true);
 
-      await admin.get(`/timetable/view/class/${clsB.id}`).expect(200);
-      await admin.get(`/timetable/view/teacher/${t2.id}`).expect(200);
+      await admin.get(`/timetable/view/class/${clsB.id}`).expect(403);
+      await admin.get(`/timetable/view/teacher/${t2.id}`).expect(403);
+      await principal.get(`/timetable/view/class/${clsB.id}`).expect(200);
       await principal.get(`/timetable/view/teacher/${t2.id}`).query({ date: TODAY }).expect(200);
       await principal.get(`/timetable/view/class/999999999`).expect(404);
       await principal.get(`/timetable/view/class/${clsA.id}`).query({ date: 'x' }).expect(400);
