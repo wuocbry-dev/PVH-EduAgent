@@ -22,6 +22,8 @@ export default defineConfig({
       TELEGRAM_WEBHOOK_SECRET: 'pvh-e2e-webhook-secret',
       TELEGRAM_WEBHOOK_URL: '',
       TELEGRAM_AUTO_NOTIFY: 'false',
+      // Không chạy job giám sát định kỳ (không ghi system_health_checks, không gửi cảnh báo); test gọi service trực tiếp.
+      MONITORING_ENABLED: 'false',
       // Test đăng nhập dồn dập từ một IP; throttle.e2e-spec.ts bật lại để kiểm tra riêng.
       THROTTLE_DISABLED: 'true',
     },

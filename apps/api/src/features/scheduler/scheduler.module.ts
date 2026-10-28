@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AgentActionsModule } from '../agent-actions/agent-actions.module.js';
 import { MediaModule } from '../media/media.module.js';
+import { MonitoringModule } from '../monitoring/monitoring.module.js';
 import { PostsModule } from '../posts/posts.module.js';
 import { SettingsModule } from '../settings/settings.module.js';
 import { DailyReportProcessor } from './daily-report.processor.js';
@@ -14,9 +15,11 @@ import { SchedulerService } from './scheduler.service.js';
 // - daily-report.processor.ts       báo cáo hằng ngày cho ADMIN/BGH
 // - hàng đợi media-cleanup          mỗi 15 phút xoá bản ghi media chờ quá 1 giờ chưa hoàn tất và object mồ côi (F13)
 // - hàng đợi agent-action           mỗi phút chuyển hành động agent chờ xác nhận quá 10 phút sang EXPIRED (A08)
+// - hàng đợi monitoring (bước 26)  kiểm tra sức khoẻ mỗi phút, đo dung lượng kho mỗi giờ, dọn dữ liệu giám sát mỗi ngày
+// Mọi job thất bại hẳn được ghi vào system_errors (thất bại liên tiếp thì cảnh báo ADMIN).
 // Kết quả ghi vào notifications (bot Telegram gửi cho người đã liên kết) và audit_logs (channel = scheduler).
 @Module({
-  imports: [PostsModule, SettingsModule, AgentActionsModule, MediaModule],
+  imports: [PostsModule, SettingsModule, AgentActionsModule, MediaModule, MonitoringModule],
   providers: [
     PublishPostProcessor,
     DeadlineReminderProcessor,

@@ -6,6 +6,7 @@ import type { ConfigService } from '@nestjs/config';
 import type { Env } from '../../config/env.validation.js';
 import { STORAGE_KEY } from './media-types.js';
 import { PRESIGN_TTL_SEC, StorageService, type PresignedUpload, type PresignInput } from './storage.service.js';
+import { localPing, localUsageBytes } from './usage.js';
 
 export interface LocalUploadClaims {
   id: string;
@@ -141,5 +142,13 @@ export class LocalStorageService extends StorageService {
 
   private mac(payload: string): string {
     return createHmac('sha256', this.secret).update(payload).digest('base64url');
+  }
+
+  ping(): Promise<void> {
+    return localPing(this.dir);
+  }
+
+  usageBytes(): Promise<number> {
+    return localUsageBytes(this.dir);
   }
 }

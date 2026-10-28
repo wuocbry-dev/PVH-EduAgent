@@ -1,10 +1,11 @@
 // Bảng endpoint → quyền: nguồn duy nhất cho security.e2e-spec.ts (route thật ↔ bảng, 401, tài khoản không quyền)
 // và role-matrix.e2e-spec.ts (mọi endpoint × mọi vai trò). docs/04-bang-endpoint-quyen.md được viết từ bảng này.
 
-export type Access = 'public' | 'self' | string[];
+export type Access = 'public' | 'self' | 'student' | string[];
 
 //   public  = không cần đăng nhập (đã có biện pháp riêng: rate limit, secret, chỉ dữ liệu đã công bố)
 //   self    = cần đăng nhập, chỉ thao tác trên dữ liệu của chính mình (hoặc từng thao tác tự kiểm quyền trong tool)
+//   student = cần đăng nhập và là học sinh (vai trò khác 403)
 //   [..]    = cần ít nhất các quyền này (service gọi assertPermission/can; một số còn kiểm tra quyền sở hữu)
 export const ROUTES: Record<string, Access> = {
   'POST /auth/login': 'public',
@@ -262,4 +263,21 @@ export const ROUTES: Record<string, Access> = {
   'PATCH /users/:id': ['user:manage'],
   'PATCH /users/:id/status': ['user:manage'],
   'POST /users/:id/reset-password': ['user:manage'],
+  // Bước 26: phiên đăng nhập, buộc đăng xuất, khoá/đăng xuất hàng loạt (nhập lại mật khẩu).
+  'GET /users/:id/sessions': ['user:manage'],
+  'DELETE /users/:id/sessions/:sessionId': ['user:manage'],
+  'POST /users/:id/logout-all': ['user:manage'],
+  'POST /users/bulk-action': ['user:manage'],
+
+  // Trung tâm giám sát (bước 26): xem system:read; thao tác hệ thống setting:manage; gỡ chặn user:manage.
+  'GET /monitoring/overview': ['system:read'],
+  'POST /monitoring/check-now': ['setting:manage'], // 6 lượt/phút mỗi người
+  'GET /monitoring/alerts': ['system:read'],
+  'POST /monitoring/alerts/:id/resolve': ['setting:manage'],
+  'GET /monitoring/errors': ['system:read'],
+  'POST /monitoring/errors/:id/resolve': ['setting:manage'],
+  'GET /monitoring/jobs/failed': ['system:read'],
+  'POST /monitoring/jobs/:queue/:jobId/retry': ['setting:manage'],
+  'GET /monitoring/security': ['system:read'],
+  'DELETE /monitoring/blocked/:limit/:id': ['user:manage'],
 };

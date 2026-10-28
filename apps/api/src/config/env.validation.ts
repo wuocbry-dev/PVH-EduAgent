@@ -104,6 +104,9 @@ const envSchema = z
   TELEGRAM_AUTO_NOTIFY: z.preprocess((v) => (v === '' ? undefined : v), z.stringbool().default(true)),
   // URL public của webhook (vd. https://pvh.edu.vn/api/telegram/webhook); có thì API tự gọi setWebhook.
   TELEGRAM_WEBHOOK_URL: optional(z.url()),
+  // Bước 26: job kiểm tra sức khoẻ mỗi phút, đo dung lượng R2 mỗi giờ, dọn dữ liệu giám sát cũ (cần Redis).
+  // e2e đặt false để không ghi dữ liệu giám sát và không gửi cảnh báo; test gọi service tường minh.
+  MONITORING_ENABLED: z.preprocess((v) => (v === '' ? undefined : v), z.stringbool().default(true)),
   })
   .superRefine((env, ctx) => {
     if (env.PRIVATE_UPLOAD_DIR === env.UPLOAD_DIR) {

@@ -11,6 +11,7 @@ import type { ConfigService } from '@nestjs/config';
 import type { Env } from '../../config/env.validation.js';
 import { STORAGE_KEY } from './media-types.js';
 import { createR2Client, isNotFound } from './r2-client.js';
+import { r2Ping, r2UsageBytes } from './usage.js';
 import { PRESIGN_TTL_SEC, StorageService, type PresignedUpload, type PresignInput } from './storage.service.js';
 
 // Driver Cloudflare R2 (API tương thích S3). Bí mật chỉ nằm trong S3Client, không bao giờ ghi log hay trả ra API.
@@ -95,5 +96,12 @@ export class R2StorageService extends StorageService {
     const key = url.slice(this.publicBase.length + 1);
     return STORAGE_KEY.test(key) ? key : null;
   }
-}
 
+  ping(): Promise<void> {
+    return r2Ping(this.s3, this.bucket);
+  }
+
+  usageBytes(): Promise<number> {
+    return r2UsageBytes(this.s3, this.bucket);
+  }
+}

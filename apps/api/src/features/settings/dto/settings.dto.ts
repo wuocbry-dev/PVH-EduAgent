@@ -8,6 +8,12 @@ import { frameSchema } from '../../timetable/frame.js';
 const text = (max: number) => z.string().trim().min(1, 'Không được để trống').max(max);
 const optionalOr = <T extends z.ZodType<string>>(schema: T) =>
   z.union([z.literal(''), schema]);
+// Số nguyên dạng chuỗi trong khoảng [min, max] (ngưỡng giám sát, bước 26).
+const intIn = (min: number, max: number) =>
+  z
+    .string()
+    .regex(/^\d{1,6}$/,`Phải là số nguyên từ ${min} đến ${max}`)
+    .refine((v) => Number(v) >= min && Number(v) <= max, `Phải từ ${min} đến ${max}`);
 
 export const settingValueSchemas: Record<SettingKey, z.ZodType<string>> = {
   'school.name': text(150),
@@ -44,6 +50,12 @@ export const settingValueSchemas: Record<SettingKey, z.ZodType<string>> = {
     }
   }, 'Khung tiết không hợp lệ (dạng JSON gồm days và periods)'),
   'telegram.review_notify': z.enum(['true', 'false'], { error: 'Chỉ nhận true hoặc false' }),
+  'telegram.admin_alerts': z.enum(['true', 'false'], { error: 'Chỉ nhận true hoặc false' }),
+  'monitor.error_spike': intIn(1, 1000),
+  'monitor.job_failures': intIn(1, 100),
+  'monitor.login_failures': intIn(3, 1000),
+  'monitor.r2_quota_gb': intIn(1, 100_000),
+  'monitor.r2_warn_percent': intIn(1, 100),
   'scores.formula': z.string().refine((v) => {
     try {
       return formulaSchema.safeParse(JSON.parse(v)).success;

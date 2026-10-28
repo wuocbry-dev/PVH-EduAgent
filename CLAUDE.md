@@ -60,7 +60,7 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 
 | Cổng | Vai trò | Ghi chú |
 |---|---|---|
-| `/admin` | ADMIN | hệ thống: người dùng, nhập Excel, vai trò/quyền, cấu hình, nhật ký (không có duyệt bài/giao việc) |
+| `/admin` | ADMIN | hệ thống: tổng quan giám sát, người dùng, nhập Excel, vai trò/quyền, cấu hình, nhật ký, giám sát và bảo mật (không có duyệt bài/giao việc) |
 | `/bgh` | PRINCIPAL | tổng quan toàn trường, học vụ, bài viết + duyệt, thư viện số, trắc nghiệm, giao việc, lịch, Trợ lý AI |
 | `/bien-tap` | EDITOR | bài viết, chuyên mục, liên hệ, lịch, Trợ lý AI |
 | `/thu-thu` | LIBRARIAN | thư viện số: thống kê, hàng chờ duyệt, kho tài liệu, danh mục, tài liệu tôi gửi, trắc nghiệm |
@@ -82,6 +82,19 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 - **Kho riêng tư:** file tài liệu (PDF, MP3, MP4/WebM) chỉ đi qua `PrivateStorageService` (`infrastructure/storage`: bucket `R2_PRIVATE_BUCKET`, hoặc thư mục `PRIVATE_UPLOAD_DIR` với driver local; production bắt buộc có bucket). Kho này **không có URL công khai**: chỉ cấp URL đọc ký sẵn hết hạn 5 phút (`presignGet`) **sau khi** service kiểm tra đối tượng xem; không bao giờ ghi URL ký sẵn vào log, `audit_logs`, CSDL hay kết quả tool Agent. Khoá object `lib-<uuid>.<đuôi>` (`newPrivateKey`), loại thật nhận dạng bằng magic bytes (`private-types.ts`). Ảnh bìa vẫn đi luồng media công khai (`MediaService.presign/complete` nhận hàm kiểm tra quyền riêng). Dữ liệu sau này cần riêng tư (ảnh biên bản chấm, minh chứng điều chỉnh điểm…) dùng kho này.
 - **Ai đọc được gì** ở một chỗ: `features/library/library-audience.ts` (`publishedWhere` cho danh sách, `canRead` trước khi cấp URL). Khách chỉ thấy danh mục tài liệu `ALL`; học sinh `ALL` + khối/lớp mình, **không bao giờ `TEACHERS_ONLY`**; nhân sự mọi tài liệu đã đăng; tài liệu không đọc được luôn 404. Danh mục công khai qua `use cache` + `cacheTag('library')`; người đăng nhập gọi API kèm cookie (không cache).
 - **Nguồn và giấy phép bắt buộc** (zod + CHECK CSDL). Quyền `library:submit` (TEACHER, LIBRARIAN, PRINCIPAL), `library:manage` (LIBRARIAN, PRINCIPAL); **ADMIN không có quyền thư viện**. Luồng `DRAFT` → `PENDING_REVIEW` → `PUBLISHED`/`REJECTED` (lý do bắt buộc), `ARCHIVED`; chuyển trạng thái có điều kiện (chống duyệt hai lần). Tìm không dấu bằng cột `search_text` (`normalizeSearch` ở `@pvh/shared`) + index pg_trgm, không dùng `unaccent`. Lượt đọc gộp theo ngày (`library_views`), một lượt/người/tài liệu/30 phút. Giới hạn `library-access` (30/phút), `library-submit` (20/giờ).
+
+## Trung tâm giám sát (bước 26)
+
+- `features/monitoring`:
+  - `HealthProbeService`: chỉ đọc, có hạn thời gian; Claude chỉ kiểm cấu hình.
+  - `MonitoringService`: job hàng đợi `monitoring` (sức khoẻ mỗi phút, dung lượng kho mỗi giờ qua `StorageService.usageBytes`, dọn mỗi ngày) và số liệu cho `/admin`.
+  - `SystemErrorsService`: `ERROR_SINK` của `AllExceptionsFilter` và của mọi worker BullMQ.
+  - `MonitoringAlertsService`: mở/đóng cảnh báo theo `key`, index duy nhất một phần chống mở trùng.
+  - `AccountWatchService`: listener `AuditLogService.onRecorded` để phát hiện bất thường đăng nhập, tài khoản quản trị mới, đổi vai trò/quyền.
+- **Hàm thuần ở `monitoring-rules.ts`** (có unit test): `sanitizeErrorMessage`, `errorFingerprint`, `routePattern`, `healthTransition`, `crossesThreshold`. Thông điệp lỗi và cảnh báo **luôn** đi qua `sanitizeErrorMessage`/`defang()`; không bao giờ ghi body, header, cookie, token, URL ký sẵn, mã kích hoạt hay giá trị điểm.
+- **Chỉ báo khi trạng thái đổi**, đúng lúc chạm ngưỡng (`crossesThreshold`). Tối đa `ALERT_MESSAGES_PER_HOUR` tin/giờ. Gửi qua `NotificationsService` (kênh `telegram` nếu đã liên kết, không thì `web`). Tắt bằng `telegram.admin_alerts`; ngưỡng `monitor.*` ở `system_settings`.
+- **Quyền:** xem cần `system:read`; thao tác hệ thống (kiểm tra ngay, chạy lại job, đánh dấu đã xử lý) cần `setting:manage`; phiên đăng nhập, buộc đăng xuất, khoá hàng loạt (nhập lại mật khẩu), gỡ chặn cần `user:manage` (`features/users/user-sessions.service.ts`). Không tool AI Agent nào; ADMIN không có thêm quyền nghiệp vụ.
+- **e2e đặt `MONITORING_ENABLED=false`:** không job định kỳ, không ghi lỗi, không cảnh báo. Test bật `enabled` của service tường minh rồi tắt và tự dọn dữ liệu.
 
 ## Trắc nghiệm ôn tập (bước 22)
 

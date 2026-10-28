@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { RateLimitService } from '../../infrastructure/rate-limit/rate-limit.service.js';
 
 const WINDOW_SEC = 60;
-const MAX_FAILURES = 5;
+export const LOGIN_PAIR_MAX_FAILURES = 5;
 // Bước 23: mã học sinh có quy luật nên còn chặn theo IP (mọi tài khoản cộng lại), chống thử một mật khẩu
 // lần lượt trên nhiều mã học sinh. Đăng nhập đúng không xoá bộ đếm này.
 export const LOGIN_IP_WINDOW_SEC = 10 * 60;
@@ -19,7 +19,7 @@ export class LoginRateLimiter {
   async retryAfterSeconds(ip: string, email: string): Promise<number> {
     const [pair, byIp] = await Promise.all([this.limits.peek(NAME, this.key(ip, email)), this.limits.peek(NAME, ip)]);
     const waits = [
-      pair.count >= MAX_FAILURES ? Math.max(1, pair.retryAfterSec) : 0,
+      pair.count >= LOGIN_PAIR_MAX_FAILURES ? Math.max(1, pair.retryAfterSec) : 0,
       byIp.count >= LOGIN_IP_MAX_FAILURES ? Math.max(1, byIp.retryAfterSec) : 0,
     ];
     return Math.max(...waits);

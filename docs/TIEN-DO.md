@@ -43,6 +43,8 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 | [x] | 23 | Rà soát bảo mật, kiểm thử theo vai trò & đối chiếu tài liệu | 2026-10-28 |
 | [-] | 24 | *(tuỳ chọn)* Quản lý mượn trả sách giấy | |
 | [-] | 25 | *(tuỳ chọn)* Tự động gợi ý xếp thời khoá biểu | |
+| [x] | 26 | Trung tâm giám sát hệ thống & cảnh báo Telegram cho ADMIN | 2026-10-28 |
+| [ ] | 27 | Giám sát AI Agent, công tắc khẩn cấp & hạn mức | |
 
 Ô `[-]` nghĩa là bỏ bước đó: `/buoc tiep` sẽ bỏ qua.
 
@@ -388,3 +390,48 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
   - F13 chưa có thẻ (tag);
   - cập nhật sơ đồ ERD/Use case/Class/Package/Component theo `docs/07` mục 7;
   - các mục nhỏ còn treo: job dọn upload dở trong kho riêng tư, ảnh biên bản chấm, sao chép bộ trắc nghiệm đã khoá, thông báo bài ôn tập mới.
+
+### Bước 26 – Trung tâm giám sát hệ thống & cảnh báo Telegram cho ADMIN (2026-10-28)
+
+- **Đã làm** (theo lựa chọn của người dùng: đo R2 bằng liệt kê object mỗi giờ, thao tác hàng loạt nhập lại mật khẩu):
+  - **CSDL** (migration `system_monitoring`): `system_health_checks` (giữ 7 ngày), `system_errors` (gom theo dấu vân tay, đếm, lần đầu/lần cuối), `system_alerts` (index duy nhất một phần: mỗi khoá chỉ một cảnh báo đang mở). Bảo vệ tài khoản dùng lại `audit_logs` (đăng nhập ghi thêm `params.device`) và `refresh_tokens`.
+  - **API `features/monitoring`:**
+    - `HealthProbeService`: PostgreSQL, Redis, hàng đợi, hai kho (HEAD bucket R2 hoặc thư mục local), bot (`getMe`), Claude (chỉ cấu hình); có hạn thời gian, thông điệp lỗi đã làm sạch.
+    - Job hàng đợi `monitoring`: sức khoẻ mỗi phút, dung lượng kho mỗi giờ (`StorageService.usageBytes`), dọn mỗi ngày 03:15.
+    - Chỉ báo khi dịch vụ chuyển sang ngừng hoặc hồi phục.
+    - Nhật ký lỗi: `AllExceptionsFilter` → `ERROR_SINK`; mọi worker BullMQ ghi job thất bại hẳn.
+    - Cảnh báo lỗi 5xx tăng đột biến và job thất bại liên tiếp, đóng tự động khi ổn.
+    - Cảnh báo R2 vượt ngưỡng.
+    - `AccountWatchService` (listener `AuditLogService.onRecorded`) báo: sai mật khẩu nhiều lần, BGH/ADMIN đăng nhập từ IP/thiết bị lạ, tài khoản ADMIN/BGH mới, đổi vai trò/quyền.
+  - **Gửi cảnh báo:** cho người có `system:read` qua `NotificationsService` (Telegram nếu đã liên kết, không thì hộp thông báo), văn bản thuần qua `defang()`, tối đa 30 tin/giờ, tắt bằng `telegram.admin_alerts`; ngưỡng `monitor.*` ở trang Cấu hình. CSDL ngừng thì gửi thẳng qua bot.
+  - **Phiên đăng nhập** (`features/users/user-sessions.service.ts`, `user:manage`): xem/thu hồi từng phiên, buộc đăng xuất, khoá/buộc đăng xuất **hàng loạt** (nhập lại mật khẩu, sai 5 lần → 429, bỏ qua chính mình và ADMIN cuối cùng). Gỡ IP/tài khoản bị chặn tạm (`RateLimitService.list`).
+  - **Endpoint mới (14):** 10 `/monitoring/*` và 4 `/users/*`. Quyền: xem `system:read`; thao tác hệ thống `setting:manage`; phiên và gỡ chặn `user:manage`; luôn kiểm tra trước khi đọc input. Không có tool AI Agent.
+  - **Web:** `/admin` thành dashboard tự làm mới 30 giây (thẻ dịch vụ xanh/vàng/đỏ có biểu tượng + chữ, số liệu chính, biểu đồ lỗi theo giờ, độ trễ 24 giờ từng dịch vụ có bảng số liệu thay thế, hàng đợi, nút Kiểm tra ngay). `/admin/giam-sat` (mục mới trong menu) có 5 thẻ: cảnh báo, nhật ký lỗi, hàng đợi (chạy lại), bảo mật đăng nhập (gỡ chặn), phiên đăng nhập (tìm người dùng, thu hồi, hàng loạt). Trang Người dùng có liên kết "Phiên đăng nhập".
+  - **Tài liệu:** `CLAUDE.md`, README, `docs/02`, `docs/04`, `docs/07`, `.env.example` (`MONITORING_ENABLED`).
+- **Test:**
+  - Unit `monitoring-rules.spec.ts` (9): làm sạch thông điệp, mẫu route, dấu vân tay, chuyển trạng thái, chống báo trùng theo ngưỡng, dung lượng, thiết bị.
+  - E2e `monitoring.e2e-spec.ts` (18): quyền theo vai trò; ADMIN không có thêm quyền nghiệp vụ; thông điệp dịch vụ lỗi không có mật khẩu; ngừng → báo một lần, ngừng tiếp không báo, hồi phục → đóng và báo đã ổn; hai tiến trình mở cùng khoá chỉ một cảnh báo; tắt cảnh báo thì không gửi; kiểm tra ngay và giới hạn; đo dung lượng và dọn dữ liệu cũ; lỗi 5xx thật qua filter được gom nhóm, không có bí mật; tăng đột biến; job thất bại liên tiếp; đăng nhập từ thiết bị lạ; sai mật khẩu chạm ngưỡng; tài khoản BGH mới (đối tượng của cảnh báo không nhận tin về mình), đổi vai trò, đổi quyền; phiên, buộc đăng xuất; khoá hàng loạt (sai mật khẩu, bỏ qua chính mình, khoá thì token hết tác dụng ngay); gỡ chặn; chạy lại job lạ → 404.
+  - Thêm 14 route vào `ROUTES` (ma trận vai trò đúng 403). Quét mã nguồn trong `security.e2e-spec.ts` mở rộng sang `monitoring` (không đụng bảng điểm).
+  - `pnpm build`, `pnpm lint`, `pnpm test` (227 unit + 382 e2e) xanh.
+- **Thử với dịch vụ thật** (dev server đang chạy của người dùng, `.env` thật):
+  - Job kiểm tra mỗi phút ghi đủ 7 dịch vụ **Bình thường**: HEAD được cả hai bucket R2 thật, bot `@PVH_website_bot` trả lời `getMe`.
+  - Tạo một tài khoản BGH tạm qua API thật: ADMIN (đã liên kết) **nhận tin Telegram thật** "Tài khoản quản trị/BGH mới", BGH nhận trong hộp thông báo.
+  - Script thử đăng nhập ADMIN bằng Node cũng làm ADMIN nhận tin thật "Đăng nhập từ nơi lạ" (thiết bị mới), tức phát hiện đúng.
+  - Dữ liệu thử đã xoá; hai tin Telegram vẫn còn trong chat của ADMIN.
+  - Hai bucket R2 hiện rỗng nên dung lượng 0 B (đã đối chiếu bằng ListObjectsV2).
+- **Kiểm tra giao diện (Chrome headless):**
+  - `/admin` và 5 thẻ của `/admin/giam-sat` ở 375 px và 1280 px, sáng và tối: không tràn ngang, không lỗi console.
+  - Bấm "Kiểm tra ngay", tìm người dùng → xem phiên chạy được.
+  - Sau khi xem ảnh chụp, đã sửa nhãn "Cao nhất" của biểu đồ và tiêu đề cảnh báo đăng nhập (tên trước, vai trò trong ngoặc).
+- **Lệch thiết kế:**
+  - Thêm trạng thái `OFF` (dịch vụ không dùng/chưa cấu hình, không báo động) ngoài OK/DEGRADED/DOWN.
+  - Buộc đăng xuất thu hồi refresh token: access token còn tối đa 15 phút; muốn chặn ngay thì khoá (guard đọc lại trạng thái mỗi request).
+  - Dung lượng kho đo cả driver local (để hiển thị) nhưng chỉ cảnh báo với R2.
+  - Người là đối tượng của cảnh báo (tài khoản vừa tạo, người đăng nhập từ nơi lạ, người bị đổi vai trò) không nhận tin về chính mình.
+  - Chạy lại job, đánh dấu đã xử lý, kiểm tra ngay cần `setting:manage` (BGH có `system:read` chỉ xem).
+  - Dung lượng đo được lưu ở Redis, không thêm bảng.
+- **Còn lại:**
+  - Bước 27: giám sát AI Agent, công tắc khẩn cấp, hạn mức Claude.
+  - Sao lưu CSDL tự động; chính sách mật khẩu hàng loạt (không thuộc bước này).
+  - Biểu đồ dung lượng theo thời gian (hiện chỉ có số đo mới nhất).
+  - Khoá theo tài khoản bất kể IP vẫn chưa có (đã ghi ở bước 23).

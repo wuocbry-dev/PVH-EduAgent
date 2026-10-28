@@ -95,6 +95,13 @@ Tài khoản mẫu (mật khẩu chung `Pvh@2026`, đổi qua biến `SEED_PASSW
 
 **Lệch so với ERD (hình 17), bước 17 – thời khoá biểu:** migration `timetable` thêm `classes.sessions`, `timetables`, `timetable_slots`, `fixed_periods`, `teacher_unavailability`. Chặn trùng ở CSDL: `timetable_slots` có UNIQUE (phiên bản, giáo viên, thứ, tiết), (phiên bản, lớp, thứ, tiết) và index một phần (phiên bản, phòng, thứ, tiết) khi có phòng; `timetables` không có hai bản đã công bố/lưu trữ cùng (học kỳ, ngày hiệu lực) và bản đã công bố phải có ngày hiệu lực; CHECK thứ 1–6, tiết 1–10. `teacher_id` trong slot lặp lại từ phân công để đặt được ràng buộc.
 
+**Lệch so với ERD (hình 17), bước 26 – trung tâm giám sát:** migration `system_monitoring` thêm 3 bảng.
+- `system_health_checks`: kết quả kiểm tra sức khoẻ mỗi phút (dịch vụ, `status` `OK`/`DEGRADED`/`DOWN`/`OFF`, `latency_ms`, thông báo ngắn đã làm sạch), giữ 7 ngày.
+- `system_errors`: lỗi 5xx và job thất bại hẳn, gom theo `fingerprint` (duy nhất), có `count`, `first_seen_at`, `last_seen_at`, `resolved_at`. Không bao giờ lưu body, header, cookie, token, URL ký sẵn hay giá trị điểm. Giữ 30 ngày kể từ lần cuối.
+- `system_alerts`: cảnh báo đã gửi (`kind`, `key`, tiêu đề, chi tiết, `resolved_by` → `users`). **Mỗi `key` chỉ một cảnh báo đang mở** bằng index duy nhất một phần `system_alerts_one_open_idx` (`WHERE resolved_at IS NULL`), nên nhiều tiến trình cùng phát hiện một sự cố cũng chỉ gửi một tin. Cảnh báo đã đóng giữ 90 ngày.
+
+Bảo vệ tài khoản dùng lại `audit_logs` (`auth.login` thêm `params.device` = trình duyệt + hệ điều hành, không lưu nguyên User-Agent) và `refresh_tokens` (phiên đăng nhập), không thêm bảng. Dung lượng kho đo mỗi giờ, lưu trong Redis.
+
 **Lệch so với ERD (hình 17), bước 16 – phân công giảng dạy:** migration `teaching_assignments` thêm 3 bảng. `subject_period_quotas` (`UNIQUE (school_year_id, grade_id, subject_id)`, 0–10 tiết) và `class_period_quotas` (`UNIQUE (class_id, subject_id)`) cho định mức; `teaching_assignments` (năm học, `semester_id` rỗng = cả năm, lớp, môn, giáo viên, 1–10 tiết/tuần). **Một lớp–môn chỉ một giáo viên chính** bằng hai index duy nhất một phần (`teaching_assignments_year_scope` khi `semester_id IS NULL`, `teaching_assignments_semester_scope` khi có học kỳ); phân công cả năm và theo học kỳ loại trừ nhau ở service. Khoá ngoại tới lớp/môn/giáo viên không xoá dây chuyền nên lớp/môn đã được phân công thì không xoá được. `teacher_profiles.weekly_quota` (rỗng = dùng cấu hình `teaching.default_quota`).
 
 **Lệch so với ERD (hình 17), bước 14 – học vụ:** ERD gốc chưa có lớp/năm học/môn, nên thêm 11 bảng (migration `academic_foundation`, cộng `school_year_one_current`):

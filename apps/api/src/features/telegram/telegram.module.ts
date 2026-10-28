@@ -37,5 +37,7 @@ import { TelegramController } from './telegram.controller.js';
     TelegramFileService,
     TelegramReviewService,
   ],
+  // Bước 26: trung tâm giám sát kiểm tra bot (getMe) và gửi cảnh báo thẳng khi CSDL ngừng.
+  exports: [TelegramBotService],
 })
 export class TelegramModule {}

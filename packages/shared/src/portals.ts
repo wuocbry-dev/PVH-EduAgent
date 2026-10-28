@@ -36,6 +36,7 @@ export const PORTAL_INFO: Record<Portal, PortalInfo> = {
       { slug: 'thoi-khoa-bieu', label: 'Thời khoá biểu', permissions: ['timetable:read'] },
       { slug: 'cau-hinh', label: 'Cấu hình', permissions: ['system:read'] },
       { slug: 'nhat-ky', label: 'Nhật ký hoạt động', permissions: ['system:read'] },
+      { slug: 'giam-sat', label: 'Giám sát và bảo mật', permissions: ['system:read'] },
     ],
   },
   bgh: {

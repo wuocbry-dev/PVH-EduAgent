@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -14,22 +15,28 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
 import {
+  bulkUserActionSchema,
   createUserSchema,
   listUsersQuerySchema,
   resetUserPasswordSchema,
   setUserStatusSchema,
   updateUserSchema,
+  type BulkUserActionBody,
   type CreateUserInput,
   type ListUsersQuery,
   type ResetUserPasswordInput,
   type SetUserStatusInput,
   type UpdateUserInput,
 } from './dto/users.dto.js';
+import { UserSessionsService } from './user-sessions.service.js';
 import { UsersAdminService } from './users-admin.service.js';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly users: UsersAdminService) {}
+  constructor(
+    private readonly users: UsersAdminService,
+    private readonly sessions: UserSessionsService,
+  ) {}
 
   @Get()
   list(
@@ -78,5 +85,39 @@ export class UsersController {
     @Req() req: Request,
   ): Promise<void> {
     await this.users.resetPassword(user, id, body.newPassword, req.ip);
+  }
+
+  // ── Bước 26: phiên đăng nhập, buộc đăng xuất, thao tác hàng loạt (user:manage) ──
+
+  @Post('bulk-action')
+  @HttpCode(200)
+  bulkAction(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(bulkUserActionSchema)) body: BulkUserActionBody,
+    @Req() req: Request,
+  ) {
+    return this.sessions.bulk(user, body, req.ip);
+  }
+
+  @Get(':id/sessions')
+  listSessions(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.sessions.list(user, id);
+  }
+
+  @Delete(':id/sessions/:sessionId')
+  @HttpCode(204)
+  async revokeSession(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Param('sessionId') sessionId: string,
+    @Req() req: Request,
+  ): Promise<void> {
+    await this.sessions.revoke(user, id, sessionId, req.ip);
+  }
+
+  @Post(':id/logout-all')
+  @HttpCode(200)
+  logoutAll(@CurrentUser() user: AuthUser, @Param('id') id: string, @Req() req: Request) {
+    return this.sessions.logoutAll(user, id, req.ip);
   }
 }

@@ -20,6 +20,7 @@ import type {
   LoginInput,
   ResetPasswordInput,
 } from './dto/auth.dto.js';
+import { deviceOf } from '../../common/utils/device.js';
 import { LoginRateLimiter } from './login-rate-limiter.js';
 import { hashPassword, verifyPassword } from './password.js';
 import {
@@ -36,9 +37,9 @@ export interface AuthResult {
 const INVALID_CREDENTIALS = 'Tài khoản hoặc mật khẩu không đúng';
 // Một thông báo chung cho mọi lý do thất bại: không tiết lộ mã học sinh có tồn tại hay mã nào đã dùng.
 const INVALID_ACTIVATION = 'Mã đăng nhập hoặc mã kích hoạt không đúng, hoặc mã đã hết hạn';
-const ACTIVATE_IP_MAX_FAILURES = 20;
+export const ACTIVATE_IP_MAX_FAILURES = 20;
 const ACTIVATE_IP_WINDOW_SEC = 10 * 60;
-const ACTIVATE_ID_MAX_FAILURES = 5;
+export const ACTIVATE_ID_MAX_FAILURES = 5;
 const ACTIVATE_ID_WINDOW_SEC = 15 * 60;
 
 // F10 – đăng nhập, refresh, đăng xuất, đổi/quên mật khẩu.
@@ -303,7 +304,8 @@ export class AuthService {
       userId,
       channel: 'web',
       action: 'auth.login',
-      params: { email },
+      // Thiết bị (trình duyệt + hệ điều hành, không lưu nguyên User-Agent): bước 26 so "đăng nhập từ nơi lạ".
+      params: { email, device: deviceOf(meta.userAgent) },
       ok: !error,
       error,
       ip: meta.ip,

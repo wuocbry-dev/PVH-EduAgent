@@ -103,6 +103,21 @@ Test: `academic.e2e-spec.ts` (lớp khác 403), `roster.e2e-spec.ts` (cấp lạ
 | `GET /system/health` | Công khai (chỉ trả `ok`/`down`) |
 | `GET /roles`, `PUT /roles/:code/permissions` | `user:manage` |
 | `GET /users`, `POST /users`, `PATCH /users/:id`, `PATCH /users/:id/status`, `POST /users/:id/reset-password` | `user:manage` |
+| `GET /users/:id/sessions`, `DELETE /users/:id/sessions/:sessionId`, `POST /users/:id/logout-all` | `user:manage` (bước 26: phiên đăng nhập = refresh token còn hiệu lực; buộc đăng xuất thu hồi mọi refresh token, access token còn tối đa 15 phút, muốn chặn ngay thì khoá) |
+| `POST /users/bulk-action` | `user:manage`; khoá / buộc đăng xuất tối đa 200 người, **bắt buộc nhập lại mật khẩu** của người thao tác (sai 5 lần/15 phút → 429); bỏ qua chính mình và ADMIN cuối cùng (kèm lý do); audit chỉ ghi số lượng |
+
+## Trung tâm giám sát – `/monitoring` (bước 26)
+
+| Endpoint | Quyền | Ghi chú |
+|---|---|---|
+| `GET /monitoring/overview` | `system:read` | trạng thái từng dịch vụ, độ trễ 24 giờ, lỗi 5xx theo giờ, nhóm lỗi hay gặp, hàng đợi, dung lượng kho, đăng nhập sai 24 giờ, số mục đang bị chặn, cảnh báo đang mở |
+| `POST /monitoring/check-now` | `setting:manage` | chạy kiểm tra sức khoẻ ngay; 6 lượt/phút mỗi người |
+| `GET /monitoring/alerts`, `GET /monitoring/errors`, `GET /monitoring/jobs/failed`, `GET /monitoring/security` | `system:read` | lỗi chỉ có route/tên job, mã và thông điệp đã làm sạch; job thất bại có lý do đã làm sạch |
+| `POST /monitoring/alerts/:id/resolve`, `POST /monitoring/errors/:id/resolve` | `setting:manage` | ghi audit |
+| `POST /monitoring/jobs/:queue/:jobId/retry` | `setting:manage` | chỉ hàng đợi có thật, job đang `failed` (khác → 409); ghi audit |
+| `DELETE /monitoring/blocked/:limit/:id` | `user:manage` | gỡ IP, "IP + tên đăng nhập" hoặc mã đăng nhập đang bị chặn tạm (`login`, `login-ip`, `activate-ip`, `activate-id`); ghi audit |
+
+Không có tool AI Agent nào cho các endpoint này. Cảnh báo gửi cho người có `system:read` (Telegram nếu đã liên kết, không thì hộp thông báo), văn bản thuần qua `defang()`, không kèm khoá, token, URL ký sẵn, mã kích hoạt hay giá trị điểm (bộ quét bí mật trong `security.e2e-spec.ts` quét cả bảng `notifications`).
 
 `GET /users` có thêm bộ lọc `classId`, tìm theo mã học sinh/giáo viên; trả `code`, `className`, trạng thái `PENDING` (chờ kích hoạt).
 

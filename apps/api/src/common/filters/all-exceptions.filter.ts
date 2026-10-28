@@ -3,10 +3,13 @@ import {
   Catch,
   HttpException,
   HttpStatus,
+  Inject,
   Logger,
+  Optional,
   type ExceptionFilter,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
+import { ERROR_SINK, type ErrorSink } from './error-sink.js';
 
 // Thông báo tiếng Việt thay cho câu mặc định bằng tiếng Anh của Nest/Express.
 const DEFAULT_MESSAGES: Record<number, string> = {
@@ -44,12 +47,16 @@ interface ErrorBody {
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger('Exception');
 
-  constructor(private readonly adapterHost: HttpAdapterHost) {}
+  constructor(
+    private readonly adapterHost: HttpAdapterHost,
+    // Bước 26: trung tâm giám sát ghi lỗi 5xx (gom nhóm, đếm, cảnh báo khi tăng đột biến).
+    @Optional() @Inject(ERROR_SINK) private readonly sink?: ErrorSink,
+  ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const { httpAdapter } = this.adapterHost;
     const ctx = host.switchToHttp();
-    const request = ctx.getRequest<{ method?: string; originalUrl?: string; url?: string }>();
+    const request = ctx.getRequest<{ method?: string; originalUrl?: string; url?: string; route?: { path?: unknown } }>();
     const body = this.toBody(exception);
 
     if (body.statusCode >= 500) {
@@ -57,6 +64,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
       this.logger.error(
         `${request.method} ${path} → ${body.statusCode}: ${exception instanceof Error ? (exception.stack ?? exception.message) : String(exception)}`,
       );
+      const route = typeof request.route?.path === 'string' ? request.route.path : undefined;
+      this.sink?.recordHttp({ method: request.method ?? 'GET', path, route, statusCode: body.statusCode, error: exception });
     }
     httpAdapter.reply(ctx.getResponse(), body, body.statusCode);
   }

@@ -45,6 +45,10 @@ export abstract class StorageService {
   // Ngược lại với publicUrl: nhận một URL (tuyệt đối hoặc tương đối) và trả khoá nếu nó trỏ tới kho của hệ thống.
   abstract keyFromUrl(url: string): string | null;
 
+  // Bước 26: kiểm tra kho còn hoạt động (không ghi gì) và đo dung lượng đã dùng (byte).
+  abstract ping(): Promise<void>;
+  abstract usageBytes(): Promise<number>;
+
   // Loại media nếu URL là của hệ thống, ngược lại null (dùng khi lọc nội dung bài viết).
   mediaKindOfUrl(url: string): MediaKind | null {
     const key = this.keyFromUrl(url);

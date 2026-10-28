@@ -6,6 +6,7 @@ import type { Env } from '../../config/env.validation.js';
 import { PRIVATE_KEY } from './private-types.js';
 import { PrivateStorageService, READ_TTL_SEC, type PresignedRead, type PresignGetInput } from './private-storage.service.js';
 import { PRESIGN_TTL_SEC, type PresignedUpload, type PresignInput } from './storage.service.js';
+import { localPing, localUsageBytes } from './usage.js';
 
 // Token của driver local, thay cho chữ ký của R2: `put` để trình duyệt PUT file lên, `get` để đọc (hết hạn ngắn).
 export interface PrivateTokenClaims {
@@ -121,5 +122,13 @@ export class LocalPrivateStorageService extends PrivateStorageService {
 
   private mac(payload: string): string {
     return createHmac('sha256', this.secret).update(payload).digest('base64url');
+  }
+
+  ping(): Promise<void> {
+    return localPing(this.dir);
+  }
+
+  usageBytes(): Promise<number> {
+    return localUsageBytes(this.dir);
   }
 }

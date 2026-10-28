@@ -112,6 +112,8 @@ model User {
   createdQuizzes Quiz[]        @relation("QuizCreator")
   quizAttempts   QuizAttempt[] @relation("QuizAttemptStudent")
 
+  resolvedAlerts SystemAlert[] @relation("SystemAlertResolver")
+
   @@map("users")
 }
 
@@ -1236,4 +1238,67 @@ model QuizAnswer {
   @@id([attemptId, questionId])
   @@index([questionId])
   @@map("quiz_answers")
+}
+
+// ───────────── Bước 26 – trung tâm giám sát ─────────────
+
+enum HealthStatus {
+  OK
+  DEGRADED
+  DOWN
+  OFF
+}
+
+// Kết quả kiểm tra sức khoẻ định kỳ (mỗi phút, mỗi dịch vụ một dòng). Giữ 7 ngày.
+model SystemHealthCheck {
+  id        BigInt       @id @default(autoincrement())
+  service   String       @db.VarChar(30)
+  status    HealthStatus
+  latencyMs Int?         @map("latency_ms")
+  message   String?      @db.VarChar(300)
+  checkedAt DateTime     @default(now()) @map("checked_at") @db.Timestamptz
+
+  @@index([service, checkedAt])
+  @@index([checkedAt])
+  @@map("system_health_checks")
+}
+
+enum SystemErrorSource {
+  HTTP
+  JOB
+}
+
+// Lỗi 5xx và job thất bại, gom theo dấu vân tay. Chỉ route/tên job, mã lỗi và thông điệp đã làm sạch:
+// không bao giờ có body, header, cookie, token, URL ký sẵn hay giá trị điểm.
+model SystemError {
+  id          BigInt            @id @default(autoincrement())
+  fingerprint String            @unique @db.Char(64)
+  source      SystemErrorSource
+  route       String            @db.VarChar(200)
+  statusCode  Int?              @map("status_code")
+  message     String            @db.VarChar(500)
+  count       Int               @default(1)
+  firstSeenAt DateTime          @default(now()) @map("first_seen_at") @db.Timestamptz
+  lastSeenAt  DateTime          @default(now()) @map("last_seen_at") @db.Timestamptz
+  resolvedAt  DateTime?         @map("resolved_at") @db.Timestamptz
+
+  @@index([lastSeenAt])
+  @@map("system_errors")
+}
+
+// Cảnh báo đã gửi. `key` chống mở trùng: mỗi key chỉ một cảnh báo đang mở (index duy nhất một phần trong migration).
+model SystemAlert {
+  id         BigInt    @id @default(autoincrement())
+  kind       String    @db.VarChar(40)
+  key        String    @db.VarChar(160)
+  title      String    @db.VarChar(200)
+  detail     String?   @db.VarChar(1000)
+  openedAt   DateTime  @default(now()) @map("opened_at") @db.Timestamptz
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz
+  resolvedBy BigInt?   @map("resolved_by")
+  resolver   User?     @relation("SystemAlertResolver", fields: [resolvedBy], references: [id], onDelete: SetNull)
+
+  @@index([resolvedAt])
+  @@index([openedAt])
+  @@map("system_alerts")
 }

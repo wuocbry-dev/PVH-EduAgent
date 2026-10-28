@@ -123,6 +123,35 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
 - Sau đăng nhập/kích hoạt tự vào cổng chính (ADMIN → PRINCIPAL → EDITOR → LIBRARIAN → TEACHER → STUDENT); `next` hợp lệ và thuộc cổng của người đó thì ưu tiên. Người nhiều vai trò có nút **Đổi cổng**. Vào cổng không thuộc mình, hoặc dùng đường dẫn cũ `/admin/bai-viet…`, thì `src/proxy.ts` chuyển hướng (308) sang trang tương ứng của cổng mình.
 - **Ẩn menu/chuyển hướng không phải bảo mật:** API luôn kiểm tra quyền trong service. Proxy chọn cổng theo claim `roles` trong access token (chỉ để định tuyến); đổi vai trò người dùng thì thu hồi mọi phiên đăng nhập của họ.
 
+## Trung tâm giám sát và bảo mật (bước 26)
+
+- **Trang Tổng quan `/admin`** (tự làm mới mỗi 30 giây) gồm:
+  - trạng thái từng dịch vụ (xanh/vàng/đỏ): PostgreSQL, Redis, hàng đợi, kho ảnh/video và kho tài liệu (R2 hoặc thư mục local), bot Telegram, Claude (chỉ kiểm cấu hình, không gọi API tính phí);
+  - độ trễ 24 giờ, lỗi máy chủ theo giờ, nhóm lỗi hay gặp, hàng đợi;
+  - dung lượng R2 so với gói (mặc định 10 GB), đăng nhập sai, IP đang bị chặn, cảnh báo đang mở;
+  - nút "Kiểm tra ngay".
+- **Trang `/admin/giam-sat`:**
+  - cảnh báo (đánh dấu đã xử lý);
+  - nhật ký lỗi (gom nhóm, thông điệp đã làm sạch);
+  - job thất bại (chạy lại);
+  - bảo mật đăng nhập (IP/tài khoản bị chặn, gỡ chặn; đăng nhập sai 24 giờ);
+  - phiên đăng nhập của từng người (thu hồi từng phiên, buộc đăng xuất), khoá hoặc buộc đăng xuất **hàng loạt** (phải nhập lại mật khẩu).
+
+  Trang Người dùng có liên kết "Phiên đăng nhập" tới đây.
+- **Job định kỳ (BullMQ, cần Redis):** kiểm tra sức khoẻ mỗi phút, đo dung lượng kho mỗi giờ, dọn dữ liệu cũ mỗi ngày 03:15. Tắt bằng `MONITORING_ENABLED=false`.
+- **Cảnh báo** qua Telegram cho người có quyền xem hệ thống đã liên kết bot; người chưa liên kết nhận trong hộp thông báo. Gửi khi:
+  - dịch vụ ngừng hoặc hồi phục (chỉ khi trạng thái đổi);
+  - lỗi 5xx tăng đột biến;
+  - job thất bại liên tiếp;
+  - R2 vượt ngưỡng;
+  - một tài khoản sai mật khẩu nhiều lần;
+  - BGH/ADMIN đăng nhập từ IP hoặc thiết bị lạ;
+  - có tài khoản ADMIN/BGH mới;
+  - đổi vai trò hoặc quyền.
+
+  Bật/tắt và ngưỡng ở trang Cấu hình (`telegram.admin_alerts`, `monitor.*`). Tối đa 30 tin/giờ. Khi CSDL ngừng, cảnh báo gửi thẳng qua bot.
+- ADMIN **không** có thêm quyền nghiệp vụ nào (bài viết, điểm, thư viện, trắc nghiệm, giao việc). Trang Vai trò và quyền giữ nguyên.
+
 ## Trắc nghiệm ôn tập (bước 22)
 
 - **Giáo viên** (`/giao-vien/trac-nghiem`): soạn bộ câu hỏi cho môn mình dạy (theo phân công), giao cho khối hoặc lớp mình dạy; câu hỏi có ảnh, một hoặc nhiều đáp án đúng, giải thích; xem trước như học sinh thấy; **nhập từ Excel** theo file mẫu (xem trước từng dòng rồi xác nhận); tuỳ chọn thời gian làm, số lần làm, xáo câu/đáp án, cho xem đáp án sau khi nộp, gắn với tài liệu thư viện; công bố/ẩn; **thống kê**: số lượt, điểm trung bình, phổ điểm, **câu sai nhiều nhất**. Thủ thư và BGH (`/thu-thu/trac-nghiem`, `/bgh/trac-nghiem`) quản lý mọi bộ và giao được cho toàn trường.

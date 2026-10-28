@@ -32,6 +32,10 @@ export abstract class PrivateStorageService {
   abstract readHead(key: string, bytes: number): Promise<Buffer | null>;
 
   abstract delete(key: string): Promise<void>;
+
+  // Bước 26: kiểm tra kho còn hoạt động (không ghi gì) và đo dung lượng đã dùng (byte).
+  abstract ping(): Promise<void>;
+  abstract usageBytes(): Promise<number>;
 }
 
 // Tên file an toàn cho Content-Disposition (chỉ ASCII; tên tiếng Việt đầy đủ đi qua filename*).

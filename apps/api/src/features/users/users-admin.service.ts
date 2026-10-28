@@ -139,6 +139,8 @@ export class UsersAdminService {
       fullName: input.fullName,
       phone: input.phone,
       roles: input.roles,
+      // Bước 26: vai trò cũ khi có đổi, để cảnh báo cho ADMIN nói rõ đổi từ gì sang gì.
+      previousRoles: rolesChanged ? before : undefined,
     });
     return toUserDto(user);
   }

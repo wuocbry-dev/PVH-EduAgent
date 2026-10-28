@@ -1,4 +1,4 @@
-import { PASSWORD_MIN_LENGTH, ROLES, USER_STATUSES } from '@pvh/shared';
+import { BULK_USER_ACTION_MAX, BULK_USER_ACTIONS, PASSWORD_MIN_LENGTH, ROLES, USER_STATUSES } from '@pvh/shared';
 import { z } from 'zod';
 
 const email = z.email('Email không hợp lệ').trim().toLowerCase().max(150);
@@ -53,3 +53,15 @@ export type SetUserStatusInput = z.infer<typeof setUserStatusSchema>;
 
 export const resetUserPasswordSchema = z.object({ newPassword: password });
 export type ResetUserPasswordInput = z.infer<typeof resetUserPasswordSchema>;
+
+// Bước 26: khoá / buộc đăng xuất hàng loạt, cần nhập lại mật khẩu của người thao tác.
+export const bulkUserActionSchema = z.object({
+  action: z.enum(BULK_USER_ACTIONS),
+  userIds: z
+    .array(z.string().regex(/^[1-9][0-9]{0,18}$/, 'Mã người dùng không hợp lệ'))
+    .min(1, 'Chưa chọn người dùng nào')
+    .max(BULK_USER_ACTION_MAX, `Tối đa ${BULK_USER_ACTION_MAX} người mỗi lần`)
+    .transform((v) => [...new Set(v)]),
+  password: z.string().min(1, 'Nhập mật khẩu của bạn để xác nhận').max(128),
+});
+export type BulkUserActionBody = z.infer<typeof bulkUserActionSchema>;

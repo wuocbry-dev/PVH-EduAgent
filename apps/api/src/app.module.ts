@@ -12,6 +12,7 @@ import { CategoriesModule } from './features/categories/categories.module.js';
 import { EventsModule } from './features/events/events.module.js';
 import { ContactsModule } from './features/contacts/contacts.module.js';
 import { MediaModule } from './features/media/media.module.js';
+import { MonitoringModule } from './features/monitoring/monitoring.module.js';
 import { PostsModule } from './features/posts/posts.module.js';
 import { PublicSiteModule } from './features/public-site/public-site.module.js';
 import { RosterModule } from './features/roster/roster.module.js';
@@ -70,6 +71,8 @@ import { RevalidateModule } from './infrastructure/revalidate/revalidate.module.
     AgentModule,
     TelegramModule,
     SchedulerModule,
+    // Bước 26: cung cấp ERROR_SINK cho AllExceptionsFilter (nhật ký lỗi 5xx).
+    MonitoringModule,
   ],
   providers: [{ provide: APP_FILTER, useClass: AllExceptionsFilter }],
 })

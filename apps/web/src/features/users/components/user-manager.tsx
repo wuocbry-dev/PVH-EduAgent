@@ -10,8 +10,10 @@ import {
   type UserDto,
   type UserListDto,
 } from "@pvh/shared";
+import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { reissueActivationCode, SlipSheet } from "@/features/roster";
+import { usePortalBase } from "@/shared/lib/use-portal-base";
 import { inputClass, errorClass } from "@/shared/ui/form-styles";
 import {
   listClassOptions,
@@ -29,6 +31,7 @@ const EMPTY_FILTERS: UserFilters = { q: "", status: "", role: "", classId: "", p
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 export function UserManager() {
+  const base = usePortalBase();
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [result, setResult] = useState<UserListDto | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -221,6 +224,10 @@ export function UserManager() {
                         <button type="button" className="underline" onClick={() => resetPassword(user)}>
                           Đặt lại mật khẩu
                         </button>
+                        {/* Bước 26: xem/thu hồi phiên, buộc đăng xuất ở trang Giám sát và bảo mật. */}
+                        <Link className="underline" href={`${base}/giam-sat?tab=phien&user=${user.id}`}>
+                          Phiên đăng nhập
+                        </Link>
                         {user.code && user.status !== "LOCKED" && (
                           <button type="button" className="underline" onClick={() => reissue(user)}>
                             Cấp lại mã kích hoạt

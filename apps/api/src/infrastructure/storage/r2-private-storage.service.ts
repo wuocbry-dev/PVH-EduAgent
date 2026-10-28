@@ -3,6 +3,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { ConfigService } from '@nestjs/config';
 import type { Env } from '../../config/env.validation.js';
 import { createR2Client, isNotFound } from './r2-client.js';
+import { r2Ping, r2UsageBytes } from './usage.js';
 import {
   contentDisposition,
   PrivateStorageService,
@@ -68,5 +69,13 @@ export class R2PrivateStorageService extends PrivateStorageService {
 
   async delete(key: string): Promise<void> {
     await this.s3.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: key }));
+  }
+
+  ping(): Promise<void> {
+    return r2Ping(this.s3, this.bucket);
+  }
+
+  usageBytes(): Promise<number> {
+    return r2UsageBytes(this.s3, this.bucket);
   }
 }

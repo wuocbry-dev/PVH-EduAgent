@@ -22,6 +22,38 @@ export class RateLimitService {
     return this.touch(name, id, 0, 0);
   }
 
+  // Mọi bộ đếm còn hiệu lực của `name` có ít nhất `minCount` lần (bước 26: trang Giám sát xem IP/tài khoản đang bị chặn).
+  // Quét theo SCAN (không chặn Redis), tối đa `limit` mục.
+  async list(name: string, minCount = 1, limit = 500): Promise<{ id: string; count: number; retryAfterSec: number }[]> {
+    const found: { id: string; count: number; retryAfterSec: number }[] = [];
+    const client = this.redis.client;
+    if (client) {
+      const prefix = this.redis.key('rl', name, '');
+      try {
+        let cursor = '0';
+        do {
+          const [next, keys] = await client.scan(cursor, 'MATCH', `${prefix}*`, 'COUNT', 200);
+          cursor = next;
+          for (const key of keys) {
+            const [count, ttl] = await Promise.all([client.get(key), client.ttl(key)]);
+            if (Number(count ?? 0) >= minCount && ttl > 0) found.push({ id: key.slice(prefix.length), count: Number(count), retryAfterSec: ttl });
+            if (found.length >= limit) return found;
+          }
+        } while (cursor !== '0');
+        return found;
+      } catch (err) {
+        this.logger.warn(`Không đọc được bộ đếm trong Redis: ${String(err)}`);
+      }
+    }
+    const now = Date.now();
+    for (const [key, entry] of this.memory) {
+      if (!key.startsWith(`${name}:`) || entry.resetAt <= now || entry.count < minCount) continue;
+      found.push({ id: key.slice(name.length + 1), count: entry.count, retryAfterSec: Math.ceil((entry.resetAt - now) / 1000) });
+      if (found.length >= limit) break;
+    }
+    return found;
+  }
+
   async reset(name: string, id: string): Promise<void> {
     this.memory.delete(`${name}:${id}`);
     await this.redis.client?.del(this.redis.key('rl', name, id)).catch(() => 0);

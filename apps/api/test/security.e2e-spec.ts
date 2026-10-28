@@ -278,11 +278,13 @@ describe('Rà soát bảo mật (bước 10, e2e)', () => {
       const tools = providers.flatMap((p) => p.buildTools({ user, channel: 'telegram' }));
       for (const t of tools) expect(`${t.name} ${t.description}`, t.name).not.toMatch(/score|assessment|điểm số|bảng điểm|đợt thi/i);
 
-      // Quét mã nguồn: mọi file tool của agent, thư mục agent và telegram không được nhắc tới bảng/dịch vụ điểm.
+      // Quét mã nguồn: mọi file tool của agent, thư mục agent, telegram và trung tâm giám sát (bước 26: cảnh báo cho ADMIN)
+      // không được nhắc tới bảng/dịch vụ điểm.
       const src = fileURLToPath(new URL('../src/features', import.meta.url));
       const files = readdirSync(src, { recursive: true, encoding: 'utf8' })
         .filter((f) => f.endsWith('.ts') && !f.endsWith('.spec.ts'))
-        .filter((f) => f.endsWith('.agent-tools.ts') || /^(agent|agent-actions|telegram)[\\/]/.test(f));
+        .filter((f) => f.endsWith('.agent-tools.ts') || /^(agent|agent-actions|telegram|monitoring)[\\/]/.test(f));
+      expect(files.some((f) => f.startsWith('monitoring'))).toBe(true);
       expect(files.length).toBeGreaterThan(10);
       for (const f of files) {
         const code = readFileSync(join(src, f), 'utf8');
