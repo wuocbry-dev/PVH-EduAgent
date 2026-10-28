@@ -44,7 +44,7 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 | [-] | 24 | *(tuỳ chọn)* Quản lý mượn trả sách giấy | |
 | [-] | 25 | *(tuỳ chọn)* Tự động gợi ý xếp thời khoá biểu | |
 | [x] | 26 | Trung tâm giám sát hệ thống & cảnh báo Telegram cho ADMIN | 2026-10-28 |
-| [ ] | 27 | Giám sát AI Agent, công tắc khẩn cấp & hạn mức | |
+| [x] | 27 | Giám sát AI Agent, công tắc khẩn cấp & hạn mức | 2026-10-28 |
 
 Ô `[-]` nghĩa là bỏ bước đó: `/buoc tiep` sẽ bỏ qua.
 
@@ -435,3 +435,39 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
   - Sao lưu CSDL tự động; chính sách mật khẩu hàng loạt (không thuộc bước này).
   - Biểu đồ dung lượng theo thời gian (hiện chỉ có số đo mới nhất).
   - Khoá theo tài khoản bất kể IP vẫn chưa có (đã ghi ở bước 23).
+
+### Bước 27 – Giám sát AI Agent, công tắc khẩn cấp & hạn mức (2026-10-28)
+
+- **Đã làm** (theo lựa chọn của người dùng: hạn mức mặc định 100 lệnh/người, 1000 lệnh toàn hệ thống, 5 USD/ngày, báo lạm dụng khi quá 40 lệnh/giờ; tắt bot = ngừng nhận lệnh nhưng vẫn gửi cảnh báo):
+  - **`AgentGuardService`** (`features/agent`) chạy trong `AgentService.chat` **trước khi gọi Claude**:
+    - công tắc `agent.enabled` → 423 tiếng Việt;
+    - hạn mức theo ngày giờ Việt Nam (`RateLimitService`): mỗi người, toàn hệ thống, **chi phí** (cộng `total_cost_usd` của SDK theo micro-USD) → 429;
+    - đếm lạm dụng (dồn dập theo giờ, tool bị từ chối vì thiếu quyền qua `withAudit`, tin nghi tiêm lệnh theo quy tắc `injectionSignals`), **chỉ đánh dấu và đếm, không chặn**.
+
+    Sau mỗi lượt ghi audit `agent.chat` chỉ số liệu (độ dài, số lượt, chi phí, cờ), không có nội dung.
+  - **Công tắc thao tác nhạy cảm** (`agent.sensitive_tools`): `buildTools` bỏ `AgentActionsAgentTools`, `AgentActionsService.propose`/`confirm` tự chặn 423.
+  - **Công tắc bot** (`telegram.bot_enabled`): middleware của bot trả lời "tạm ngưng" (một lần mỗi 10 phút mỗi chat), thông báo và cảnh báo vẫn gửi.
+  - **Công tắc chỉ đổi qua `PATCH /settings`** (`setting:manage`, có audit), không qua AI Agent.
+  - **Cảnh báo** (`AgentWatchService`, cơ chế bước 26): `agent_quota` (mỗi loại/người một lần mỗi ngày), `agent_abuse`, `agent_switch` (nghe audit `setting.update`). Tin chỉ có tên, số lần, khoảng thời gian.
+  - **Thống kê** `GET /monitoring/agent` (`system:read`, `AgentStatsService`): lệnh theo ngày/kênh/vai trò, tool (lượt, lỗi, thiếu quyền), trạng thái `agent_actions`, mức dùng hôm nay, công tắc, cảnh báo AI. Chỉ đếm từ `audit_logs`/`agent_actions`, không thêm bảng.
+  - **Web `/admin/giam-sat-ai`** (mục mới trong menu, tự làm mới mỗi phút): ba công tắc có hộp xác nhận, thanh mức dùng so với hạn mức, biểu đồ lệnh theo ngày (7/14/30 ngày, có bảng số liệu), bảng kênh/vai trò/tool/xác nhận 2 bước, cảnh báo AI. `HourBars` nhận thêm nhãn trục để vẽ theo ngày.
+  - **Tài liệu:** `CLAUDE.md`, README, `docs/04`, `docs/07`.
+- **Test:**
+  - Unit `agent-guard-rules.spec.ts` (5): mẫu tiêm lệnh tiếng Anh/Việt, câu bình thường không bị đánh dấu, ngày giờ Việt Nam, micro-USD.
+  - E2e `agent-guard.e2e-spec.ts` (9): tắt Agent → 423 và **không gọi Claude**; tắt thao tác nhạy cảm → mất nhóm tool, propose/confirm 423; chỉ `setting:manage` đổi công tắc, đổi thì có cảnh báo và audit; vượt hạn mức người/toàn hệ thống/chi phí → 429, báo một lần; đường thành công đếm lệnh và cộng chi phí, audit không có nội dung; tin nghi tiêm lệnh chỉ bị đánh dấu, đủ 3 lần thì báo (tin không có nội dung); thiếu quyền liên tiếp và dồn dập thì báo; thống kê chỉ `system:read`, không chứa nội dung.
+  - `telegram.e2e-spec.ts` (+2): tắt bot thì bot trả lời "tạm ngưng" một lần và không xử lý lệnh, bật lại thì bình thường; tắt Agent thì tin chat trên Telegram nhận lời từ chối và không gọi Claude.
+  - Route mới trong `ROUTES`; bộ quét bí mật vẫn xanh.
+  - `pnpm build`, `pnpm lint`, `pnpm test` (232 unit + 393 e2e) xanh.
+  - e2e không gọi Claude/Telegram thật.
+- **Kiểm tra giao diện (Chrome headless, dev server thật):** `/admin/giam-sat-ai` và `/admin/cau-hinh` (có các khoá mới) ở 375 px và 1280 px, sáng và tối: không tràn ngang, không lỗi console. **Không bấm công tắc trên hệ thống thật** (sẽ tắt Trợ lý AI và gửi tin Telegram); luồng đổi công tắc → cảnh báo đã kiểm bằng e2e, đường gửi Telegram thật đã thử ở bước 26.
+- **Lệch thiết kế:**
+  - Không thêm bảng tổng hợp: thống kê đếm trực tiếp từ `audit_logs` (thêm dòng `agent.chat` mỗi lượt).
+  - Trần chi phí dựa trên `total_cost_usd` mà Claude Agent SDK ước tính, không phải hoá đơn Anthropic.
+  - Lượt chat bị lỗi vẫn tính vào số lệnh (đếm trước khi gọi Claude).
+  - Vai trò trong thống kê là vai trò hiện tại của người dùng (người nhiều vai trò được tính ở mỗi vai trò).
+  - Lệnh `/status`, `/deadline` của bot không đi qua Agent nên không tính hạn mức (vẫn bị chặn khi tắt bot).
+- **Còn lại:**
+  - Đối chiếu chi phí thật với hoá đơn Anthropic (cần API quản trị của Anthropic).
+  - Hạn mức riêng theo vai trò.
+  - Biểu đồ chi phí theo giờ.
+  - Nhận diện tiêm lệnh tốt hơn quy tắc (hiện chỉ đánh dấu).

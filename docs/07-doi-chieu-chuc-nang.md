@@ -6,7 +6,7 @@ So sánh yêu cầu ở `docs/01-phan-tich-de-tai.md` (mục 4: F01–F17, A01�
 - **Code:** API ở `apps/api/src/features/<tên>`, giao diện ở `apps/web/src/features/<tên>` và các trang trong `apps/web/src/app`.
 - **Test:** tên file trong `apps/api/test/` (e2e, cần PostgreSQL + Redis) hoặc `*.spec.ts` (unit).
 - **Sơ đồ:** file trong `docs/diagrams/drawio/`.
-- **Số liệu (cập nhật ở bước 26):** 227 unit test + 382 e2e test xanh, 243 endpoint (219 cần đăng nhập), 62 bảng CSDL.
+- **Số liệu (cập nhật ở bước 27):** 232 unit test + 393 e2e test xanh, 244 endpoint (220 cần đăng nhập), 62 bảng CSDL.
 
 ## 1. Phân hệ Website công khai
 
@@ -63,6 +63,7 @@ So sánh yêu cầu ở `docs/01-phan-tich-de-tai.md` (mục 4: F01–F17, A01�
 | 22 | Trắc nghiệm ôn tập | Đủ | `quizzes` / `…/trac-nghiem` | `quizzes.e2e-spec.ts`, `quiz.spec.ts` | Không tính vào điểm học tập; không có tool AI Agent |
 | 23 | Rà soát bảo mật, ma trận quyền | Đủ | `test/routes.ts`, `test/role-matrix.e2e-spec.ts` | `role-matrix.e2e-spec.ts`, `security.e2e-spec.ts` | Xem mục 6 |
 | 26 | Trung tâm giám sát hệ thống, cảnh báo Telegram cho ADMIN, bảo vệ tài khoản | Đủ | `monitoring`, `users` (phiên đăng nhập) / `/admin`, `/admin/giam-sat` | `monitoring.e2e-spec.ts`, `monitoring-rules.spec.ts` | Thêm trạng thái `OFF` (dịch vụ không dùng/chưa cấu hình) ngoài OK/DEGRADED/DOWN; buộc đăng xuất có độ trễ tối đa 15 phút (access token) |
+| 27 | Giám sát AI Agent, công tắc khẩn cấp, hạn mức | Đủ | `agent` (`agent-guard.service.ts`), `monitoring` (`agent-watch`, `agent-stats`) / `/admin/giam-sat-ai` | `agent-guard.e2e-spec.ts`, `agent-guard-rules.spec.ts`, `telegram.e2e-spec.ts` | Thống kê đếm từ `audit_logs` (không thêm bảng); trần chi phí theo `total_cost_usd` mà SDK báo (ước tính của SDK, không phải hoá đơn Anthropic) |
 | 24, 25 | Mượn trả sách giấy, tự động xếp thời khoá biểu | Chưa (đã bỏ khỏi lộ trình) | – | – | Tuỳ chọn |
 
 ## 5. Phân quyền (mục 5 tài liệu phân tích)
@@ -79,7 +80,7 @@ Ma trận đầy đủ vai trò × quyền, cùng giáo viên chủ nhiệm, ở
 
 | Hạng mục | Kết quả | Bằng chứng |
 |---|---|---|
-| Mọi endpoint × mọi vai trò | 219 endpoint cần đăng nhập (bước 26) × 6 vai trò: thiếu quyền → đúng 403, có quyền → không bị chặn, không 5xx | `role-matrix.e2e-spec.ts` |
+| Mọi endpoint × mọi vai trò | 220 endpoint cần đăng nhập (bước 27) × 6 vai trò: thiếu quyền → đúng 403, có quyền → không bị chặn, không 5xx | `role-matrix.e2e-spec.ts` |
 | Dò id khi không có quyền | **Đã sửa:** bài viết (chuyển trạng thái, xoá), đổi trạng thái công việc, danh sách học sinh của lớp, nhập điểm (lưu, mẫu, xem trước, xác nhận), xác nhận nhập trắc nghiệm. Các chỗ này tìm bản ghi trước rồi mới kiểm quyền, nên người không có quyền nhận 404 hay 403 tuỳ id có tồn tại hay không. Nay kiểm quyền trước | `role-matrix.e2e-spec.ts` |
 | Dữ liệu điểm | ADMIN không có quyền điểm; Agent và Telegram không chạm bảng điểm; audit không ghi giá trị điểm; học sinh chỉ xem điểm của mình | `permissions.spec.ts`, `security.e2e-spec.ts`, `scores.e2e-spec.ts`, `score-views.e2e-spec.ts` |
 | Bí mật trong dữ liệu lưu | Quét toàn bộ `audit_logs`, `notifications`, `agent_actions`: không có URL ký sẵn, token bot, khoá R2/JWT, mật khẩu, mã kích hoạt. Nhật ký truy cập HTTP bỏ query string; lỗi grammY không chứa token | `security.e2e-spec.ts` |

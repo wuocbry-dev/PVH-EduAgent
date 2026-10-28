@@ -3,6 +3,7 @@ import { AgentActionsAgentTools } from '../agent-actions/agent-actions.agent-too
 import { AgentActionsModule } from '../agent-actions/agent-actions.module.js';
 import { LibraryAgentTools } from '../library/library.agent-tools.js';
 import { LibraryModule } from '../library/library.module.js';
+import { SettingsModule } from '../settings/settings.module.js';
 import { PostsAgentTools } from '../posts/posts.agent-tools.js';
 import { PostsModule } from '../posts/posts.module.js';
 import { SystemAgentTools } from '../system/system.agent-tools.js';
@@ -12,6 +13,7 @@ import { TasksModule } from '../tasks/tasks.module.js';
 import { TimetableAgentTools } from '../timetable/timetable.agent-tools.js';
 import { TimetableModule } from '../timetable/timetable.module.js';
 import { AGENT_TOOL_PROVIDERS, type AgentToolProvider } from './agent-tool.js';
+import { AgentGuardService } from './agent-guard.service.js';
 import { AgentController } from './agent.controller.js';
 import { AgentService } from './agent.service.js';
 
@@ -26,16 +28,18 @@ const toolProviders = [
 ];
 
 @Module({
-  imports: [PostsModule, TasksModule, SystemModule, AgentActionsModule, TimetableModule, LibraryModule],
+  imports: [PostsModule, TasksModule, SystemModule, AgentActionsModule, TimetableModule, LibraryModule, SettingsModule],
   controllers: [AgentController],
   providers: [
     AgentService,
+    // Bước 27: công tắc khẩn cấp, hạn mức, đếm lạm dụng (trung tâm giám sát nghe sự kiện để báo ADMIN).
+    AgentGuardService,
     {
       provide: AGENT_TOOL_PROVIDERS,
       useFactory: (...providers: AgentToolProvider[]) => providers,
       inject: toolProviders,
     },
   ],
-  exports: [AgentService],
+  exports: [AgentService, AgentGuardService],
 })
 export class AgentModule {}

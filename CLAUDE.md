@@ -60,7 +60,7 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 
 | Cổng | Vai trò | Ghi chú |
 |---|---|---|
-| `/admin` | ADMIN | hệ thống: tổng quan giám sát, người dùng, nhập Excel, vai trò/quyền, cấu hình, nhật ký, giám sát và bảo mật (không có duyệt bài/giao việc) |
+| `/admin` | ADMIN | hệ thống: tổng quan giám sát, người dùng, nhập Excel, vai trò/quyền, cấu hình, nhật ký, giám sát và bảo mật, giám sát Trợ lý AI (không có duyệt bài/giao việc) |
 | `/bgh` | PRINCIPAL | tổng quan toàn trường, học vụ, bài viết + duyệt, thư viện số, trắc nghiệm, giao việc, lịch, Trợ lý AI |
 | `/bien-tap` | EDITOR | bài viết, chuyên mục, liên hệ, lịch, Trợ lý AI |
 | `/thu-thu` | LIBRARIAN | thư viện số: thống kê, hàng chờ duyệt, kho tài liệu, danh mục, tài liệu tôi gửi, trắc nghiệm |
@@ -95,6 +95,21 @@ Website Trường THPT Phan Văn Hớn tích hợp AI Agent. Đề tài: `docs/0
 - **Chỉ báo khi trạng thái đổi**, đúng lúc chạm ngưỡng (`crossesThreshold`). Tối đa `ALERT_MESSAGES_PER_HOUR` tin/giờ. Gửi qua `NotificationsService` (kênh `telegram` nếu đã liên kết, không thì `web`). Tắt bằng `telegram.admin_alerts`; ngưỡng `monitor.*` ở `system_settings`.
 - **Quyền:** xem cần `system:read`; thao tác hệ thống (kiểm tra ngay, chạy lại job, đánh dấu đã xử lý) cần `setting:manage`; phiên đăng nhập, buộc đăng xuất, khoá hàng loạt (nhập lại mật khẩu), gỡ chặn cần `user:manage` (`features/users/user-sessions.service.ts`). Không tool AI Agent nào; ADMIN không có thêm quyền nghiệp vụ.
 - **e2e đặt `MONITORING_ENABLED=false`:** không job định kỳ, không ghi lỗi, không cảnh báo. Test bật `enabled` của service tường minh rồi tắt và tự dọn dữ liệu.
+
+## Giám sát AI Agent (bước 27)
+
+- **`AgentGuardService` (`features/agent/agent-guard.service.ts`)**, chạy trong `AgentService.chat` **trước khi gọi Claude**:
+  - công tắc `agent.enabled` → 423;
+  - hạn mức theo ngày giờ Việt Nam (`agent.daily_per_user`, `agent.daily_total`, `agent.daily_cost_usd`; đếm bằng `RateLimitService`, chi phí bằng micro-USD từ `total_cost_usd` của SDK) → 429;
+  - đếm lạm dụng: lệnh dồn dập, tool bị `ForbiddenException` (`withAudit` gọi `toolDenied`), tin nghi tiêm lệnh (`injectionSignals` ở `agent-guard-rules.ts`, **chỉ đánh dấu và đếm, không chặn**).
+
+  Sau lượt chat ghi audit `agent.chat` **chỉ số liệu** (độ dài, số lượt, chi phí, cờ): không bao giờ ghi nội dung lệnh hay câu trả lời.
+- **Công tắc `agent.sensitive_tools`:** `AgentService.buildTools` bỏ `AgentActionsAgentTools`, và `AgentActionsService.propose`/`confirm` cũng tự chặn (423).
+- **Công tắc `telegram.bot_enabled`:** middleware của bot trả lời "tạm ngưng" (một lần mỗi 10 phút mỗi chat); thông báo và cảnh báo (`TelegramNotifierService`) vẫn gửi.
+- **Đổi công tắc:** chỉ qua `PATCH /settings` (`setting:manage`); không qua AI Agent.
+- **Cảnh báo:** `AgentWatchService` (`features/monitoring`) nghe sự kiện của guard và audit `setting.update` để mở cảnh báo `agent_quota`/`agent_abuse`/`agent_switch` (cơ chế bước 26). Tin chỉ có tên người dùng, số lần, khoảng thời gian.
+- **Thống kê:** `GET /monitoring/agent` (`AgentStatsService`, `system:read`) chỉ đếm từ `audit_logs`/`agent_actions`: số lượng và tên tool, không đọc tham số hay kết quả tool. Không thêm bảng.
+- **e2e:** không gọi Claude thật. Chat qua HTTP luôn bị chặn trước (công tắc hoặc hạn mức); đường thành công gọi thẳng `beforeChat`/`afterChat`.
 
 ## Trắc nghiệm ôn tập (bước 22)
 

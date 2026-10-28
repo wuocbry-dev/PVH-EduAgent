@@ -9,10 +9,13 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { AgentChatResponse } from '@pvh/shared';
 import type { Env } from '../../config/env.validation.js';
+import { AgentActionsAgentTools } from '../agent-actions/agent-actions.agent-tools.js';
 import { AuditLogService } from '../audit-log/audit-log.service.js';
+import { AgentGuardService } from './agent-guard.service.js';
 import {
   AGENT_TOOL_PROVIDERS,
   type AgentContext,
+  type AgentTool,
   type AgentToolProvider,
 } from './agent-tool.js';
 import { buildSystemPrompt } from './prompts/system-prompt.js';
@@ -27,6 +30,7 @@ export class AgentService {
   constructor(
     private readonly config: ConfigService<Env, true>,
     private readonly audit: AuditLogService,
+    private readonly guard: AgentGuardService,
     @Inject(AGENT_TOOL_PROVIDERS)
     private readonly providers: AgentToolProvider[],
   ) {}
@@ -34,12 +38,32 @@ export class AgentService {
   async chat(base: AgentContext, message: string): Promise<AgentChatResponse> {
     // Mỗi lượt chat có bộ gom riêng cho hành động chờ xác nhận mà tool nhạy cảm đề xuất.
     const ctx: AgentContext = { ...base, pendingActions: [], usedMediaIds: [] };
+    // Bước 27: công tắc khẩn cấp và hạn mức kiểm tra trước khi gọi Claude (không tốn chi phí khi bị chặn).
+    const ticket = await this.guard.beforeChat(ctx, message);
+    let result: { ok: boolean; costUsd?: number; numTurns?: number } = { ok: false };
+    try {
+      const response = await this.run(ctx, message);
+      result = { ok: true, costUsd: response.costUsd, numTurns: response.numTurns };
+      return response;
+    } finally {
+      await this.guard.afterChat(ctx, ticket, result);
+    }
+  }
+
+  // Bộ tool của người dùng; tắt `agent.sensitive_tools` thì bỏ hẳn nhóm tool xác nhận 2 bước (AgentActionsAgentTools).
+  async buildTools(ctx: AgentContext): Promise<AgentTool[]> {
+    const sensitive = await this.guard.sensitiveToolsEnabled();
+    return this.providers
+      .filter((p) => sensitive || !(p instanceof AgentActionsAgentTools))
+      .flatMap((p) => p.buildTools(ctx))
+      .map((t) => withAudit(t, ctx, this.audit, () => this.guard.toolDenied(ctx)));
+  }
+
+  private async run(ctx: AgentContext, message: string): Promise<AgentChatResponse> {
     const claudeEnv = this.buildClaudeEnv();
 
     // Bộ tool được dựng theo từng người dùng: mỗi tool đã gắn sẵn user để kiểm tra quyền.
-    const tools = this.providers
-      .flatMap((p) => p.buildTools(ctx))
-      .map((t) => withAudit(t, ctx, this.audit));
+    const tools = await this.buildTools(ctx);
 
     const conversation = query({
       prompt: message,

@@ -56,6 +56,17 @@ export const settingValueSchemas: Record<SettingKey, z.ZodType<string>> = {
   'monitor.login_failures': intIn(3, 1000),
   'monitor.r2_quota_gb': intIn(1, 100_000),
   'monitor.r2_warn_percent': intIn(1, 100),
+  'agent.enabled': z.enum(['true', 'false'], { error: 'Chỉ nhận true hoặc false' }),
+  'agent.sensitive_tools': z.enum(['true', 'false'], { error: 'Chỉ nhận true hoặc false' }),
+  'telegram.bot_enabled': z.enum(['true', 'false'], { error: 'Chỉ nhận true hoặc false' }),
+  'agent.daily_per_user': intIn(1, 10_000),
+  'agent.daily_total': intIn(1, 1_000_000),
+  'agent.daily_cost_usd': z
+    .string()
+    .trim()
+    .regex(/^\d{1,4}(\.\d{1,2})?$/, 'Số tiền USD, ví dụ 5 hoặc 2.5 (tối đa 2 chữ số thập phân)')
+    .refine((v) => Number(v) > 0, 'Phải lớn hơn 0'),
+  'agent.hourly_alert': intIn(1, 10_000),
   'scores.formula': z.string().refine((v) => {
     try {
       return formulaSchema.safeParse(JSON.parse(v)).success;

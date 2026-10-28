@@ -1,4 +1,6 @@
 import type {
+  AgentStatsDto,
+  AgentSwitchKey,
   BlockedEntryDto,
   BulkUserActionInput,
   BulkUserActionResultDto,
@@ -36,3 +38,9 @@ export const listSessions = (userId: string) => api<UserSessionDto[]>(`/users/${
 export const revokeSession = (userId: string, sessionId: string) => api<void>(`/users/${userId}/sessions/${sessionId}`, { method: "DELETE" });
 export const logoutAll = (userId: string) => api<{ revoked: number }>(`/users/${userId}/logout-all`, post());
 export const bulkUserAction = (input: BulkUserActionInput) => api<BulkUserActionResultDto>("/users/bulk-action", post(input));
+
+// ── Giám sát AI Agent (bước 27) ──
+export const getAgentStats = (days: number) => api<AgentStatsDto>(`/monitoring/agent?days=${days}`);
+// Công tắc khẩn cấp: đổi qua API cấu hình chung (cần setting:manage, có ghi nhật ký và báo ADMIN).
+export const setAgentSwitch = (key: AgentSwitchKey, on: boolean) =>
+  api<unknown>("/settings", { method: "PATCH", body: JSON.stringify({ [key]: on ? "true" : "false" }) });

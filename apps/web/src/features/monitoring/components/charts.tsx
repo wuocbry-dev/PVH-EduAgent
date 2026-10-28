@@ -41,12 +41,19 @@ export function HourBars({
   unit,
   alertLabel,
   height = 96,
+  labelOf = hourLabel,
+  rangeLabel = "24 giờ gần nhất",
+  keyHeader = "Giờ",
 }: {
   title: string;
   points: HourPoint[];
   unit: string;
   alertLabel?: string;
   height?: number;
+  // Biểu đồ theo ngày (bước 27) đổi nhãn trục, mô tả khoảng thời gian và tên cột của bảng số liệu.
+  labelOf?: (key: string) => string;
+  rangeLabel?: string;
+  keyHeader?: string;
 }) {
   const [active, setActive] = useState<number | null>(null);
   // Nhãn dùng giá trị lớn nhất thật; thang chiều cao tối thiểu 1 để không chia cho 0.
@@ -54,7 +61,7 @@ export function HourBars({
   const max = Math.max(1, top);
   const shown = active === null ? null : points[active];
   const hasAlert = points.some((p) => p.alert);
-  const describe = (p: HourPoint) => `${hourLabel(p.hour)}: ${p.value === null ? "không có số liệu" : `${p.value.toLocaleString("vi-VN")} ${unit}`}${p.alert && alertLabel ? ` · ${alertLabel.toLowerCase()}` : ""}`;
+  const describe = (p: HourPoint) => `${labelOf(p.hour)}: ${p.value === null ? "không có số liệu" : `${p.value.toLocaleString("vi-VN")} ${unit}`}${p.alert && alertLabel ? ` · ${alertLabel.toLowerCase()}` : ""}`;
 
   return (
     <figure className="min-w-0 space-y-1">
@@ -68,7 +75,7 @@ export function HourBars({
         className="flex items-end gap-[2px] border-b border-black/20 dark:border-white/25"
         style={{ height }}
         role="img"
-        aria-label={`${title}, 24 giờ gần nhất`}
+        aria-label={`${title}, ${rangeLabel}`}
         onMouseLeave={() => setActive(null)}
       >
         {points.map((p, i) => (
@@ -91,8 +98,8 @@ export function HourBars({
         ))}
       </div>
       <div className="flex justify-between text-[11px] opacity-60">
-        <span>{points[0] ? hourLabel(points[0].hour) : ""}</span>
-        <span>{points.at(-1) ? hourLabel(points.at(-1)!.hour) : ""}</span>
+        <span>{points[0] ? labelOf(points[0].hour) : ""}</span>
+        <span>{points.at(-1) ? labelOf(points.at(-1)!.hour) : ""}</span>
       </div>
       {hasAlert && alertLabel && (
         <p className="flex items-center gap-1 text-xs opacity-80">
@@ -104,7 +111,7 @@ export function HourBars({
         <table className="mt-1 w-full text-left">
           <thead>
             <tr className="opacity-70">
-              <th className="pr-2 font-normal">Giờ</th>
+              <th className="pr-2 font-normal">{keyHeader}</th>
               <th className="pr-2 font-normal">Giá trị ({unit})</th>
               {alertLabel && <th className="font-normal">{alertLabel}</th>}
             </tr>
@@ -112,7 +119,7 @@ export function HourBars({
           <tbody>
             {points.map((p) => (
               <tr key={p.hour}>
-                <td className="pr-2">{hourLabel(p.hour)}</td>
+                <td className="pr-2">{labelOf(p.hour)}</td>
                 <td className="pr-2">{p.value === null ? "–" : p.value.toLocaleString("vi-VN")}</td>
                 {alertLabel && <td>{p.alert ? "Có" : ""}</td>}
               </tr>

@@ -29,6 +29,7 @@ import { TelegramContextService } from './telegram-context.service.js';
 import { TelegramFileService } from './telegram-file.service.js';
 import { TelegramLinkService, type LinkResult } from './telegram-link.service.js';
 import { TelegramRateLimiter } from './telegram-rate-limiter.js';
+import { SettingsService } from '../settings/settings.service.js';
 import { TelegramReviewService } from './telegram-review.service.js';
 
 // Mỗi chat tối đa 20 tin / phút; tin vượt hạn mức bị bỏ qua (chỉ cảnh báo một lần).
@@ -105,6 +106,8 @@ function actionResultText(action: AgentActionDto, what: 'confirm' | 'cancel', we
 }
 
 // Lỗi nghiệp vụ (thiếu quyền, AI chưa cấu hình...) trả nguyên thông báo tiếng Việt; lỗi khác thì báo chung.
+const BOT_PAUSED = 'Bot đang tạm ngưng nhận lệnh theo quyết định của quản trị hệ thống. Vui lòng dùng website hoặc thử lại sau.';
+
 const errorText = (err: unknown) =>
   err instanceof HttpException && err.getStatus() < 500
     ? err.message
@@ -146,6 +149,7 @@ export class TelegramBotService implements OnApplicationBootstrap, OnModuleDestr
     private readonly albums: TelegramAlbumService,
     private readonly files: TelegramFileService,
     private readonly review: TelegramReviewService,
+    private readonly settings: SettingsService,
   ) {
     this.mode = config.get('TELEGRAM_MODE', { infer: true });
     const token = config.get('TELEGRAM_BOT_TOKEN', { infer: true });
@@ -273,6 +277,13 @@ export class TelegramBotService implements OnApplicationBootstrap, OnModuleDestr
           await this.sendText(chatId, 'Bạn gửi quá nhiều tin trong thời gian ngắn, vui lòng chờ một phút.');
         }
         if (callback) await ctx.answerCallbackQuery().catch(() => undefined);
+        return;
+      }
+      // Bước 27: công tắc khẩn cấp telegram.bot_enabled. Bot ngừng nhận lệnh (báo một lần mỗi 10 phút mỗi chat);
+      // thông báo và cảnh báo cho quản trị vẫn được gửi đi (TelegramNotifierService không đi qua đây).
+      if ((await this.settings.effective('telegram.bot_enabled')) !== 'true') {
+        if (callback) await ctx.answerCallbackQuery({ text: BOT_PAUSED }).catch(() => undefined);
+        else if ((await this.limiter.increment('paused', chatId, 600)) === 1) await this.sendText(chatId, BOT_PAUSED);
         return;
       }
       await next();

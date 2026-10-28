@@ -65,6 +65,9 @@ export const ALERT_KINDS = [
   'new_login',
   'privileged_account',
   'role_change',
+  'agent_abuse',
+  'agent_quota',
+  'agent_switch',
 ] as const;
 export type AlertKind = (typeof ALERT_KINDS)[number];
 export const ALERT_KIND_NAMES: Record<AlertKind, string> = {
@@ -76,6 +79,9 @@ export const ALERT_KIND_NAMES: Record<AlertKind, string> = {
   new_login: 'Đăng nhập từ nơi lạ',
   privileged_account: 'Tài khoản quản trị/BGH mới',
   role_change: 'Đổi vai trò hoặc quyền',
+  agent_abuse: 'Nghi lạm dụng Trợ lý AI',
+  agent_quota: 'Trợ lý AI chạm hạn mức',
+  agent_switch: 'Đổi công tắc Trợ lý AI',
 };
 
 export interface SystemAlertDto {
@@ -174,4 +180,44 @@ export interface BulkUserActionInput {
 export interface BulkUserActionResultDto {
   done: number;
   skipped: { userId: string; reason: string }[];
+}
+
+// ───────────── Giám sát AI Agent (bước 27) ─────────────
+// Chỉ số lượng và tên tool: không bao giờ có nội dung lệnh, câu trả lời hay kết quả tool.
+
+export const AGENT_SWITCH_KEYS = ['agent.enabled', 'agent.sensitive_tools', 'telegram.bot_enabled'] as const;
+export type AgentSwitchKey = (typeof AGENT_SWITCH_KEYS)[number];
+// Đủ ngần này lần bị từ chối vì thiếu quyền trong 1 giờ / tin nghi tiêm lệnh trong 1 ngày thì báo ADMIN.
+export const AGENT_DENIED_ALERT = 5;
+export const AGENT_INJECTION_ALERT = 3;
+export const AGENT_STATS_MAX_DAYS = 60;
+
+export interface AgentDayStatDto {
+  day: string; // YYYY-MM-DD, giờ Việt Nam
+  web: number;
+  telegram: number;
+  errors: number;
+  flagged: number;
+  costUsd: number;
+}
+
+export interface AgentToolStatDto {
+  tool: string;
+  calls: number;
+  errors: number;
+  denied: number;
+}
+
+export interface AgentStatsDto {
+  days: AgentDayStatDto[];
+  byRole: { role: string; commands: number }[];
+  tools: AgentToolStatDto[];
+  actions: { status: string; count: number }[];
+  today: {
+    commands: number;
+    costUsd: number;
+    limits: { perUser: number; total: number; costUsd: number; hourlyAlert: number };
+  };
+  switches: Record<AgentSwitchKey, boolean>;
+  alerts: SystemAlertDto[];
 }

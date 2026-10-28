@@ -115,7 +115,10 @@ Test: `academic.e2e-spec.ts` (lớp khác 403), `roster.e2e-spec.ts` (cấp lạ
 | `GET /monitoring/alerts`, `GET /monitoring/errors`, `GET /monitoring/jobs/failed`, `GET /monitoring/security` | `system:read` | lỗi chỉ có route/tên job, mã và thông điệp đã làm sạch; job thất bại có lý do đã làm sạch |
 | `POST /monitoring/alerts/:id/resolve`, `POST /monitoring/errors/:id/resolve` | `setting:manage` | ghi audit |
 | `POST /monitoring/jobs/:queue/:jobId/retry` | `setting:manage` | chỉ hàng đợi có thật, job đang `failed` (khác → 409); ghi audit |
+| `GET /monitoring/agent` | `system:read` | bước 27: thống kê AI Agent trong 1–60 ngày (lệnh theo ngày/kênh/vai trò, tool, tỷ lệ lỗi, lần bị từ chối vì thiếu quyền, trạng thái xác nhận 2 bước, mức dùng hôm nay so với hạn mức, công tắc). **Chỉ số lượng và tên tool**, không có nội dung lệnh, câu trả lời, tham số hay kết quả tool |
 | `DELETE /monitoring/blocked/:limit/:id` | `user:manage` | gỡ IP, "IP + tên đăng nhập" hoặc mã đăng nhập đang bị chặn tạm (`login`, `login-ip`, `activate-ip`, `activate-id`); ghi audit |
+
+**Công tắc khẩn cấp và hạn mức AI (bước 27)** đổi qua `PATCH /settings` (`setting:manage`, ghi `setting.update` và báo ADMIN): `agent.enabled` (tắt thì `/agent/chat` và tin chat Telegram trả **423**), `agent.sensitive_tools` (tắt thì gỡ nhóm tool xác nhận 2 bước; `POST /agent/actions/:id/confirm` và mọi đề xuất trả 423), `telegram.bot_enabled` (bot trả lời "tạm ngưng", thông báo cho quản trị vẫn gửi). Hạn mức theo ngày giờ Việt Nam (`agent.daily_per_user`, `agent.daily_total`, `agent.daily_cost_usd`): vượt thì `/agent/chat` trả **429** trước khi gọi Claude.
 
 Không có tool AI Agent nào cho các endpoint này. Cảnh báo gửi cho người có `system:read` (Telegram nếu đã liên kết, không thì hộp thông báo), văn bản thuần qua `defang()`, không kèm khoá, token, URL ký sẵn, mã kích hoạt hay giá trị điểm (bộ quét bí mật trong `security.e2e-spec.ts` quét cả bảng `notifications`).
 

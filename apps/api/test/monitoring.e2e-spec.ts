@@ -436,7 +436,7 @@ describe('Trung tâm giám sát (bước 26, e2e)', () => {
       expect(counts).toEqual([...counts].sort((x, y) => y - x));
       expect(security.failedLogins.length).toBeGreaterThan(0);
       expect(
-        await prisma.auditLog.count({ where: { action: 'auth.login', createdAt: { gte: started }, payload: { path: ['params', 'email'], equals: user.email } } }),
+        await prisma.auditLog.count({ where: { action: 'auth.login', createdAt: { gte: started }, payload: { path: ['params', 'email'], equals: user.email! } } }),
       ).toBeGreaterThanOrEqual(6);
 
       await (await login(PRINCIPAL)).delete(`/monitoring/blocked/login/${encodeURIComponent(entry!.id)}`).expect(403);

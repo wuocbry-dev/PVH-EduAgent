@@ -3,7 +3,15 @@ import type { Request } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js';
 import type { AuthUser } from '../../common/types/auth-user.js';
-import { listAlertsQuerySchema, listErrorsQuerySchema, type ListAlertsQuery, type ListErrorsQuery } from './dto/monitoring.dto.js';
+import {
+  agentStatsQuerySchema,
+  listAlertsQuerySchema,
+  listErrorsQuerySchema,
+  type AgentStatsQuery,
+  type ListAlertsQuery,
+  type ListErrorsQuery,
+} from './dto/monitoring.dto.js';
+import { AgentStatsService } from './agent-stats.service.js';
 import { MonitoringAlertsService } from './monitoring-alerts.service.js';
 import { MonitoringService } from './monitoring.service.js';
 import { SystemErrorsService } from './system-errors.service.js';
@@ -16,7 +24,14 @@ export class MonitoringController {
     private readonly monitoring: MonitoringService,
     private readonly alerts: MonitoringAlertsService,
     private readonly errors: SystemErrorsService,
+    private readonly agentStats: AgentStatsService,
   ) {}
+
+  // Bước 27: thống kê AI Agent (chỉ số lượng và tên tool, không có nội dung hội thoại).
+  @Get('agent')
+  agent(@CurrentUser() user: AuthUser, @Query(new ZodValidationPipe(agentStatsQuerySchema)) query: AgentStatsQuery) {
+    return this.agentStats.stats(user, query.days);
+  }
 
   @Get('overview')
   overview(@CurrentUser() user: AuthUser) {

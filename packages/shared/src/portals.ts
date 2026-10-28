@@ -37,6 +37,7 @@ export const PORTAL_INFO: Record<Portal, PortalInfo> = {
       { slug: 'cau-hinh', label: 'Cấu hình', permissions: ['system:read'] },
       { slug: 'nhat-ky', label: 'Nhật ký hoạt động', permissions: ['system:read'] },
       { slug: 'giam-sat', label: 'Giám sát và bảo mật', permissions: ['system:read'] },
+      { slug: 'giam-sat-ai', label: 'Giám sát Trợ lý AI', permissions: ['system:read'] },
     ],
   },
   bgh: {

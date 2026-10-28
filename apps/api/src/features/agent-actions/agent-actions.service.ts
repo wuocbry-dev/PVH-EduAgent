@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto';
 import {
   BadRequestException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -13,6 +15,7 @@ import type { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../infrastructure/database/prisma.service.js';
 import { AuditLogService, type AuditChannel } from '../audit-log/audit-log.service.js';
 import { PostsService } from '../posts/posts.service.js';
+import { SettingsService } from '../settings/settings.service.js';
 
 export const ACTION_TTL_MS = 10 * 60 * 1000;
 
@@ -70,10 +73,19 @@ export class AgentActionsService {
     private readonly prisma: PrismaService,
     private readonly posts: PostsService,
     private readonly audit: AuditLogService,
+    private readonly settings: SettingsService,
   ) {}
+
+  // Bước 27: công tắc agent.sensitive_tools tắt thì không đề xuất và không xác nhận được thao tác nhạy cảm nào (kể cả yêu cầu đang chờ).
+  private async assertSensitiveEnabled(): Promise<void> {
+    if ((await this.settings.effective('agent.sensitive_tools')) !== 'true') {
+      throw new HttpException('Thao tác nhạy cảm của Trợ lý AI đang tạm tắt theo quyết định của quản trị hệ thống.', HttpStatus.LOCKED);
+    }
+  }
 
   // Kiểm tra quyền và trạng thái bài ngay lúc đề xuất để người dùng không phải xác nhận một việc chắc chắn lỗi.
   async propose(user: AuthUser, input: ProposeInput, channel: AuditChannel): Promise<AgentActionDto & { duplicate?: boolean }> {
+    await this.assertSensitiveEnabled();
     if (input.tool === 'create_and_publish_post') return this.proposeNewPost(user, input, channel);
     if (!input.postId) throw new BadRequestException('Thiếu mã bài viết');
     const needsTime = input.tool === 'schedule_post' || input.tool === 'reschedule_post';
@@ -177,6 +189,7 @@ export class AgentActionsService {
 
   // Bấm Xác nhận: đúng người tạo, chưa hết hạn, chưa xử lý; kiểm tra lại quyền rồi thực thi qua PostsService.
   async confirm(user: AuthUser, id: string, channel: AuditChannel, ip?: string): Promise<AgentActionDto> {
+    await this.assertSensitiveEnabled();
     const action = await this.findOwned(user, id, channel);
     const claimed = await this.prisma.agentAction.updateMany({
       where: { id: action.id, status: 'PENDING', expiresAt: { gt: new Date() } },

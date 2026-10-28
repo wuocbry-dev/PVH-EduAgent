@@ -271,6 +271,7 @@ export const ROUTES: Record<string, Access> = {
 
   // Trung tâm giám sát (bước 26): xem system:read; thao tác hệ thống setting:manage; gỡ chặn user:manage.
   'GET /monitoring/overview': ['system:read'],
+  'GET /monitoring/agent': ['system:read'], // bước 27: thống kê AI Agent, chỉ số lượng và tên tool
   'POST /monitoring/check-now': ['setting:manage'], // 6 lượt/phút mỗi người
   'GET /monitoring/alerts': ['system:read'],
   'POST /monitoring/alerts/:id/resolve': ['setting:manage'],

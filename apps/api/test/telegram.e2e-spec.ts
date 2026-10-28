@@ -9,6 +9,7 @@ import { App } from 'supertest/types.js';
 import { AppModule } from './../src/app.module.js';
 import { AgentService } from './../src/features/agent/agent.service.js';
 import { NotificationsService } from './../src/features/notifications/notifications.service.js';
+import { SettingsService } from './../src/features/settings/settings.service.js';
 import { TelegramBotService } from './../src/features/telegram/telegram-bot.service.js';
 import { TelegramNotifierService } from './../src/features/telegram/telegram-notifier.service.js';
 import { TelegramRateLimiter } from './../src/features/telegram/telegram-rate-limiter.js';
@@ -461,6 +462,38 @@ describe('Bot Telegram (A01–A04, e2e)', () => {
       expect(await notifier.flush(await testIds())).toBe(1);
       const after = await prisma.notification.findFirstOrThrow({ where: { id: row.id } });
       expect(after.sentAt).toBeInstanceOf(Date);
+      await say(chat, '/unlink');
+    });
+  });
+
+  describe('công tắc khẩn cấp (bước 27)', () => {
+    // Giả lập cấu hình (không sửa system_settings thật trong CSDL dev).
+    function override(values: Record<string, string>) {
+      const settings = app.get(SettingsService);
+      const original = settings.effective.bind(settings);
+      vi.spyOn(settings, 'effective').mockImplementation(async (key) => values[key] ?? original(key));
+    }
+
+    it('tắt bot: mọi tin nhận lời "tạm ngưng" (báo một lần mỗi 10 phút), không xử lý lệnh', async () => {
+      override({ 'telegram.bot_enabled': 'false' });
+      const chat = newChat();
+      const first = await say(chat, '/help');
+      expect(first).toHaveLength(1);
+      expect(first[0]).toContain('tạm ngưng nhận lệnh');
+      expect(await say(chat, '/status')).toEqual([]);
+      // Bật lại thì bot trả lời bình thường.
+      vi.restoreAllMocks();
+      expect((await say(chat, '/help')).join('\n')).toContain('/link');
+    });
+
+    it('tắt Trợ lý AI: tin nhắn tự do trên Telegram nhận lời từ chối tiếng Việt, không gọi Claude', async () => {
+      const chat = await linkChat(TEACHER);
+      override({ 'agent.enabled': 'false' });
+      const run = vi.spyOn(agent as unknown as { run: () => Promise<unknown> }, 'run');
+      const replies = await say(chat, 'Hôm nay có bài nào đến hạn đăng không?');
+      expect(replies.join('\n')).toContain('Trợ lý AI đang tạm dừng');
+      expect(run).not.toHaveBeenCalled();
+      vi.restoreAllMocks();
       await say(chat, '/unlink');
     });
   });

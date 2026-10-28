@@ -152,6 +152,28 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
   Bật/tắt và ngưỡng ở trang Cấu hình (`telegram.admin_alerts`, `monitor.*`). Tối đa 30 tin/giờ. Khi CSDL ngừng, cảnh báo gửi thẳng qua bot.
 - ADMIN **không** có thêm quyền nghiệp vụ nào (bài viết, điểm, thư viện, trắc nghiệm, giao việc). Trang Vai trò và quyền giữ nguyên.
 
+## Giám sát Trợ lý AI (bước 27)
+
+- **Trang `/admin/giam-sat-ai`:**
+  - số lệnh mỗi ngày (web, Telegram, theo vai trò), tool được gọi (lượt, lỗi, thiếu quyền), thao tác chờ xác nhận / đã xác nhận / hết hạn / bị huỷ;
+  - mức dùng hôm nay so với hạn mức (số lệnh, chi phí Claude);
+  - cảnh báo về Trợ lý AI.
+
+  **Chỉ số lượng và tên tool**: nội dung trò chuyện không được lưu (nhật ký `agent.chat` chỉ có độ dài, số lượt, chi phí, cờ nghi vấn) và không hiển thị.
+- **Công tắc khẩn cấp** (có hộp xác nhận, chỉ ADMIN), có hiệu lực ngay:
+  - tắt toàn bộ Trợ lý AI;
+  - tắt riêng nhóm thao tác nhạy cảm (duyệt, hẹn giờ, đăng, gỡ bài; yêu cầu đang chờ cũng không xác nhận được);
+  - tắt bot Telegram nhận lệnh (thông báo và cảnh báo vẫn gửi).
+
+  Mỗi lần đổi đều ghi nhật ký và báo ADMIN qua Telegram.
+- **Hạn mức theo ngày** (giờ Việt Nam, chỉnh ở trang Cấu hình): mặc định 100 lệnh/người, 1000 lệnh toàn trường, **5 USD chi phí Claude** (cộng từ `total_cost_usd` mà SDK báo sau mỗi lệnh). Vượt thì Trợ lý AI từ chối lịch sự và báo ADMIN một lần.
+- **Báo lạm dụng** (chỉ báo, không chặn):
+  - một người quá 40 lệnh/giờ;
+  - bị từ chối vì thiếu quyền 5 lần/giờ;
+  - 3 tin/ngày có dấu hiệu tiêm lệnh (prompt injection, nhận diện theo quy tắc, chỉ đánh dấu và đếm).
+
+  Tin báo chỉ có tên người dùng, số lần, khoảng thời gian.
+
 ## Trắc nghiệm ôn tập (bước 22)
 
 - **Giáo viên** (`/giao-vien/trac-nghiem`): soạn bộ câu hỏi cho môn mình dạy (theo phân công), giao cho khối hoặc lớp mình dạy; câu hỏi có ảnh, một hoặc nhiều đáp án đúng, giải thích; xem trước như học sinh thấy; **nhập từ Excel** theo file mẫu (xem trước từng dòng rồi xác nhận); tuỳ chọn thời gian làm, số lần làm, xáo câu/đáp án, cho xem đáp án sau khi nộp, gắn với tài liệu thư viện; công bố/ẩn; **thống kê**: số lượt, điểm trung bình, phổ điểm, **câu sai nhiều nhất**. Thủ thư và BGH (`/thu-thu/trac-nghiem`, `/bgh/trac-nghiem`) quản lý mọi bộ và giao được cho toàn trường.
