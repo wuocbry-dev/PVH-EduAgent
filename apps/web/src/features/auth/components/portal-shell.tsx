@@ -1,51 +1,59 @@
 import { PORTAL_INFO, type Portal } from "@pvh/shared";
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
+import { LogoPlaceholder } from "@/features/site";
+import { Skeleton } from "@/shared/ui";
+import { PortalDot } from "./portal-dot";
+import { PortalFrame } from "./portal-frame";
 import { PortalNav } from "./portal-nav";
 import { PortalSwitcher } from "./portal-switcher";
-import { UserMenu } from "./user-menu";
+import { UserAvatarLink, UserMenu } from "./user-menu";
 
-// Màu nhấn riêng của từng cổng (viết đủ lớp để Tailwind nhận ra).
-const ACCENT: Record<Portal, { bar: string; title: string }> = {
-  admin: { bar: "border-t-red-600", title: "text-red-700 dark:text-red-400" },
-  bgh: { bar: "border-t-indigo-600", title: "text-indigo-700 dark:text-indigo-400" },
-  "bien-tap": { bar: "border-t-emerald-600", title: "text-emerald-700 dark:text-emerald-400" },
-  "thu-thu": { bar: "border-t-teal-600", title: "text-teal-700 dark:text-teal-400" },
-  "giao-vien": { bar: "border-t-amber-500", title: "text-amber-700 dark:text-amber-400" },
-  "hoc-sinh": { bar: "border-t-sky-500", title: "text-sky-700 dark:text-sky-400" },
-};
-
-// Khung dùng chung của mọi cổng: thanh bên (tên cổng, đổi cổng, menu, tài khoản) và nội dung. Proxy đã chặn người
-// chưa đăng nhập hoặc sai cổng trước khi tới đây.
+// Khung dùng chung của mọi cổng (bước 29): thanh bên dính gồm logo/tên cổng ở trên, menu cuộn riêng ở giữa, tài khoản +
+// nút gạt theme + đăng xuất ghim ở đáy. Proxy đã chặn người chưa đăng nhập hoặc sai cổng trước khi tới đây.
 export function PortalShell({ portal, children }: { portal: Portal; children: ReactNode }) {
   const info = PORTAL_INFO[portal];
-  const accent = ACCENT[portal];
 
   return (
-    <div className={`flex flex-1 flex-col border-t-4 md:flex-row ${accent.bar} ${portal === "hoc-sinh" ? "text-lg" : ""}`}>
-      <aside className="flex flex-col gap-4 border-b border-black/10 p-4 md:w-56 md:border-r md:border-b-0 print:hidden dark:border-white/15">
-        <div className="space-y-1">
-          <Link href="/" className="block text-xs opacity-60">
-            THPT Phan Văn Hớn
-          </Link>
-          <Link href={info.path} className={`block font-semibold ${accent.title}`}>
-            {info.name}
-          </Link>
-        </div>
-        <Suspense fallback={null}>
-          <PortalSwitcher portal={portal} />
+    <PortalFrame
+      portal={portal}
+      avatar={
+        <Suspense fallback={<span className="size-8 rounded-full bg-primary-soft" aria-hidden />}>
+          <UserAvatarLink portal={portal} />
         </Suspense>
-        <Suspense fallback={<p className="text-sm opacity-60">Đang tải…</p>}>
-          <PortalNav portal={portal} />
-        </Suspense>
-        <div className="border-t border-black/10 pt-4 md:mt-auto dark:border-white/15">
-          <Suspense fallback={<p className="text-sm opacity-60">Đang tải…</p>}>
-            <UserMenu portal={portal} />
-          </Suspense>
-        </div>
-      </aside>
-      {/* min-w-0: bảng rộng (sổ điểm, thời khoá biểu) cuộn trong khung của nó thay vì đẩy cả trang tràn ngang. */}
-      <main className="min-w-0 flex-1 p-4 md:p-8 print:p-0">{children}</main>
-    </div>
+      }
+      sidebar={
+        <>
+          <div className="space-y-3 border-b border-border px-4 pt-4 pb-3">
+            <Link href="/" className="flex items-center gap-2.5 rounded-xl text-navy focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none">
+              <LogoPlaceholder className="size-9" />
+              <span className="text-sm leading-tight font-semibold">
+                THPT Phan Văn Hớn
+                <span className="block text-xs font-normal text-muted">Cổng nội bộ</span>
+              </span>
+            </Link>
+            <Link href={info.path} className="flex items-center gap-2 rounded-xl font-semibold text-navy focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none">
+              <PortalDot portal={portal} />
+              {info.name}
+            </Link>
+            <Suspense fallback={null}>
+              <PortalSwitcher portal={portal} />
+            </Suspense>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto px-2 py-3">
+            <Suspense fallback={<Skeleton lines={6} className="px-3" />}>
+              <PortalNav portal={portal} />
+            </Suspense>
+          </div>
+          <div className="border-t border-border p-3">
+            <Suspense fallback={<Skeleton lines={2} />}>
+              <UserMenu portal={portal} />
+            </Suspense>
+          </div>
+        </>
+      }
+    >
+      {children}
+    </PortalFrame>
   );
 }

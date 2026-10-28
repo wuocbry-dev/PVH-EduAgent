@@ -48,7 +48,7 @@ async function PostBySlug({ params }: Pick<PageProps<"/tin-tuc/[slug]">, "params
   if (missing) notFound();
   if (!post) {
     return (
-      <p className="rounded border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+      <p className="rounded-xl border border-warning/40 bg-warning-soft p-4 text-sm text-warning">
         Không tải được bài viết lúc này, vui lòng thử lại sau.
       </p>
     );

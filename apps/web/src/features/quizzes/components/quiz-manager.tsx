@@ -14,12 +14,13 @@ import { errorText, useData } from "@/shared/lib/use-data";
 import { errorClass, inputClass } from "@/shared/ui/form-styles";
 import { createQuiz, deleteQuiz, getFormOptions, getQuiz, getQuizStats, listManaged, setQuizStatus, updateQuiz, type QuizInput } from "../api/quizzes-api";
 import { QuizQuestions } from "./quiz-questions";
+import { buttonStyles, EmptyState, FormActions, Skeleton, useConfirm } from "@/shared/ui";
 
-const small = "rounded border border-black/20 px-3 py-1 text-sm disabled:opacity-50 dark:border-white/20";
+const small = "rounded-xl border border-border-strong px-3 py-1 text-sm disabled:opacity-50";
 const STATUS_STYLE: Record<QuizStatus, string> = {
-  DRAFT: "bg-neutral-200 text-neutral-800",
-  PUBLISHED: "bg-green-100 text-green-900",
-  ARCHIVED: "bg-neutral-300 text-neutral-800",
+  DRAFT: "border border-border bg-surface-muted text-muted",
+  PUBLISHED: "bg-success-soft text-success",
+  ARCHIVED: "border border-border bg-surface-muted text-muted",
 };
 
 // Trắc nghiệm ôn tập – người soạn: giáo viên (môn mình dạy, khối/lớp mình dạy), thủ thư/BGH (mọi quiz).
@@ -30,7 +31,7 @@ export function QuizManager() {
   const [open, setOpen] = useState<string | "new" | null>(null);
 
   if (options.error) return <p className={errorClass}>{options.error}</p>;
-  if (!options.data) return <p className="text-sm opacity-70">Đang tải…</p>;
+  if (!options.data) return <Skeleton />;
   if (open) {
     return (
       <QuizEditor
@@ -47,18 +48,18 @@ export function QuizManager() {
   const noSubject = !options.data.canManage && options.data.subjects.length === 0;
   return (
     <div className="space-y-4">
-      <p className="text-sm opacity-80">{QUIZ_RESULT_NOTE} Chấm tự động ở máy chủ; học sinh không thấy đáp án trước khi nộp.</p>
+      <p className="text-sm text-muted">{QUIZ_RESULT_NOTE} Chấm tự động ở máy chủ; học sinh không thấy đáp án trước khi nộp.</p>
       {noSubject ? (
-        <p className="text-sm text-amber-700">Bạn chưa được phân công dạy môn nào trong năm học hiện hành nên chưa soạn được trắc nghiệm.</p>
+        <p className="text-sm text-warning">Bạn chưa được phân công dạy môn nào trong năm học hiện hành nên chưa soạn được trắc nghiệm.</p>
       ) : (
-        <button type="button" onClick={() => setOpen("new")} className="rounded bg-brand px-4 py-2 text-sm text-white">
+        <button type="button" onClick={() => setOpen("new")} className="rounded-xl bg-primary px-4 py-2 text-sm text-primary-foreground">
           + Bộ câu hỏi mới
         </button>
       )}
       {options.data.canManage && (
         <div className="flex gap-2 text-sm">
           {(["mine", "all"] as const).map((s) => (
-            <button key={s} type="button" onClick={() => setScope(s)} className={`rounded-full border px-3 py-1 ${scope === s ? "border-brand bg-brand text-white" : "border-black/20 dark:border-white/20"}`}>
+            <button key={s} type="button" onClick={() => setScope(s)} className={`rounded-full border px-3 py-1 ${scope === s ? "border-primary bg-primary text-primary-foreground" : "border-border-strong"}`}>
               {s === "mine" ? "Của tôi" : "Tất cả"}
             </button>
           ))}
@@ -66,17 +67,17 @@ export function QuizManager() {
       )}
       {list.error && <p className={errorClass}>{list.error}</p>}
       {!list.data ? (
-        <p className="text-sm opacity-70">Đang tải…</p>
+        <Skeleton />
       ) : list.data.length === 0 ? (
-        <p className="text-sm opacity-70">Chưa có bộ câu hỏi nào.</p>
+        <EmptyState>Chưa có bộ câu hỏi nào.</EmptyState>
       ) : (
-        <ul className="divide-y divide-black/10 rounded-lg border border-black/10 dark:divide-white/15 dark:border-white/15">
+        <ul className="divide-y divide-border rounded-2xl bg-surface border border-border">
           {list.data.map((q) => (
             <li key={q.id} className="flex flex-wrap items-center gap-2 p-3">
-              <span className={`rounded px-1.5 py-0.5 text-xs ${STATUS_STYLE[q.status]}`}>{QUIZ_STATUS_NAMES[q.status]}</span>
+              <span className={`rounded-full px-1.5 py-0.5 text-xs ${STATUS_STYLE[q.status]}`}>{QUIZ_STATUS_NAMES[q.status]}</span>
               <span className="min-w-0 flex-1 break-words">
                 <span className="font-medium">{q.title}</span>{" "}
-                <span className="text-xs opacity-70">
+                <span className="text-xs text-muted">
                   {q.subjectName} · khối {q.gradeLevel} · {q.audienceLabel} · {q.questionCount} câu · {q.createdByName} · {formatDateTime(q.updatedAt)}
                 </span>
               </span>
@@ -94,12 +95,13 @@ export function QuizManager() {
 const loadQuiz = (key: string | null) => (key ? getQuiz(key) : Promise.resolve(null));
 
 function QuizEditor({ id, options, onClose, onCreated }: { id: string | null; options: QuizFormOptionsDto; onClose: () => void; onCreated: (id: string) => void }) {
+  const ask = useConfirm();
   const loaded = useData(loadQuiz, id);
   const [quiz, setQuiz] = useState<QuizEditDto | null>(null);
   const [tab, setTab] = useState<"cau-hoi" | "cai-dat" | "thong-ke">("cai-dat");
   const [error, setError] = useState<string | null>(null);
   const current = quiz ?? loaded.data;
-  if (id && !current) return loaded.error ? <p className={errorClass}>{loaded.error}</p> : <p className="text-sm opacity-70">Đang tải…</p>;
+  if (id && !current) return loaded.error ? <p className={errorClass}>{loaded.error}</p> : <Skeleton />;
 
   async function status(next: QuizStatus) {
     if (!current) return;
@@ -111,7 +113,7 @@ function QuizEditor({ id, options, onClose, onCreated }: { id: string | null; op
     }
   }
   async function remove() {
-    if (!current || !confirm(`Xoá "${current.title}"?`)) return;
+    if (!current || !(await ask(`Xoá "${current.title}"?`))) return;
     try {
       await deleteQuiz(current.id);
       onClose();
@@ -129,14 +131,14 @@ function QuizEditor({ id, options, onClose, onCreated }: { id: string | null; op
         <>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-lg font-semibold">{current.title}</h2>
-            <span className={`rounded px-1.5 py-0.5 text-xs ${STATUS_STYLE[current.status]}`}>{QUIZ_STATUS_NAMES[current.status]}</span>
-            <span className="text-sm opacity-70">
+            <span className={`rounded-full px-1.5 py-0.5 text-xs ${STATUS_STYLE[current.status]}`}>{QUIZ_STATUS_NAMES[current.status]}</span>
+            <span className="text-sm text-muted">
               {current.questions.length} câu · {current.attemptCount} lượt làm
             </span>
           </div>
           <div className="flex flex-wrap gap-2">
             {current.status !== "PUBLISHED" && (
-              <button type="button" className="rounded bg-green-700 px-3 py-1 text-sm text-white" onClick={() => status("PUBLISHED")}>
+              <button type="button" className="rounded-xl bg-primary px-3 py-1 text-sm text-primary-foreground" onClick={() => status("PUBLISHED")}>
                 Công bố cho học sinh
               </button>
             )}
@@ -151,7 +153,7 @@ function QuizEditor({ id, options, onClose, onCreated }: { id: string | null; op
               </button>
             )}
             {current.attemptCount === 0 && (
-              <button type="button" className={`${small} text-red-700`} onClick={remove}>
+              <button type="button" className={`${small} text-danger`} onClick={remove}>
                 Xoá
               </button>
             )}
@@ -164,7 +166,7 @@ function QuizEditor({ id, options, onClose, onCreated }: { id: string | null; op
                 ["thong-ke", "Thống kê"],
               ] as const
             ).map(([key, label]) => (
-              <button key={key} type="button" role="tab" aria-selected={tab === key} onClick={() => setTab(key)} className={`rounded-full border px-3 py-1 text-sm ${tab === key ? "border-brand bg-brand text-white" : "border-black/20 dark:border-white/20"}`}>
+              <button key={key} type="button" role="tab" aria-selected={tab === key} onClick={() => setTab(key)} className={`rounded-full border px-3 py-1 text-sm ${tab === key ? "border-primary bg-primary text-primary-foreground" : "border-border-strong"}`}>
                 {label}
               </button>
             ))}
@@ -231,7 +233,7 @@ function QuizSettings({ quiz, options, onSaved }: { quiz: QuizEditDto | null; op
 
   const classes = subject?.classes.filter((c) => c.gradeLevel === gradeLevel) ?? [];
   return (
-    <form onSubmit={onSubmit} className="space-y-3 rounded-lg border border-black/10 p-4 dark:border-white/15">
+    <form onSubmit={onSubmit} className="space-y-3 rounded-2xl bg-surface border border-border p-4">
       <div className="grid gap-3 sm:grid-cols-2">
         <label className={`${label} sm:col-span-2`}>
           <span>Tên bộ câu hỏi *</span>
@@ -284,7 +286,7 @@ function QuizSettings({ quiz, options, onSaved }: { quiz: QuizEditDto | null; op
         )}
         {audience === "CLASS" && (
           <div className="flex max-h-40 flex-wrap gap-3 overflow-auto text-sm">
-            {classes.length === 0 && <span className="opacity-70">Không có lớp nào của khối {gradeLevel}.</span>}
+            {classes.length === 0 && <span className="text-muted">Không có lớp nào của khối {gradeLevel}.</span>}
             {classes.map((c) => (
               <label key={c.id} className="flex items-center gap-1">
                 <input type="checkbox" name="classIds" value={c.id} defaultChecked={quiz?.classIds.includes(c.id)} />
@@ -327,9 +329,11 @@ function QuizSettings({ quiz, options, onSaved }: { quiz: QuizEditDto | null; op
         </label>
       </div>
       {error && <p className={errorClass}>{error}</p>}
-      <button type="submit" disabled={busy || !subjectId} className="rounded bg-brand px-4 py-2 text-sm text-white disabled:opacity-50">
-        {busy ? "Đang lưu…" : quiz ? "Lưu thông tin" : "Tạo và soạn câu hỏi"}
-      </button>
+      <FormActions>
+        <button type="submit" disabled={busy || !subjectId} className={buttonStyles()}>
+          {busy ? "Đang lưu…" : quiz ? "Lưu thông tin" : "Tạo và soạn câu hỏi"}
+        </button>
+      </FormActions>
     </form>
   );
 }
@@ -337,7 +341,7 @@ function QuizSettings({ quiz, options, onSaved }: { quiz: QuizEditDto | null; op
 function QuizStats({ id }: { id: string }) {
   const { data, error } = useData(getQuizStats, id);
   if (error) return <p className={errorClass}>{error}</p>;
-  if (!data) return <p className="text-sm opacity-70">Đang tải…</p>;
+  if (!data) return <Skeleton />;
   const labels = ["0–2", "2–4", "4–6", "6–8", "8–10"];
   const max = Math.max(1, ...data.distribution);
   return (
@@ -350,8 +354,8 @@ function QuizStats({ id }: { id: string }) {
             ["Điểm TB", data.average === null ? "–" : data.average.toLocaleString("vi-VN")],
           ] as const
         ).map(([label, value]) => (
-          <div key={label} className="rounded-lg border border-black/10 p-3 dark:border-white/15">
-            <dt className="text-sm opacity-70">{label}</dt>
+          <div key={label} className="rounded-2xl bg-surface border border-border p-3">
+            <dt className="text-sm text-muted">{label}</dt>
             <dd className="text-2xl font-bold tabular-nums">{value}</dd>
           </div>
         ))}
@@ -361,7 +365,7 @@ function QuizStats({ id }: { id: string }) {
         {data.distribution.map((n, i) => (
           <div key={labels[i]} className="flex items-center gap-2 text-sm">
             <span className="w-12 shrink-0 tabular-nums">{labels[i]}</span>
-            <span className="h-3 rounded bg-brand" style={{ width: `${(n / max) * 70}%`, minWidth: n ? 4 : 0 }} aria-hidden />
+            <span className="h-3 rounded-xl bg-navy" style={{ width: `${(n / max) * 70}%`, minWidth: n ? 4 : 0 }} aria-hidden />
             <span className="tabular-nums">{n}</span>
           </div>
         ))}
@@ -369,7 +373,7 @@ function QuizStats({ id }: { id: string }) {
       <section className="space-y-2">
         <h3 className="font-semibold">Câu sai nhiều nhất</h3>
         {data.attempts === 0 ? (
-          <p className="text-sm opacity-70">Chưa có học sinh nộp bài.</p>
+          <EmptyState>Chưa có học sinh nộp bài.</EmptyState>
         ) : (
           <ol className="space-y-1 text-sm">
             {data.questions.map((q) => (
@@ -383,7 +387,7 @@ function QuizStats({ id }: { id: string }) {
             ))}
           </ol>
         )}
-        <p className="text-xs opacity-60">Câu bỏ trống tính là sai. Chỉ tính các lần đã nộp.</p>
+        <p className="text-xs text-muted">Câu bỏ trống tính là sai. Chỉ tính các lần đã nộp.</p>
       </section>
     </div>
   );

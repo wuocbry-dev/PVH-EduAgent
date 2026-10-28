@@ -30,9 +30,9 @@ export async function ContactInfo() {
         src={`https://www.google.com/maps?q=${query}&output=embed`}
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
-        className="h-64 w-full rounded-lg border border-black/10 dark:border-white/15"
+        className="h-64 w-full rounded-2xl bg-surface border border-border"
       />
-      <a href={mapLink} target="_blank" rel="noopener noreferrer" className="inline-block text-sm text-brand underline">
+      <a href={mapLink} target="_blank" rel="noopener noreferrer" className="inline-block text-sm text-navy underline">
         Mở bản đồ trong cửa sổ mới
       </a>
     </div>

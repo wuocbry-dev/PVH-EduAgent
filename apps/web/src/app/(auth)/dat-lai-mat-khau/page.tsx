@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { ResetPasswordForm } from "@/features/auth";
+import { AuthHeading, ResetPasswordForm } from "@/features/auth";
+import { Skeleton } from "@/shared/ui";
 
 export const metadata: Metadata = { title: "Đặt lại mật khẩu" };
 
 export default function ResetPasswordPage() {
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold">Đặt lại mật khẩu</h1>
-      <Suspense>
+    <>
+      <AuthHeading title="Đặt lại mật khẩu" />
+      <Suspense fallback={<Skeleton lines={3} />}>
         <ResetPasswordForm />
       </Suspense>
-    </div>
+    </>
   );
 }

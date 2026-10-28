@@ -43,7 +43,7 @@ export function TaskForm({ task, assignees, onSaved, onCancel }: Props) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="max-w-xl space-y-4 rounded border border-black/10 p-4 dark:border-white/15">
+    <form onSubmit={onSubmit} className="max-w-xl space-y-4 rounded-xl border border-border p-4">
       <h2 className="text-lg font-semibold">{task ? "Sửa công việc" : "Giao việc mới"}</h2>
       <label className="block space-y-1 text-sm">
         <span>Tên công việc</span>
@@ -93,7 +93,7 @@ export function TaskForm({ task, assignees, onSaved, onCancel }: Props) {
         <button type="submit" disabled={pending} className={`${buttonClass} w-auto`}>
           {task ? "Lưu thay đổi" : "Giao việc"}
         </button>
-        <button type="button" onClick={onCancel} className="rounded border border-black/20 px-4 py-2 dark:border-white/20">
+        <button type="button" onClick={onCancel} className="rounded-xl border border-border-strong px-4 py-2">
           Hủy
         </button>
       </div>

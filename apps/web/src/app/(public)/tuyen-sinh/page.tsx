@@ -17,11 +17,11 @@ export default function AdmissionPage() {
   return (
     <PageShell title="Tuyển sinh lớp 10" description="Thông tin tuyển sinh Trường THPT Phan Văn Hớn.">
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold text-brand">Chỉ tiêu và điểm chuẩn</h2>
+        <h2 className="text-xl font-semibold text-navy">Chỉ tiêu và điểm chuẩn</h2>
         <ul className="grid gap-3 sm:grid-cols-2">
           {highlights.map((f) => (
-            <li key={f.label} className="rounded-lg border border-black/10 p-4 dark:border-white/15">
-              <p className="text-sm opacity-70">{f.label}</p>
+            <li key={f.label} className="rounded-2xl bg-surface border border-border p-4">
+              <p className="text-sm text-muted">{f.label}</p>
               <p className="text-lg font-semibold">{f.value}</p>
             </li>
           ))}
@@ -32,11 +32,11 @@ export default function AdmissionPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold text-brand">Hồ sơ tuyển sinh</h2>
+        <h2 className="text-xl font-semibold text-navy">Hồ sơ tuyển sinh</h2>
         <p className="opacity-90">
           Thí sinh đăng ký và nộp hồ sơ theo hướng dẫn chung của Sở Giáo dục và Đào tạo TP.HCM. Danh mục hồ sơ và lịch nhập học
           của trường sẽ được đăng ở mục Thông báo ngay khi có công bố; mọi thắc mắc xin gửi qua trang{" "}
-          <Link href="/lien-he" className="text-brand underline">
+          <Link href="/lien-he" className="text-navy underline">
             Liên hệ
           </Link>
           .
@@ -44,7 +44,7 @@ export default function AdmissionPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold text-brand">Tin tuyển sinh mới</h2>
+        <h2 className="text-xl font-semibold text-navy">Tin tuyển sinh mới</h2>
         <Suspense fallback={<Loading />}>
           <LatestPosts category={CATEGORY_ADMISSION} count={5} variant="list" />
         </Suspense>

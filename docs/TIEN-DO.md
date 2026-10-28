@@ -46,6 +46,7 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 | [x] | 26 | Trung tâm giám sát hệ thống & cảnh báo Telegram cho ADMIN | 2026-10-28 |
 | [x] | 27 | Giám sát AI Agent, công tắc khẩn cấp & hạn mức | 2026-10-28 |
 | [x] | 28 | Gọn cổng quản trị: thêm Học vụ, bỏ mục nghiệp vụ, xoá vĩnh viễn bài → BGH | 2026-10-28 |
+| [x] | 29 | Làm mới giao diện: xanh nước biển, bo tròn, thanh cố định, đăng nhập/đăng xuất, chế độ tối | 2026-10-28 |
 
 Ô `[-]` nghĩa là bỏ bước đó: `/buoc tiep` sẽ bỏ qua.
 
@@ -501,3 +502,81 @@ Cập nhật tự động bởi lệnh `/buoc` của Claude Code (yêu cầu chi
 - **Còn lại:**
   - Chế độ `readOnly` của `TeachingManager`/`TimetableManager` không còn trang nào dùng; có thể gỡ khi dọn code.
   - `docs/01-phan-tich-de-tai.md` (mục 5, dòng "Xoá vĩnh viễn dữ liệu" cho ADMIN) là tài liệu phân tích gốc nên giữ nguyên; độ lệch ghi ở `docs/04`.
+
+### Bước 29 – Làm mới giao diện (2026-10-28)
+
+- **Quyết định của người dùng:** gộp thay đổi `suppressHydrationWarning` của người dùng trong `app/layout.tsx` vào bước này; đổi **cả 41 hộp `confirm()`** sang hộp thoại của hệ thống; commit một lần khi xong.
+- **Đã làm (chỉ `apps/web`, không đổi API, quyền, luồng nghiệp vụ):**
+  - **Token màu** một nguồn ở `globals.css` (sáng/tối): xanh nước biển nhạt + navy; bỏ `--color-brand`, khối `prefers-color-scheme`, map `ACCENT` của cổng (chỉ còn chấm màu nhỏ, `portal-dot.tsx`).
+  - **Nút gạt Sáng/Tối/Theo máy:** `data-theme` do script inline trong `<head>` đặt trước khi vẽ, lưu `localStorage`, `@custom-variant dark`; không đọc cookie (trang công khai vẫn Static/Partial Prerender).
+  - **`src/shared/ui`:** Button, Input/Select/Textarea/PasswordInput, Card, Badge, Alert, Table (thead dính, cột đầu dính), Dialog (`<dialog>` gốc), `useConfirm`, `useToast`, Skeleton, EmptyState, Breadcrumbs, FormActions, ThemeToggle, `AppProviders` ở layout gốc. Thêm `lucide-react@1.56.0` (ghim).
+  - **Khung viết lại trực tiếp** (không có bản V2):
+    - `PortalShell` → `PortalFrame`: một thanh bên dính `h-dvh`; trên điện thoại có thanh trên và ngăn kéo (Esc, bấm nền, chọn mục để đóng; nền phía sau `inert`); menu có icon, nhóm, mục đang chọn; avatar chữ cái.
+    - `SiteHeader` dính, ngăn kéo `<dialog>` dưới `xl`; `SiteFooter`, `PageShell`.
+    - `(auth)/layout.tsx` hai cột.
+  - **Xác thực:** trang đăng nhập mới (hiện/ẩn mật khẩu, khung lỗi `role="alert"`, lối vào Kích hoạt); kích hoạt 3 bước (vẫn một lần gọi API); quên/đặt lại mật khẩu cùng khung; đăng xuất qua hộp thoại xác nhận rồi tới trang mới `/da-dang-xuat` (`noindex`, chặn trong `robots.ts`; `robots` thêm cả `/thu-thu`, `/kich-hoat` còn thiếu).
+  - **Rà toàn bộ feature bằng codemod và sửa tay:**
+    - 146 file đổi lớp màu/bo góc sang token;
+    - 61 file "Đang tải…" → Skeleton (giữ chữ làm nhãn ẩn);
+    - 20 file → EmptyState;
+    - 33 bảng → `Table` (13 bảng dài có cột đầu dính);
+    - 41 chỗ `confirm()` → `useConfirm`;
+    - thông báo thành công → toast (8 file + `alert()` ở trang người dùng);
+    - thanh nút dính cho soạn bài, cấu hình, soạn thông báo, trắc nghiệm;
+    - đồng hồ trắc nghiệm nằm dưới thanh trên của điện thoại;
+    - trang 404 chung mới (`app/not-found.tsx`), 404 của cổng làm lại;
+    - `h1` cho trang chủ học sinh;
+    - sửa `<td className="flex">` làm vỡ bảng (6 chỗ).
+  - **Tài liệu:** `CLAUDE.md` (mục Giao diện bước 29), README.
+- **Kiểm tra sót (mục 7):**
+  - `bg-brand|text-brand|--color-brand`: không còn.
+  - `border-t-(red|indigo|emerald|teal|amber|sky)-`: không còn.
+  - `prefers-color-scheme` trong `globals.css`: không còn.
+  - `PortalShellV|Old|Legacy|V2`: chỉ còn "NV2" (cột "Nguyện vọng 2" của bảng tuyển sinh, chữ nghiệp vụ).
+  - Ngoại lệ màu cứng có ghi lý do trong CLAUDE.md: chấm màu cổng, bảng màu biểu đồ giám sát, lớp phủ đen trên ảnh/video, nền trang PDF, vòng trang trí trong khối gradient.
+- **Tương phản WCAG** (đo từ token trong `globals.css`; sáng / tối):
+  - chữ chính / nền 16.75 / 15.19;
+  - chữ phụ / thẻ 7.58 / 6.76;
+  - liên kết primary / thẻ 5.93 / 8.09;
+  - mục menu đang chọn 5.17 / 6.60;
+  - chữ nút chính / nút 5.93 / 8.74;
+  - tiêu đề navy / nền 8.87 / 14.11;
+  - chữ trên khối gradient 5.93–9.46 / 8.87–17.56;
+  - lỗi / nền lỗi 5.91 / 5.90;
+  - cảnh báo / nền cảnh báo 4.84 / 8.30;
+  - thành công / nền thành công 4.79 / 8.44.
+
+  21 cặp đều ≥ 4.5 (AA).
+- **Kiểm tra bằng Chrome headless trên dev server thật:**
+  - **154 kiểm tra đạt** trên 13 trang (trang chủ, chi tiết bài, đăng nhập, kích hoạt, đã đăng xuất, trang chủ 6 cổng, sổ điểm giáo viên, người dùng admin, thời khoá biểu BGH) ở **375/768/1280 px, sáng và tối**:
+    - không cuộn ngang;
+    - một `main`, một `h1`, một thanh bên;
+    - thanh dính vẫn ở mép trên sau khi cuộn tới cuối;
+    - không lỗi console.
+  - **Nút gạt:** đổi ngay, tải trang khác vẫn nhớ, "Theo máy" đổi theo máy.
+  - **Chỉ bằng bàn phím:**
+    - đăng nhập: Tab → mật khẩu → nút hiện mật khẩu (`aria-pressed`) → Đăng nhập;
+    - hộp thoại đăng xuất: focus ở nút Đăng xuất, Tab không thoát ra, Esc đóng và trả focus, xác nhận thì tới `/da-dang-xuat` và phiên bị huỷ;
+    - ngăn kéo cổng và trang công khai mở/đóng bằng Enter/Esc, chọn mục thì đóng.
+  - **Quét rộng 252/252 đạt:** mọi mục menu của 6 cổng + trang chung + 15 trang công khai và 404, ở 375 px sáng, 1280 px sáng và tối.
+- **Test:**
+  - `pnpm build` đầy đủ xanh. Các thay đổi sau đó chỉ ở `apps/web`, nên build lại web + shared (xanh).
+  - `pnpm lint` xanh.
+  - `pnpm test`: 235 unit + 393 e2e xanh (e2e API không đổi).
+- **Sự cố môi trường trong lúc làm:**
+  - `pnpm build` (dựng lại `apps/api/dist`) làm API dev của người dùng dừng; mình khởi động lại theo đồng ý của người dùng.
+  - Sau đó người dùng tự chạy lại `pnpm dev`.
+  - Dev server từng trả bản dựng cũ của `/giao-vien/lop-toi-day` (lỗi hydrate); hết sau khi dev server dựng lại route.
+  - **E2e dùng chung CSDL dev** nên test `admin`/`scheduler` đã xoá cấu hình người dùng vừa đặt (`school.email`, `school.phone`, `report.daily_time`). Đã khôi phục theo nhật ký `setting.update`. Lượt test cuối chạy với 3 khoá ở mặc định (người dùng đồng ý), rồi đặt lại giá trị của người dùng.
+  - Một lần `telegram-review` đỏ do quá thời gian chờ khi máy bận; chạy riêng thì 18/18 xanh.
+- **Lệch thiết kế:**
+  - `form-styles.ts` giữ làm lớp mỏng (`inputClass` = `fieldClass`) vì khoảng 50 form cũ dùng nó trên `<input>`/`<select>` gốc; kiểu đã là kiểu mới.
+  - Nút trong các form cũ dùng lớp token thay vì component `<Button>`.
+  - Trình soạn thảo bài (TipTap) chỉ đổi màu/bo.
+  - Bảng màu biểu đồ giám sát (bước 26–27) giữ nguyên.
+  - Menu ngang của trang công khai hiện từ 1280 px (`xl`); nhỏ hơn dùng ngăn kéo.
+- **Còn lại:**
+  - e2e nên dùng CSDL riêng, hoặc tự lưu và khôi phục cấu hình, để khỏi ghi đè cấu hình dev (`admin.e2e-spec.ts`, `scheduler.e2e-spec.ts`).
+  - Thay dần `inputClass`/nút tự viết trong form cũ bằng `Input`/`Button` rồi xoá `form-styles.ts`.
+  - Đổi trình soạn thảo bài sang component mới.
+  - Ảnh/logo chính thức của trường (đang là khung giữ chỗ).

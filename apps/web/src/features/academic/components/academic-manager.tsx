@@ -27,8 +27,8 @@ export function AcademicManager() {
             role="tab"
             aria-selected={t.id === tab}
             onClick={() => setTab(t.id)}
-            className={`rounded border px-3 py-1 text-sm ${
-              t.id === tab ? "border-foreground bg-foreground text-background" : "border-black/20 dark:border-white/20"
+            className={`rounded-full border px-3 py-1 text-sm ${
+              t.id === tab ? "border-primary bg-primary text-primary-foreground" : "border-border-strong"
             }`}
           >
             {t.label}

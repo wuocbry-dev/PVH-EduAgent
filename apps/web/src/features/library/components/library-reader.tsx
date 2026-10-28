@@ -11,7 +11,7 @@ import { PdfViewer } from "./pdf-viewer";
 
 const ACTION: Record<LibraryItemDto["kind"], string> = { PDF: "Đọc", AUDIO: "Nghe", VIDEO: "Xem" };
 const SAVE_EVERY_MS = 15_000;
-const button = "rounded px-4 py-2 text-sm disabled:opacity-50";
+const button = "rounded-xl px-4 py-2 text-sm disabled:opacity-50";
 
 const clock = (sec: number) => {
   const s = Math.floor(sec);
@@ -116,21 +116,21 @@ export function LibraryReader({ item }: { item: LibraryItemDto }) {
     <section aria-label="Đọc tài liệu" className="space-y-3">
       <div className="flex flex-wrap gap-2">
         {!access && (
-          <button type="button" onClick={open} disabled={busy || !item.hasFile} className={`${button} bg-brand text-white`}>
+          <button type="button" onClick={open} disabled={busy || !item.hasFile} className={`${button} bg-primary text-primary-foreground`}>
             {busy ? "Đang mở…" : (resumeLabel ?? `${ACTION[item.kind]} ngay`)}
           </button>
         )}
         {item.allowDownload && (
-          <button type="button" onClick={download} className={`${button} border border-black/20 dark:border-white/20`}>
+          <button type="button" onClick={download} className={`${button} border border-border-strong`}>
             Tải về
           </button>
         )}
-        <button type="button" onClick={toggleFavorite} aria-pressed={favorite} className={`${button} border border-black/20 dark:border-white/20`}>
+        <button type="button" onClick={toggleFavorite} aria-pressed={favorite} className={`${button} border border-border-strong`}>
           {favorite ? "♥ Đã yêu thích" : "♡ Yêu thích"}
         </button>
       </div>
-      {item.favorite === undefined && !access && <p className="text-sm opacity-70">Cần đăng nhập để đọc, nghe hoặc xem tài liệu.</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {item.favorite === undefined && !access && <p className="text-sm text-muted">Cần đăng nhập để đọc, nghe hoặc xem tài liệu.</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       {access && item.kind === "PDF" && (
         <PdfViewer url={mediaSrc(access.url)} initialPage={access.position ?? 1} onPage={(p) => save(p, true)} />
@@ -179,6 +179,6 @@ function MediaPlayer({ kind, src, title, bind, onReady, onTime, onPause, onError
   return kind === "AUDIO" ? (
     <audio ref={bind} {...common} className="w-full" />
   ) : (
-    <video ref={bind} {...common} playsInline className="aspect-video w-full rounded bg-black" />
+    <video ref={bind} {...common} playsInline className="aspect-video w-full rounded-xl bg-black" />
   );
 }

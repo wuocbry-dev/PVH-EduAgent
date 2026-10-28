@@ -6,6 +6,7 @@ import { useData } from "@/shared/lib/use-data";
 import { errorClass } from "@/shared/ui/form-styles";
 import { getSheet } from "../api/scores-api";
 import { ScoreGrid } from "./score-grid";
+import { Skeleton } from "@/shared/ui";
 
 const loadSheet = (key: string) => {
   const [assessmentId, classId] = key.split(":") as [string, string];
@@ -29,7 +30,7 @@ export function SheetPanel({
   const sheet = local ?? loaded.data;
 
   if (loaded.error) return <p className={errorClass}>{loaded.error}</p>;
-  if (!sheet) return <p className="text-sm opacity-60">Đang tải bảng điểm…</p>;
+  if (!sheet) return <Skeleton label="Đang tải bảng điểm…" />;
   return (
     <ScoreGrid
       sheet={sheet}

@@ -12,6 +12,7 @@ import { createPost, getManagePost, updatePost } from "../api/posts-api";
 import { PostActions } from "./post-actions";
 import { PostStatusBadge } from "./post-status-badge";
 import { RichTextEditor } from "./rich-text-editor";
+import { FormActions, Skeleton } from "@/shared/ui";
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
 const formatTime = (iso: string) => new Date(iso).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
@@ -33,7 +34,7 @@ export function PostEditor({ postId }: { postId?: string }) {
   }, [postId]);
 
   if (postId && !post) {
-    return error ? <p className={errorClass}>{error}</p> : <p className="text-sm opacity-60">Đang tải…</p>;
+    return error ? <p className={errorClass}>{error}</p> : <Skeleton />;
   }
   // key: nạp lại form khi bài đổi (vd. sau khi lưu hoặc chuyển trạng thái).
   return <PostForm key={post ? `${post.id}-${post.status}` : "new"} post={post} onPost={setPost} />;
@@ -85,15 +86,15 @@ function PostForm({ post, onPost }: { post: PostDto | null; onPost: (post: PostD
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-3 text-sm">
             <PostStatusBadge status={post.status} />
-            <span className="opacity-70">Tác giả: {post.authorName}</span>
+            <span className="text-muted">Tác giả: {post.authorName}</span>
             {post.source === "TELEGRAM" && (
-              <span className="rounded bg-sky-200 px-1.5 py-0.5 text-xs text-sky-900">Tạo qua Telegram</span>
+              <span className="rounded-xl bg-primary-soft px-1.5 py-0.5 text-xs text-primary">Tạo qua Telegram</span>
             )}
             {post.publishAt && <span>Hẹn đăng: {formatTime(post.publishAt)}</span>}
             {post.publishedAt && <span>Đã đăng: {formatTime(post.publishedAt)}</span>}
           </div>
           {post.status === "REJECTED" && post.rejectReason && (
-            <p className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-900">
+            <p className="rounded-xl border border-danger/40 bg-danger-soft p-3 text-sm text-danger">
               <b>Bị từ chối:</b> {post.rejectReason}
             </p>
           )}
@@ -125,7 +126,7 @@ function PostForm({ post, onPost }: { post: PostDto | null; onPost: (post: PostD
               <div className="flex items-center gap-2">
                 {thumbnailUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={mediaSrc(thumbnailUrl)} alt="" className="h-12 w-20 rounded object-cover" />
+                  <img src={mediaSrc(thumbnailUrl)} alt="" className="h-12 w-20 rounded-xl object-cover" />
                 )}
                 <button type="button" className="underline" onClick={() => setPickingThumbnail(true)}>
                   {thumbnailUrl ? "Đổi ảnh" : "Chọn ảnh"}
@@ -153,22 +154,24 @@ function PostForm({ post, onPost }: { post: PostDto | null; onPost: (post: PostD
             <RichTextEditor initialHtml={content} onChange={setContent} />
           </div>
           {error && <p className={errorClass}>{error}</p>}
-          {saved && <p className="text-sm text-green-700">Đã lưu.</p>}
-          <button type="submit" disabled={pending} className={`${buttonClass} w-auto`}>
-            {post ? "Lưu thay đổi" : "Lưu nháp"}
-          </button>
+          <FormActions>
+            <button type="submit" disabled={pending} className={`${buttonClass} w-auto`}>
+              {post ? "Lưu thay đổi" : "Lưu nháp"}
+            </button>
+            {saved && <p className="text-sm text-success" role="status">Đã lưu.</p>}
+          </FormActions>
         </form>
       ) : (
         post && (
           <article className="space-y-3">
             <h1 className="text-2xl font-bold">{post.title}</h1>
-            <p className="text-sm opacity-70">
+            <p className="text-sm text-muted">
               {post.categoryName ?? "Chưa phân loại"}
               {post.summary ? ` · ${post.summary}` : ""}
             </p>
             {post.thumbnailUrl && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={mediaSrc(post.thumbnailUrl)} alt="" className="max-h-64 rounded" />
+              <img src={mediaSrc(post.thumbnailUrl)} alt="" className="max-h-64 rounded-xl" />
             )}
             {/* Nội dung đã được server lọc XSS khi lưu. */}
             <div className="rich-content" dangerouslySetInnerHTML={{ __html: post.content }} />

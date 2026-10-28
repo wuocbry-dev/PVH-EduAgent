@@ -35,7 +35,7 @@ export function QuotaView({ ctx }: { ctx: TeachingContext }) {
 
   return (
     <section className="space-y-6" aria-label="Định mức môn">
-      <p className="max-w-3xl rounded border border-yellow-600/40 bg-yellow-500/10 p-3 text-sm">{TEACHING_SAMPLE_NOTE}</p>
+      <p className="max-w-3xl rounded-xl border border-warning/40 bg-warning-soft p-3 text-sm">{TEACHING_SAMPLE_NOTE}</p>
       {error && <p className={errorClass}>{error}</p>}
 
       <div className="space-y-3">
@@ -48,7 +48,7 @@ export function QuotaView({ ctx }: { ctx: TeachingContext }) {
               role="tab"
               aria-selected={lv === level}
               onClick={() => setLevel(lv)}
-              className={`rounded border px-3 py-1 text-sm ${lv === level ? "border-foreground bg-foreground text-background" : "border-black/20 dark:border-white/20"}`}
+              className={`rounded-xl border px-3 py-1 text-sm ${lv === level ? "border-primary bg-primary text-primary-foreground" : "border-border-strong"}`}
             >
               Khối {lv}
             </button>
@@ -56,7 +56,7 @@ export function QuotaView({ ctx }: { ctx: TeachingContext }) {
         </div>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {ctx.subjects.map((s) => (
-            <label key={s.id} className="flex items-center justify-between gap-3 rounded border border-black/10 px-3 py-1 text-sm dark:border-white/15">
+            <label key={s.id} className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-1 text-sm">
               <span>{s.name}</span>
               <input
                 key={`${level}:${s.id}:${gradeValue(level, s.id) ?? ""}`}
@@ -95,7 +95,7 @@ export function QuotaView({ ctx }: { ctx: TeachingContext }) {
         {cls && (
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {ctx.subjects.map((s) => (
-              <label key={s.id} className="flex items-center justify-between gap-3 rounded border border-black/10 px-3 py-1 text-sm dark:border-white/15">
+              <label key={s.id} className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-1 text-sm">
                 <span>{s.name}</span>
                 <input
                   key={`${classId}:${s.id}:${overrideValue(s.id) ?? ""}`}
@@ -118,7 +118,7 @@ export function QuotaView({ ctx }: { ctx: TeachingContext }) {
             ))}
           </div>
         )}
-        {cls && <p className="text-xs opacity-70">Ô trống dùng số của khối (hiện mờ trong ô). Nhập 0 nếu lớp không học môn đó.</p>}
+        {cls && <p className="text-xs text-muted">Ô trống dùng số của khối (hiện mờ trong ô). Nhập 0 nếu lớp không học môn đó.</p>}
       </div>
     </section>
   );

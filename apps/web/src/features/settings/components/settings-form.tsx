@@ -6,6 +6,7 @@ import { api } from "@/shared/lib/api-client";
 import { formatDateTime } from "@/shared/lib/format";
 import { buttonClass, errorClass, inputClass } from "@/shared/ui/form-styles";
 import { getSettings, updateSettings } from "../api/settings-api";
+import { FormActions, Skeleton } from "@/shared/ui";
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
@@ -63,12 +64,12 @@ export function SettingsForm() {
     }
   }
 
-  if (!settings) return error ? <p className={errorClass}>{error}</p> : <p className="text-sm opacity-60">Đang tải…</p>;
+  if (!settings) return error ? <p className={errorClass}>{error}</p> : <Skeleton />;
 
   return (
     <form key={version} onSubmit={onSubmit} className="max-w-2xl space-y-5">
       {!canEdit && (
-        <p className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+        <p className="rounded-xl border border-warning/40 bg-warning-soft p-3 text-sm text-warning">
           Bạn chỉ có quyền xem. Chỉ quản trị hệ thống mới sửa được cấu hình.
         </p>
       )}
@@ -92,22 +93,26 @@ export function SettingsForm() {
               className={`${inputClass} disabled:opacity-70`}
             />
           )}
-          <span className="block text-xs opacity-70">{s.description}</span>
+          <span className="block text-xs text-muted">{s.description}</span>
           {s.updatedAt && (
-            <span className="block text-xs opacity-50">
+            <span className="block text-xs text-muted">
               Sửa lần cuối {formatDateTime(s.updatedAt)}
               {s.updatedByName ? ` bởi ${s.updatedByName}` : ""}
             </span>
           )}
         </label>
       ))}
-      <p className="text-xs opacity-70">API key, token và các bí mật khác không lưu ở đây mà nằm trong file .env của máy chủ.</p>
+      <p className="text-xs text-muted">API key, token và các bí mật khác không lưu ở đây mà nằm trong file .env của máy chủ.</p>
       {error && <p className={errorClass}>{error}</p>}
-      {saved && <p className="text-sm text-green-700">Đã lưu cấu hình.</p>}
-      {canEdit && (
-        <button type="submit" disabled={pending} className={`${buttonClass} w-auto`}>
-          Lưu cấu hình
-        </button>
+      {canEdit ? (
+        <FormActions>
+          <button type="submit" disabled={pending} className={`${buttonClass} w-auto`}>
+            Lưu cấu hình
+          </button>
+          {saved && <p className="text-sm text-success" role="status">Đã lưu cấu hình.</p>}
+        </FormActions>
+      ) : (
+        saved && <p className="text-sm text-success">Đã lưu cấu hình.</p>
       )}
     </form>
   );

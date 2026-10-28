@@ -8,6 +8,7 @@ import { errorClass } from "@/shared/ui/form-styles";
 import { listEvents } from "../api/events-api";
 import { eventsOnDay, monthGrid, WEEKDAYS } from "../lib/calendar";
 import { EventForm } from "./event-form";
+import { Skeleton } from "@/shared/ui";
 
 type Editing = { mode: "create"; start: string } | { mode: "edit"; event: EventDto } | null;
 
@@ -72,7 +73,7 @@ export function EventCalendar() {
     return new Date(e.startAt) < end && new Date(e.endAt) > start;
   });
 
-  const navButton = "rounded border border-black/20 px-3 py-1.5 dark:border-white/20";
+  const navButton = "rounded-xl border border-border-strong px-3 py-1.5";
 
   return (
     <div className="space-y-4">
@@ -99,7 +100,7 @@ export function EventCalendar() {
           <button
             type="button"
             onClick={() => setEditing({ mode: "create", start: startOf(today) })}
-            className="rounded bg-foreground px-4 py-2 text-background"
+            className="rounded-xl bg-primary px-4 py-2 text-primary-foreground"
           >
             Thêm sự kiện
           </button>
@@ -120,17 +121,17 @@ export function EventCalendar() {
       )}
 
       {error && <p className={errorClass}>{error}</p>}
-      {events === null && !error && <p className="text-sm opacity-60">Đang tải…</p>}
+      {events === null && !error && <Skeleton />}
 
       {events && (
         <>
           {/* Màn hình vừa trở lên: lưới tháng. */}
           <div className="hidden sm:block">
-            <div className="grid grid-cols-7 border-l border-t border-black/15 text-xs dark:border-white/20">
+            <div className="grid grid-cols-7 border-l border-t border-border text-xs">
               {WEEKDAYS.map((d) => (
                 <div
                   key={d}
-                  className="border-b border-r border-black/15 bg-black/5 p-1 text-center font-semibold dark:border-white/20 dark:bg-white/10"
+                  className="border-b border-r border-border bg-surface-muted p-1 text-center font-semibold"
                 >
                   {d}
                 </div>
@@ -138,12 +139,12 @@ export function EventCalendar() {
               {grid.map(({ date, inMonth }) => (
                 <div
                   key={date.toISOString()}
-                  className={`min-h-24 space-y-1 border-b border-r border-black/15 p-1 dark:border-white/20 ${
-                    inMonth ? "" : "bg-black/5 opacity-50 dark:bg-white/5"
+                  className={`min-h-24 space-y-1 border-b border-r border-border p-1 ${
+                    inMonth ? "" : "bg-surface-muted text-muted"
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className={`px-1 ${sameDay(date, today) ? "rounded bg-brand font-bold text-white" : ""}`}>
+                    <span className={`px-1 ${sameDay(date, today) ? "rounded-full bg-primary font-bold text-primary-foreground" : ""}`}>
                       {date.getDate()}
                     </span>
                     {canEdit && (
@@ -152,7 +153,7 @@ export function EventCalendar() {
                         title="Thêm sự kiện vào ngày này"
                         aria-label={`Thêm sự kiện ngày ${date.getDate()}/${date.getMonth() + 1}`}
                         onClick={() => setEditing({ mode: "create", start: startOf(date) })}
-                        className="px-1 opacity-50 hover:opacity-100"
+                        className="px-1 text-muted hover:text-foreground"
                       >
                         +
                       </button>
@@ -165,7 +166,7 @@ export function EventCalendar() {
                       disabled={!canEdit}
                       title={`${e.title}\n${formatDateTime(e.startAt)} – ${formatDateTime(e.endAt)}${e.location ? `\n${e.location}` : ""}`}
                       onClick={() => setEditing({ mode: "edit", event: e })}
-                      className="block w-full truncate rounded bg-brand px-1 py-0.5 text-left text-white disabled:cursor-default"
+                      className="block w-full truncate rounded-xl bg-primary px-1 py-0.5 text-left text-primary-foreground disabled:cursor-default"
                     >
                       {audienceTag(e)}
                       {e.title}
@@ -179,12 +180,12 @@ export function EventCalendar() {
           {/* Điện thoại: danh sách sự kiện trong tháng. */}
           <ul className="space-y-2 sm:hidden">
             {monthEvents.map((e) => (
-              <li key={e.id} className="rounded border border-black/10 p-3 dark:border-white/15">
+              <li key={e.id} className="rounded-xl border border-border p-3">
                 <p className="font-medium">
                   {audienceTag(e)}
                   {e.title}
                 </p>
-                <p className="text-xs opacity-70">
+                <p className="text-xs text-muted">
                   {formatDateTime(e.startAt)} – {formatDateTime(e.endAt)}
                   {e.location ? ` · ${e.location}` : ""}
                 </p>
@@ -195,7 +196,7 @@ export function EventCalendar() {
                 )}
               </li>
             ))}
-            {monthEvents.length === 0 && <li className="text-sm opacity-70">Không có sự kiện nào trong tháng.</li>}
+            {monthEvents.length === 0 && <li className="text-sm text-muted">Không có sự kiện nào trong tháng.</li>}
           </ul>
         </>
       )}

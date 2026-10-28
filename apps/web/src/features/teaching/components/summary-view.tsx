@@ -6,6 +6,7 @@ import { errorClass, inputClass } from "@/shared/ui/form-styles";
 import { useData } from "@/shared/lib/use-data";
 import { copyAssignments, downloadSummary, listSemesterOptions } from "../api/teaching-api";
 import { smallButton, type TeachingContext } from "./context";
+import { Table, useConfirm } from "@/shared/ui";
 
 // Học kỳ của năm học nguồn (chưa chọn năm thì không gọi API).
 const loadSemesters = (yearId: string) => (yearId ? listSemesterOptions(yearId) : Promise.resolve([]));
@@ -13,6 +14,7 @@ const errorText = (err: unknown) => (err instanceof Error ? err.message : String
 
 // Cảnh báo và thống kê: theo lớp, theo tổ, toàn trường; xuất Excel; sao chép phân công từ năm học/học kỳ trước.
 export function SummaryView({ ctx }: { ctx: TeachingContext }) {
+  const ask = useConfirm();
   const { summary, scope } = ctx;
   const [filter, setFilter] = useState<TeachingIssueType | "">("");
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +28,7 @@ export function SummaryView({ ctx }: { ctx: TeachingContext }) {
 
   async function onCopy() {
     if (!fromYear) return;
-    if (!confirm("Sao chép phân công từ năm học/học kỳ đã chọn sang phạm vi đang xem? Dòng đã có phân công sẽ được bỏ qua.")) return;
+    if (!(await ask("Sao chép phân công từ năm học/học kỳ đã chọn sang phạm vi đang xem? Dòng đã có phân công sẽ được bỏ qua."))) return;
     setError(null);
     try {
       setCopyResult(
@@ -53,9 +55,9 @@ export function SummaryView({ ctx }: { ctx: TeachingContext }) {
           { label: "Tiết đã phân công", value: t.assignedPeriods },
           { label: "Lớp–môn chưa có người dạy", value: t.unassignedSubjects, alert: true },
         ].map((c) => (
-          <li key={c.label} className="rounded-lg border border-black/10 p-3 dark:border-white/15">
-            <p className="text-sm opacity-70">{c.label}</p>
-            <p className={`text-2xl font-bold ${c.alert && c.value > 0 ? "text-red-600" : ""}`}>{c.value.toLocaleString("vi-VN")}</p>
+          <li key={c.label} className="rounded-2xl bg-surface border border-border p-3">
+            <p className="text-sm text-muted">{c.label}</p>
+            <p className={`text-2xl font-bold ${c.alert && c.value > 0 ? "text-danger" : ""}`}>{c.value.toLocaleString("vi-VN")}</p>
           </li>
         ))}
       </ul>
@@ -77,19 +79,19 @@ export function SummaryView({ ctx }: { ctx: TeachingContext }) {
         </div>
         <ul className="max-h-96 space-y-1 overflow-y-auto text-sm">
           {issues.map((i, idx) => (
-            <li key={idx} className={`rounded px-2 py-1 ${i.severity === "error" ? "bg-red-500/15" : "bg-yellow-500/15"}`}>
+            <li key={idx} className={`rounded-xl px-2 py-1 ${i.severity === "error" ? "bg-danger-soft" : "bg-warning-soft"}`}>
               <span className="mr-2 text-xs font-semibold uppercase">{TEACHING_ISSUE_NAMES[i.type]}</span>
               {i.message}
             </li>
           ))}
-          {issues.length === 0 && <li className="opacity-70">Không có cảnh báo.</li>}
+          {issues.length === 0 && <li className="text-muted">Không có cảnh báo.</li>}
         </ul>
       </div>
 
       <div className="space-y-2">
         <h2 className="text-lg font-semibold">Theo tổ chuyên môn</h2>
-        <table className="w-full max-w-2xl text-left text-sm">
-          <thead className="border-b border-black/10 dark:border-white/15">
+        <Table wrapperClassName="max-w-2xl" maxHeight="none">
+          <thead className="border-b border-border">
             <tr>
               <th className="py-2 pr-3">Tổ</th>
               <th className="py-2 pr-3">Giáo viên</th>
@@ -97,7 +99,7 @@ export function SummaryView({ ctx }: { ctx: TeachingContext }) {
               <th className="py-2">Tổng định mức</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-black/10 dark:divide-white/15">
+          <tbody className="divide-y divide-border">
             {summary.departments.map((d) => (
               <tr key={d.departmentName}>
                 <td className="py-1 pr-3">{d.departmentName}</td>
@@ -107,13 +109,13 @@ export function SummaryView({ ctx }: { ctx: TeachingContext }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </Table>
       </div>
 
       <div className="space-y-2">
         <h2 className="text-lg font-semibold">Theo lớp</h2>
-        <table className="w-full max-w-2xl text-left text-sm">
-          <thead className="border-b border-black/10 dark:border-white/15">
+        <Table wrapperClassName="max-w-2xl" maxHeight="none">
+          <thead className="border-b border-border">
             <tr>
               <th className="py-2 pr-3">Lớp</th>
               <th className="py-2 pr-3">Khối</th>
@@ -121,9 +123,9 @@ export function SummaryView({ ctx }: { ctx: TeachingContext }) {
               <th className="py-2">Đã phân công</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-black/10 dark:divide-white/15">
+          <tbody className="divide-y divide-border">
             {summary.classes.map((c) => (
-              <tr key={c.classId} className={c.assignedPeriods < c.requiredPeriods ? "bg-red-500/10" : ""}>
+              <tr key={c.classId} className={c.assignedPeriods < c.requiredPeriods ? "bg-danger-soft" : ""}>
                 <td className="py-1 pr-3">{c.className}</td>
                 <td className="py-1 pr-3">{c.gradeLevel}</td>
                 <td className="py-1 pr-3">{c.requiredPeriods}</td>
@@ -131,11 +133,11 @@ export function SummaryView({ ctx }: { ctx: TeachingContext }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </Table>
       </div>
 
       {!ctx.readOnly && (
-        <div className="space-y-2 rounded border border-black/10 p-3 dark:border-white/15">
+        <div className="space-y-2 rounded-xl border border-border p-3">
           <h2 className="text-lg font-semibold">Sao chép phân công từ năm học / học kỳ trước</h2>
           <div className="flex flex-wrap items-end gap-2">
             <label className="space-y-1 text-sm">
@@ -164,14 +166,14 @@ export function SummaryView({ ctx }: { ctx: TeachingContext }) {
               Sao chép
             </button>
           </div>
-          <p className="text-xs opacity-70">Đích là năm học và học kỳ đang chọn ở bộ lọc phía trên. Lớp ghép theo tên lớp.</p>
+          <p className="text-xs text-muted">Đích là năm học và học kỳ đang chọn ở bộ lọc phía trên. Lớp ghép theo tên lớp.</p>
           {copyResult && (
             <div className="text-sm">
               <p>
                 Đã sao chép <strong>{copyResult.copied}</strong> phân công, bỏ qua {copyResult.skipped.length}.
               </p>
               {copyResult.skipped.length > 0 && (
-                <ul className="max-h-40 overflow-y-auto text-xs opacity-80">
+                <ul className="max-h-40 overflow-y-auto text-xs text-muted">
                   {copyResult.skipped.map((s, i) => (
                     <li key={i}>
                       {s.className} · {s.subjectName}: {s.reason}

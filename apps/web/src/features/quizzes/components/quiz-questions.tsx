@@ -13,8 +13,9 @@ import { mediaSrc } from "@/shared/lib/media-url";
 import { errorText } from "@/shared/lib/use-data";
 import { errorClass, inputClass } from "@/shared/ui/form-styles";
 import { confirmImport, downloadTemplate, previewImport, saveQuestions, uploadQuestionImage } from "../api/quizzes-api";
+import { buttonStyles, FormActions, Table, useToast } from "@/shared/ui";
 
-const small = "rounded border border-black/20 px-3 py-1 text-sm disabled:opacity-50 dark:border-white/20";
+const small = "rounded-xl border border-border-strong px-3 py-1 text-sm disabled:opacity-50";
 
 interface Draft {
   key: number;
@@ -60,7 +61,7 @@ export function QuizQuestions({ quiz, onSaved }: { quiz: QuizEditDto; onSaved: (
   const [drafts, setDrafts] = useState<Draft[]>(() => (quiz.questions.length ? quiz.questions.map(toDraft) : [empty()]));
   const [preview, setPreview] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const toast = useToast();
   const [busy, setBusy] = useState(false);
   const locked = quiz.attemptCount > 0;
 
@@ -85,7 +86,7 @@ export function QuizQuestions({ quiz, onSaved }: { quiz: QuizEditDto; onSaved: (
     setError(null);
     try {
       const saved = await saveQuestions(quiz.id, questions);
-      setMessage(`Đã lưu ${saved.questions.length} câu hỏi.`);
+      toast.success(`Đã lưu ${saved.questions.length} câu hỏi.`);
       onSaved(saved);
     } catch (err) {
       setError(errorText(err));
@@ -108,7 +109,7 @@ export function QuizQuestions({ quiz, onSaved }: { quiz: QuizEditDto; onSaved: (
   if (locked) {
     return (
       <div className="space-y-3">
-        <p className="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+        <p className="rounded-xl border border-warning/40 bg-warning-soft p-3 text-sm text-warning">
           Đã có {quiz.attemptCount} lượt làm bài nên câu hỏi không sửa được nữa (để kết quả và thống kê không bị sai). Muốn đổi câu hỏi, hãy
           ẩn bộ này và soạn bộ mới.
         </p>
@@ -123,20 +124,20 @@ export function QuizQuestions({ quiz, onSaved }: { quiz: QuizEditDto; onSaved: (
         <button type="button" className={small} onClick={() => setPreview((p) => !p)}>
           {preview ? "← Quay lại soạn" : "Xem trước như học sinh"}
         </button>
-        <ImportPanel quizId={quiz.id} onDone={(q) => { setDrafts(q.questions.map(toDraft)); setMessage(`Đã nhập, bộ câu hỏi có ${q.questions.length} câu.`); onSaved(q); }} />
+        <ImportPanel quizId={quiz.id} onDone={(q) => { setDrafts(q.questions.map(toDraft)); toast.success(`Đã nhập, bộ câu hỏi có ${q.questions.length} câu.`); onSaved(q); }} />
       </div>
       {preview ? (
         <QuestionPreview drafts={drafts} />
       ) : (
         <ol className="space-y-4">
           {drafts.map((d, i) => (
-            <li key={d.key} className="space-y-2 rounded-lg border border-black/10 p-3 dark:border-white/15">
+            <li key={d.key} className="space-y-2 rounded-2xl bg-surface border border-border p-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold">Câu {i + 1}</span>
                 <span className="ml-auto flex gap-1">
                   <button type="button" className={small} disabled={i === 0} onClick={() => move(i, -1)} aria-label="Lên">↑</button>
                   <button type="button" className={small} disabled={i === drafts.length - 1} onClick={() => move(i, 1)} aria-label="Xuống">↓</button>
-                  <button type="button" className={`${small} text-red-700`} onClick={() => setDrafts((all) => all.filter((x) => x.key !== d.key))}>
+                  <button type="button" className={`${small} text-danger`} onClick={() => setDrafts((all) => all.filter((x) => x.key !== d.key))}>
                     Xoá câu
                   </button>
                 </span>
@@ -153,8 +154,8 @@ export function QuizQuestions({ quiz, onSaved }: { quiz: QuizEditDto; onSaved: (
                 {d.images.map((src) => (
                   <span key={src} className="relative">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={src} alt="" className="h-16 rounded border border-black/10" />
-                    <button type="button" aria-label="Bỏ ảnh" className="absolute -right-2 -top-2 rounded-full bg-red-600 px-1.5 text-xs text-white" onClick={() => update(d.key, (x) => ({ ...x, images: x.images.filter((s) => s !== src) }))}>
+                    <img src={src} alt="" className="h-16 rounded-xl border border-border" />
+                    <button type="button" aria-label="Bỏ ảnh" className="absolute -right-2 -top-2 rounded-full bg-danger px-1.5 text-xs text-danger-foreground" onClick={() => update(d.key, (x) => ({ ...x, images: x.images.filter((s) => s !== src) }))}>
                       ×
                     </button>
                   </span>
@@ -165,7 +166,7 @@ export function QuizQuestions({ quiz, onSaved }: { quiz: QuizEditDto; onSaved: (
                 </label>
               </div>
               <fieldset className="space-y-1">
-                <legend className="text-sm opacity-80">Đáp án (đánh dấu ô bên trái cho đáp án đúng; nhiều đáp án đúng thì phải chọn đúng hết mới được điểm)</legend>
+                <legend className="text-sm text-muted">Đáp án (đánh dấu ô bên trái cho đáp án đúng; nhiều đáp án đúng thì phải chọn đúng hết mới được điểm)</legend>
                 {d.options.map((o, j) => (
                   <div key={j} className="flex items-center gap-2">
                     <input
@@ -206,15 +207,14 @@ export function QuizQuestions({ quiz, onSaved }: { quiz: QuizEditDto; onSaved: (
         </ol>
       )}
       {error && <p className={errorClass}>{error}</p>}
-      {message && <p className="text-sm text-green-700 dark:text-green-400">{message}</p>}
-      <div className="flex flex-wrap gap-2">
+      <FormActions>
         <button type="button" className={small} onClick={() => setDrafts((all) => [...all, empty()])}>
           + Thêm câu
         </button>
-        <button type="button" onClick={save} disabled={busy} className="rounded bg-brand px-4 py-2 text-sm text-white disabled:opacity-50">
+        <button type="button" onClick={save} disabled={busy} className={buttonStyles()}>
           {busy ? "Đang lưu…" : `Lưu ${drafts.length} câu hỏi`}
         </button>
-      </div>
+      </FormActions>
     </div>
   );
 }
@@ -229,10 +229,10 @@ function QuestionPreview({ drafts, showCorrect = false }: { drafts: Draft[]; sho
             <span className="font-semibold">Câu {i + 1}.</span>
             <div className="rich-content min-w-0 flex-1" dangerouslySetInnerHTML={{ __html: toHtml(d) }} />
           </div>
-          {d.options.filter((o) => o.correct).length > 1 && <p className="text-xs opacity-70">Chọn tất cả đáp án đúng.</p>}
+          {d.options.filter((o) => o.correct).length > 1 && <p className="text-xs text-muted">Chọn tất cả đáp án đúng.</p>}
           <ul className="space-y-1">
             {d.options.map((o, j) => (
-              <li key={j} className={`rounded border px-3 py-2 text-sm ${showCorrect && o.correct ? "border-green-600 bg-green-50 dark:bg-green-950" : "border-black/15 dark:border-white/20"}`}>
+              <li key={j} className={`rounded-xl border px-3 py-2 text-sm ${showCorrect && o.correct ? "border-success bg-success-soft " : "border-border"}`}>
                 <b>{QUIZ_OPTION_LETTERS[j]}.</b> {o.content}
               </li>
             ))}
@@ -284,7 +284,7 @@ function ImportPanel({ quizId, onDone }: { quizId: string; onDone: (q: QuizEditD
     );
   }
   return (
-    <div className="w-full space-y-2 rounded-lg border border-black/10 p-3 dark:border-white/15">
+    <div className="w-full space-y-2 rounded-2xl bg-surface border border-border p-3">
       <p className="text-sm">
         Cột: Câu hỏi, A, B, C, D (E, F tuỳ chọn), Đáp án đúng (vd. <code>B</code> hoặc <code>A, C</code>), Giải thích.{" "}
         <button type="button" className="underline" onClick={() => downloadTemplate().catch((e) => setError(errorText(e)))}>
@@ -299,29 +299,27 @@ function ImportPanel({ quizId, onDone }: { quizId: string; onDone: (q: QuizEditD
           <p className="text-sm">
             {result.okCount} câu hợp lệ, {result.errorCount} dòng lỗi (sẽ bỏ qua).
           </p>
-          <div className="max-h-64 overflow-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr>
-                  <th className="p-1">Dòng</th>
-                  <th className="p-1">Câu hỏi</th>
-                  <th className="p-1">Đúng</th>
-                  <th className="p-1">Kết quả</th>
+          <Table maxHeight="16rem">
+            <thead>
+              <tr>
+                <th className="p-1">Dòng</th>
+                <th className="p-1">Câu hỏi</th>
+                <th className="p-1">Đúng</th>
+                <th className="p-1">Kết quả</th>
+              </tr>
+            </thead>
+            <tbody>
+              {result.rows.map((r) => (
+                <tr key={r.row} className={r.status === "ERROR" ? "bg-danger-soft" : ""}>
+                  <td className="p-1">{r.row}</td>
+                  <td className="max-w-48 truncate p-1">{r.question}</td>
+                  <td className="p-1">{r.correct}</td>
+                  <td className="p-1">{r.message ?? "Hợp lệ"}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {result.rows.map((r) => (
-                  <tr key={r.row} className={r.status === "ERROR" ? "bg-red-50 dark:bg-red-950" : ""}>
-                    <td className="p-1">{r.row}</td>
-                    <td className="max-w-48 truncate p-1">{r.question}</td>
-                    <td className="p-1">{r.correct}</td>
-                    <td className="p-1">{r.message ?? "Hợp lệ"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <button type="button" disabled={busy || result.okCount === 0} onClick={confirmIt} className="rounded bg-brand px-4 py-2 text-sm text-white disabled:opacity-50">
+              ))}
+            </tbody>
+          </Table>
+          <button type="button" disabled={busy || result.okCount === 0} onClick={confirmIt} className="rounded-xl bg-primary px-4 py-2 text-sm text-primary-foreground hover:bg-primary-hover disabled:opacity-50">
             Thêm {result.okCount} câu
           </button>
         </div>

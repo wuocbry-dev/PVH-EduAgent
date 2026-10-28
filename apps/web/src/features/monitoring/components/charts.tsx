@@ -13,7 +13,7 @@ const STATUS_STYLE: Record<HealthStatus, { icon: string; dot: string }> = {
   OK: { icon: "✓", dot: "bg-[#0ca30c] text-white" },
   DEGRADED: { icon: "!", dot: "bg-[#fab219] text-[#0b0b0b]" },
   DOWN: { icon: "✕", dot: "bg-[#d03b3b] text-white" },
-  OFF: { icon: "–", dot: "bg-black/15 text-black/70 dark:bg-white/20 dark:text-white/80" },
+  OFF: { icon: "–", dot: "bg-surface-muted text-muted" },
 };
 
 export function StatusBadge({ status }: { status: HealthStatus }) {
@@ -67,12 +67,12 @@ export function HourBars({
     <figure className="min-w-0 space-y-1">
       <figcaption className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm">
         <span className="font-medium">{title}</span>
-        <span className="text-xs opacity-70" aria-live="polite">
+        <span className="text-xs text-muted" aria-live="polite">
           {shown ? describe(shown) : `Cao nhất ${top.toLocaleString("vi-VN")} ${unit}`}
         </span>
       </figcaption>
       <div
-        className="flex items-end gap-[2px] border-b border-black/20 dark:border-white/25"
+        className="flex items-end gap-[2px] border-b border-border-strong"
         style={{ height }}
         role="img"
         aria-label={`${title}, ${rangeLabel}`}
@@ -91,26 +91,26 @@ export function HourBars({
             <span
               className={`block w-full rounded-t-[4px] ${
                 p.alert ? "bg-[#d03b3b]" : "bg-[#2a78d6] dark:bg-[#3987e5]"
-              } ${active === i ? "opacity-100 ring-2 ring-black/40 dark:ring-white/50" : "opacity-90 group-hover:opacity-100"}`}
+              } ${active === i ? "opacity-100 ring-2 ring-black/40" : "opacity-90 group-hover:opacity-100"}`}
               style={{ height: p.value ? `${Math.max(4, (p.value / max) * 100)}%` : p.alert ? "4px" : 0 }}
             />
           </button>
         ))}
       </div>
-      <div className="flex justify-between text-[11px] opacity-60">
+      <div className="flex justify-between text-[11px] text-muted">
         <span>{points[0] ? labelOf(points[0].hour) : ""}</span>
         <span>{points.at(-1) ? labelOf(points.at(-1)!.hour) : ""}</span>
       </div>
       {hasAlert && alertLabel && (
-        <p className="flex items-center gap-1 text-xs opacity-80">
+        <p className="flex items-center gap-1 text-xs text-muted">
           <span aria-hidden className="inline-block size-2.5 rounded-sm bg-[#d03b3b]" /> ✕ {alertLabel}
         </p>
       )}
       <details className="text-xs">
-        <summary className="cursor-pointer opacity-70">Xem bảng số liệu</summary>
+        <summary className="cursor-pointer text-muted">Xem bảng số liệu</summary>
         <table className="mt-1 w-full text-left">
           <thead>
-            <tr className="opacity-70">
+            <tr className="text-muted">
               <th className="pr-2 font-normal">{keyHeader}</th>
               <th className="pr-2 font-normal">Giá trị ({unit})</th>
               {alertLabel && <th className="font-normal">{alertLabel}</th>}

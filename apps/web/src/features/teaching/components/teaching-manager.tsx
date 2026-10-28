@@ -19,6 +19,7 @@ import type { TeachingContext } from "./context";
 import { QuotaView } from "./quota-view";
 import { SummaryView } from "./summary-view";
 import { TeacherView } from "./teacher-view";
+import { Skeleton } from "@/shared/ui";
 
 const TABS = [
   { id: "class", label: "Theo lớp" },
@@ -72,7 +73,7 @@ export function TeachingManager({ readOnly = false }: { readOnly?: boolean }) {
 
   return (
     <div className="space-y-4">
-      <p className="max-w-3xl rounded border border-yellow-600/40 bg-yellow-500/10 p-3 text-sm">
+      <p className="max-w-3xl rounded-xl border border-warning/40 bg-warning-soft p-3 text-sm">
         <strong>Số liệu mẫu.</strong> {TEACHING_SAMPLE_NOTE}
         {readOnly && " Bạn chỉ có quyền xem; phân công là việc của Ban giám hiệu."}
       </p>
@@ -117,8 +118,8 @@ export function TeachingManager({ readOnly = false }: { readOnly?: boolean }) {
             role="tab"
             aria-selected={t.id === tab}
             onClick={() => setTab(t.id)}
-            className={`rounded border px-3 py-1 text-sm ${
-              t.id === tab ? "border-foreground bg-foreground text-background" : "border-black/20 dark:border-white/20"
+            className={`rounded-full border px-3 py-1 text-sm ${
+              t.id === tab ? "border-primary bg-primary text-primary-foreground" : "border-border-strong"
             }`}
           >
             {t.label}
@@ -127,7 +128,7 @@ export function TeachingManager({ readOnly = false }: { readOnly?: boolean }) {
       </div>
 
       {error && <p className={errorClass}>{error}</p>}
-      {!ctx && !error && <p className="text-sm opacity-60">Đang tải…</p>}
+      {!ctx && !error && <Skeleton />}
       {ctx && tab === "class" && <ClassView key={ctx.scope.schoolYearId} ctx={ctx} />}
       {ctx && tab === "teacher" && <TeacherView ctx={ctx} />}
       {ctx && tab === "quota" && <QuotaView ctx={ctx} />}

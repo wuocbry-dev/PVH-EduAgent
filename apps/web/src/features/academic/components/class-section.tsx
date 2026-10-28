@@ -16,10 +16,12 @@ import {
   updateClass,
 } from "../api/academic-api";
 import { errorText, useData } from "@/shared/lib/use-data";
+import { Table, useConfirm } from "@/shared/ui";
 
-const smallButton = "rounded border border-black/20 px-3 py-1 text-sm dark:border-white/20";
+const smallButton = "rounded-xl border border-border-strong px-3 py-1 text-sm";
 
 export function ClassSection() {
+  const ask = useConfirm();
   const years = useData(listSchoolYears, undefined);
   const grades = useData(listGrades, undefined);
   const teachers = useData(listTeachers, undefined);
@@ -72,101 +74,99 @@ export function ClassSection() {
         </select>
       </label>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-black/10 dark:border-white/15">
-            <tr>
-              <th className="py-2 pr-4">Lớp</th>
-              <th className="py-2 pr-4">Khối</th>
-              <th className="py-2 pr-4">Tổ hợp môn</th>
-              <th className="py-2 pr-4">Chủ nhiệm</th>
-              <th className="py-2 pr-4">Sĩ số</th>
-              <th className="py-2 pr-4">Buổi học</th>
-              <th className="py-2">Thao tác</th>
+      <Table>
+        <thead className="border-b border-border">
+          <tr>
+            <th className="py-2 pr-4">Lớp</th>
+            <th className="py-2 pr-4">Khối</th>
+            <th className="py-2 pr-4">Tổ hợp môn</th>
+            <th className="py-2 pr-4">Chủ nhiệm</th>
+            <th className="py-2 pr-4">Sĩ số</th>
+            <th className="py-2 pr-4">Buổi học</th>
+            <th className="py-2">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {classes.data?.map((c) => (
+            <tr key={c.id} className="align-top">
+              <td className="py-2 pr-4 font-medium">{c.name}</td>
+              <td className="py-2 pr-4">{c.gradeLevel}</td>
+              <td className="py-2 pr-4">{c.subjectCombo ?? ""}</td>
+              <td className="py-2 pr-4">
+                <select
+                  aria-label={`Chủ nhiệm lớp ${c.name}`}
+                  value={c.homeroomTeacherId ?? ""}
+                  onChange={(e) => run(() => updateClass(c.id, { homeroomTeacherId: e.target.value || null }))}
+                  className={`${inputClass} w-48`}
+                >
+                  <option value="">— Chưa có —</option>
+                  {teachers.data?.map((t) => (
+                    <option key={t.userId} value={t.userId}>
+                      {t.fullName} ({t.teacherCode})
+                    </option>
+                  ))}
+                </select>
+              </td>
+              <td className="py-2 pr-4">{c.studentCount}</td>
+              <td className="py-2 pr-4">
+                <select
+                  aria-label={`Buổi học lớp ${c.name}`}
+                  value={c.sessions}
+                  onChange={(e) => run(() => updateClass(c.id, { sessions: e.target.value as ClassSessions }))}
+                  className={`${inputClass} w-40`}
+                >
+                  {CLASS_SESSIONS.map((x) => (
+                    <option key={x} value={x}>
+                      {CLASS_SESSION_NAMES[x]}
+                    </option>
+                  ))}
+                </select>
+              </td>
+              <td className="space-y-2 py-2">
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" className={smallButton} onClick={() => setOpenClass(openClass === c.id ? null : c.id)}>
+                    {openClass === c.id ? "Ẩn học sinh" : "Xem học sinh"}
+                  </button>
+                  <button
+                    type="button"
+                    className={smallButton}
+                    onClick={() => {
+                      const name = prompt("Tên lớp mới:", c.name)?.trim();
+                      if (name && name !== c.name) void run(() => updateClass(c.id, { name }));
+                    }}
+                  >
+                    Đổi tên
+                  </button>
+                  <button
+                    type="button"
+                    className={smallButton}
+                    onClick={async () => (await ask(`Xóa lớp ${c.name}?`)) && run(() => deleteClass(c.id))}
+                  >
+                    Xóa
+                  </button>
+                </div>
+                {openClass === c.id && (
+                  <ClassStudents classId={c.id} classes={classes.data ?? []} onChanged={classes.reload} />
+                )}
+              </td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-black/10 dark:divide-white/15">
-            {classes.data?.map((c) => (
-              <tr key={c.id} className="align-top">
-                <td className="py-2 pr-4 font-medium">{c.name}</td>
-                <td className="py-2 pr-4">{c.gradeLevel}</td>
-                <td className="py-2 pr-4">{c.subjectCombo ?? ""}</td>
-                <td className="py-2 pr-4">
-                  <select
-                    aria-label={`Chủ nhiệm lớp ${c.name}`}
-                    value={c.homeroomTeacherId ?? ""}
-                    onChange={(e) => run(() => updateClass(c.id, { homeroomTeacherId: e.target.value || null }))}
-                    className={`${inputClass} w-48`}
-                  >
-                    <option value="">— Chưa có —</option>
-                    {teachers.data?.map((t) => (
-                      <option key={t.userId} value={t.userId}>
-                        {t.fullName} ({t.teacherCode})
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className="py-2 pr-4">{c.studentCount}</td>
-                <td className="py-2 pr-4">
-                  <select
-                    aria-label={`Buổi học lớp ${c.name}`}
-                    value={c.sessions}
-                    onChange={(e) => run(() => updateClass(c.id, { sessions: e.target.value as ClassSessions }))}
-                    className={`${inputClass} w-40`}
-                  >
-                    {CLASS_SESSIONS.map((x) => (
-                      <option key={x} value={x}>
-                        {CLASS_SESSION_NAMES[x]}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className="space-y-2 py-2">
-                  <div className="flex flex-wrap gap-2">
-                    <button type="button" className={smallButton} onClick={() => setOpenClass(openClass === c.id ? null : c.id)}>
-                      {openClass === c.id ? "Ẩn học sinh" : "Xem học sinh"}
-                    </button>
-                    <button
-                      type="button"
-                      className={smallButton}
-                      onClick={() => {
-                        const name = prompt("Tên lớp mới:", c.name)?.trim();
-                        if (name && name !== c.name) void run(() => updateClass(c.id, { name }));
-                      }}
-                    >
-                      Đổi tên
-                    </button>
-                    <button
-                      type="button"
-                      className={smallButton}
-                      onClick={() => confirm(`Xóa lớp ${c.name}?`) && run(() => deleteClass(c.id))}
-                    >
-                      Xóa
-                    </button>
-                  </div>
-                  {openClass === c.id && (
-                    <ClassStudents classId={c.id} classes={classes.data ?? []} onChanged={classes.reload} />
-                  )}
-                </td>
-              </tr>
-            ))}
-            {classes.data?.length === 0 && (
-              <tr>
-                <td colSpan={7} className="py-4 opacity-70">
-                  Năm học này chưa có lớp.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+          ))}
+          {classes.data?.length === 0 && (
+            <tr>
+              <td colSpan={7} className="py-4 text-muted">
+                Năm học này chưa có lớp.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </Table>
 
       <form
-        onSubmit={(e) => {
+        onSubmit={async (e) => {
           e.preventDefault();
           const data = new FormData(e.currentTarget);
           const grade = Number(data.get("grade"));
-          if (confirm(`Đặt buổi học của mọi lớp khối ${grade} trong năm học đang chọn?`)) {
+          if (await ask(`Đặt buổi học của mọi lớp khối ${grade} trong năm học đang chọn?`)) {
             void run(() => setSessionsBulk({ schoolYearId: yearId || undefined, gradeLevel: grade, sessions: String(data.get("sessions")) }));
           }
         }}
@@ -192,7 +192,7 @@ export function ClassSection() {
             ))}
           </select>
         </label>
-        <button type="submit" className="rounded border border-black/20 px-4 py-2 dark:border-white/20">
+        <button type="submit" className="rounded-xl border border-border-strong px-4 py-2">
           Áp dụng cho cả khối
         </button>
       </form>
@@ -227,7 +227,7 @@ export function ClassSection() {
             ))}
           </select>
         </label>
-        <button type="submit" className="rounded bg-foreground px-4 py-2 text-background">
+        <button type="submit" className="rounded-xl bg-primary px-4 py-2 text-primary-foreground">
           Thêm lớp (năm hiện hành)
         </button>
       </form>
@@ -262,21 +262,21 @@ function ClassStudents({
   }
 
   return (
-    <div className="space-y-2 rounded border border-black/10 p-2 text-xs dark:border-white/15">
+    <div className="space-y-2 rounded-xl border border-border p-2 text-xs">
       {(error ?? students.error) && <p className={errorClass}>{error ?? students.error}</p>}
-      {students.data?.length === 0 && <p className="opacity-70">Lớp chưa có học sinh.</p>}
+      {students.data?.length === 0 && <p className="text-muted">Lớp chưa có học sinh.</p>}
       <ul className="max-h-72 space-y-1 overflow-y-auto">
         {students.data?.map((s) => (
           <li key={s.userId} className="flex flex-wrap items-center gap-2">
             <span className="font-mono">{s.studentCode}</span>
             <span>{s.fullName}</span>
-            {s.gender && <span className="opacity-60">{GENDER_NAMES[s.gender]}</span>}
-            {s.status !== "ACTIVE" && <span className="opacity-60">· {USER_STATUS_NAMES[s.status]}</span>}
+            {s.gender && <span className="text-muted">{GENDER_NAMES[s.gender]}</span>}
+            {s.status !== "ACTIVE" && <span className="text-muted">· {USER_STATUS_NAMES[s.status]}</span>}
             <select
               aria-label={`Chuyển ${s.fullName} sang lớp`}
               value=""
               onChange={(e) => move(s.userId, e.target.value)}
-              className="ml-auto rounded border border-black/20 bg-transparent px-1 py-0.5 dark:border-white/20"
+              className="ml-auto rounded-xl border border-border-strong bg-transparent px-1 py-0.5"
             >
               <option value="">Chuyển lớp…</option>
               {targets.map((t) => (

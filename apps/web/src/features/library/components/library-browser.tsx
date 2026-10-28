@@ -14,7 +14,7 @@ function href(params: LibraryQuery) {
 }
 
 const chip = (active: boolean) =>
-  `rounded-full border px-3 py-1 text-sm ${active ? "border-brand bg-brand text-white" : "border-black/20 hover:bg-brand/10 dark:border-white/20"}`;
+  `rounded-full border px-3 py-1 text-sm ${active ? "border-primary bg-primary text-primary-foreground" : "border-border-strong hover:bg-primary-soft"}`;
 
 // Trang chủ thư viện số: tìm kiếm (không dấu), danh mục, loại, mới thêm, đọc nhiều, danh sách có phân trang.
 // Khách thấy tài liệu toàn trường (có cache); người đăng nhập thấy thêm tài liệu dành cho khối/lớp mình hoặc cho nhân sự.
@@ -46,9 +46,9 @@ export async function LibraryBrowser({ searchParams }: { searchParams: Promise<R
           maxLength={100}
           placeholder="Tìm sách, tác giả, chủ đề… (gõ không dấu cũng được)"
           aria-label="Tìm trong thư viện"
-          className="w-full rounded border border-black/20 bg-transparent px-3 py-2 text-sm dark:border-white/20"
+          className="w-full rounded-xl border border-border-strong bg-transparent px-3 py-2 text-sm"
         />
-        <button type="submit" className="shrink-0 rounded bg-brand px-4 py-2 text-sm text-white">
+        <button type="submit" className="shrink-0 rounded-xl bg-primary px-4 py-2 text-sm text-primary-foreground">
           Tìm
         </button>
       </form>
@@ -63,7 +63,7 @@ export async function LibraryBrowser({ searchParams }: { searchParams: Promise<R
             .map((c) => (
               <Link key={c.id} href={href({ q, kind, category: c.slug })} className={chip(category === c.slug)}>
                 {c.name}
-                {c.itemCount > 0 && <span className="ml-1 opacity-70">({c.itemCount})</span>}
+                {c.itemCount > 0 && <span className="ml-1 text-muted">({c.itemCount})</span>}
               </Link>
             ))}
         </div>
@@ -101,21 +101,21 @@ export async function LibraryBrowser({ searchParams }: { searchParams: Promise<R
       <section className="space-y-3">
         <h2 className="text-xl font-semibold">{q ? `Kết quả cho “${q}”` : sort === "popular" ? "Đọc nhiều nhất" : "Tất cả tài liệu"}</h2>
         {list === null ? (
-          <p className="rounded border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+          <p className="rounded-xl border border-warning/40 bg-warning-soft p-4 text-sm text-warning">
             Không tải được thư viện lúc này, vui lòng thử lại sau.
           </p>
         ) : list.items.length === 0 ? (
-          <p className="opacity-70">{filtered ? "Không tìm thấy tài liệu phù hợp." : "Thư viện chưa có tài liệu nào."}</p>
+          <p className="text-muted">{filtered ? "Không tìm thấy tài liệu phù hợp." : "Thư viện chưa có tài liệu nào."}</p>
         ) : (
           <>
-            <p className="text-sm opacity-70">{list.total} tài liệu</p>
+            <p className="text-sm text-muted">{list.total} tài liệu</p>
             <CardGrid items={list.items} />
           </>
         )}
         {totalPages > 1 && (
           <nav aria-label="Phân trang" className="flex items-center justify-center gap-3 text-sm">
             {page > 1 && (
-              <Link href={href({ ...query, page: page - 1 })} rel="prev" className="rounded border border-black/20 px-3 py-1.5 dark:border-white/20">
+              <Link href={href({ ...query, page: page - 1 })} rel="prev" className="rounded-xl border border-border-strong px-3 py-1.5">
                 ← Trang trước
               </Link>
             )}
@@ -123,7 +123,7 @@ export async function LibraryBrowser({ searchParams }: { searchParams: Promise<R
               Trang {page}/{totalPages}
             </span>
             {page < totalPages && (
-              <Link href={href({ ...query, page: page + 1 })} rel="next" className="rounded border border-black/20 px-3 py-1.5 dark:border-white/20">
+              <Link href={href({ ...query, page: page + 1 })} rel="next" className="rounded-xl border border-border-strong px-3 py-1.5">
                 Trang sau →
               </Link>
             )}
@@ -131,7 +131,7 @@ export async function LibraryBrowser({ searchParams }: { searchParams: Promise<R
         )}
       </section>
 
-      <p className="text-sm opacity-70">
+      <p className="text-sm text-muted">
         Đọc, nghe, xem tài liệu cần đăng nhập bằng tài khoản của trường. Xem thêm{" "}
         <Link href="/thu-vien/anh" className="underline">
           thư viện ảnh hoạt động

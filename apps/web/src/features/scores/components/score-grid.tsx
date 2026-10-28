@@ -16,10 +16,11 @@ import { errorClass } from "@/shared/ui/form-styles";
 import { publishScores, saveScores, setExemption } from "../api/scores-api";
 import { ScoreImport } from "./score-import";
 import { useUnsavedWarning } from "./use-unsaved-warning";
+import { Table, useConfirm } from "@/shared/ui";
 
 const AUTOSAVE_MS = 2000;
-const cell = "rounded border border-black/20 bg-transparent px-2 py-1 dark:border-white/20";
-const smallButton = "rounded border border-black/20 px-3 py-1 text-sm disabled:opacity-50 dark:border-white/20";
+const cell = "rounded-xl border border-border-strong bg-transparent px-2 py-1";
+const smallButton = "rounded-xl border border-border-strong px-3 py-1 text-sm disabled:opacity-50";
 
 interface Draft {
   value: string;
@@ -60,6 +61,7 @@ export function ScoreGrid({
   onSheet: (s: ScoreSheetDto) => void;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
+  const ask = useConfirm();
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
@@ -132,7 +134,7 @@ export function ScoreGrid({
       `Công bố điểm đợt ${sheet.assessment.code} cho lớp ${sheet.className}?` +
       (missing > 0 ? `\n\nCòn ${missing} học sinh chưa có điểm.` : "\n\nĐã đủ điểm cho cả lớp.") +
       "\nSau khi công bố, học sinh sẽ xem được điểm; vẫn sửa được trong hạn nhập điểm.";
-    if (!window.confirm(message)) return;
+    if (!(await ask(message))) return;
     try {
       onSheet(await publishScores(sheet.assessment.id, sheet.classId));
     } catch (err) {
@@ -161,116 +163,114 @@ export function ScoreGrid({
         </span>
         <span>
           Có điểm {counts.graded}/{counts.students} · Vắng {counts.absent} · Miễn {counts.exempt} ·{" "}
-          <span className={counts.missing > 0 ? "text-amber-700 dark:text-amber-400" : ""}>Còn trống {counts.missing}</span>
+          <span className={counts.missing > 0 ? "text-warning" : ""}>Còn trống {counts.missing}</span>
         </span>
         {sheet.effectiveDeadline && (
-          <span className={sheet.deadlinePassed ? "text-red-600" : ""}>Hạn nhập: {formatDateTime(sheet.effectiveDeadline)}</span>
+          <span className={sheet.deadlinePassed ? "text-danger" : ""}>Hạn nhập: {formatDateTime(sheet.effectiveDeadline)}</span>
         )}
-        {sheet.semesterLocked && <span className="text-red-600">Học kỳ đã khoá sổ</span>}
+        {sheet.semesterLocked && <span className="text-danger">Học kỳ đã khoá sổ</span>}
       </div>
 
       {sheet.deadlinePassed && sheet.canPublish && (
-        <p className="text-sm text-red-600">
+        <p className="text-sm text-danger">
           {sheet.semesterLocked ? "Học kỳ đã khoá sổ" : "Đã quá hạn nhập điểm"}: không sửa trực tiếp được. Muốn sửa, vào mục Sổ điểm, bấm vào ô
           điểm để gửi đề nghị điều chỉnh cho Ban giám hiệu duyệt.
         </p>
       )}
       {!sheet.canEdit && !sheet.deadlinePassed && (
-        <p className="text-sm opacity-70">Chế độ xem: chỉ giáo viên được phân công lớp–môn này mới nhập điểm.</p>
+        <p className="text-sm text-muted">Chế độ xem: chỉ giáo viên được phân công lớp–môn này mới nhập điểm.</p>
       )}
       {error && <p className={errorClass}>{error}</p>}
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-black/10 dark:border-white/15">
-            <tr>
-              <th className="py-2 pr-3">STT</th>
-              <th className="py-2 pr-3">Mã HS</th>
-              <th className="py-2 pr-3">Họ và tên</th>
-              <th className="py-2 pr-3">Điểm</th>
-              <th className="py-2 pr-3">Vắng</th>
-              <th className="py-2 pr-3">Ghi chú</th>
-              {sheet.canExempt && <th className="py-2">Miễn</th>}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-black/10 dark:divide-white/15">
-            {sheet.rows.map((row, index) => {
-              const d = drafts[row.studentId] ?? baseOf(row);
-              const problem = drafts[row.studentId] ? problemOf(d) : null;
-              const exempt = row.status === "EXEMPT";
-              const editable = sheet.canEdit && !exempt;
-              const pending = changed.some(([id]) => id === row.studentId);
-              return (
-                <tr key={row.studentId} className={problem ? "bg-red-500/10" : pending ? "bg-yellow-500/10" : ""}>
-                  <td className="py-1 pr-3">{index + 1}</td>
-                  <td className="py-1 pr-3 font-mono">{row.studentCode}</td>
-                  <td className="py-1 pr-3">{row.fullName}</td>
-                  <td className="py-1 pr-3">
-                    {exempt ? (
-                      <span className="opacity-70">Miễn</span>
-                    ) : editable ? (
-                      <input
-                        ref={(el) => {
-                          inputs.current[index] = el;
-                        }}
-                        aria-label={`Điểm của ${row.fullName}`}
-                        aria-invalid={!!problem}
-                        inputMode="decimal"
-                        value={d.value}
-                        disabled={d.absent}
-                        onChange={(e) => edit(row, { value: e.target.value })}
-                        onKeyDown={(e) => onKey(e, index)}
-                        onFocus={(e) => e.target.select()}
-                        className={`${cell} w-20 text-right ${problem ? "border-red-600" : ""}`}
-                      />
-                    ) : (
-                      <span>{d.absent ? "—" : d.value}</span>
-                    )}
-                    {problem && <p className="text-xs text-red-600">{problem}</p>}
-                  </td>
-                  <td className="py-1 pr-3">
+      <Table stickyFirstColumn>
+        <thead className="border-b border-border">
+          <tr>
+            <th className="py-2 pr-3">STT</th>
+            <th className="py-2 pr-3">Mã HS</th>
+            <th className="py-2 pr-3">Họ và tên</th>
+            <th className="py-2 pr-3">Điểm</th>
+            <th className="py-2 pr-3">Vắng</th>
+            <th className="py-2 pr-3">Ghi chú</th>
+            {sheet.canExempt && <th className="py-2">Miễn</th>}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {sheet.rows.map((row, index) => {
+            const d = drafts[row.studentId] ?? baseOf(row);
+            const problem = drafts[row.studentId] ? problemOf(d) : null;
+            const exempt = row.status === "EXEMPT";
+            const editable = sheet.canEdit && !exempt;
+            const pending = changed.some(([id]) => id === row.studentId);
+            return (
+              <tr key={row.studentId} className={problem ? "bg-danger-soft" : pending ? "bg-warning-soft" : ""}>
+                <td className="py-1 pr-3">{index + 1}</td>
+                <td className="py-1 pr-3 font-mono">{row.studentCode}</td>
+                <td className="py-1 pr-3">{row.fullName}</td>
+                <td className="py-1 pr-3">
+                  {exempt ? (
+                    <span className="text-muted">Miễn</span>
+                  ) : editable ? (
                     <input
-                      type="checkbox"
-                      aria-label={`${row.fullName} vắng có lý do`}
-                      checked={d.absent}
-                      disabled={!editable}
-                      onChange={(e) => edit(row, { absent: e.target.checked, value: e.target.checked ? "" : d.value })}
+                      ref={(el) => {
+                        inputs.current[index] = el;
+                      }}
+                      aria-label={`Điểm của ${row.fullName}`}
+                      aria-invalid={!!problem}
+                      inputMode="decimal"
+                      value={d.value}
+                      disabled={d.absent}
+                      onChange={(e) => edit(row, { value: e.target.value })}
+                      onKeyDown={(e) => onKey(e, index)}
+                      onFocus={(e) => e.target.select()}
+                      className={`${cell} w-20 text-right ${problem ? "border-danger" : ""}`}
                     />
-                  </td>
-                  <td className="py-1 pr-3">
-                    {editable ? (
-                      <input
-                        aria-label={`Ghi chú của ${row.fullName}`}
-                        value={d.note}
-                        maxLength={SCORE_NOTE_MAX}
-                        placeholder={d.absent ? "Lý do vắng (bắt buộc)" : ""}
-                        onChange={(e) => edit(row, { note: e.target.value })}
-                        className={`${cell} w-56`}
-                      />
-                    ) : (
-                      <span className="opacity-80">{row.note ?? ""}</span>
-                    )}
-                  </td>
-                  {sheet.canExempt && (
-                    <td className="py-1">
-                      <button type="button" className={smallButton} onClick={() => onExempt(row)}>
-                        {exempt ? "Bỏ miễn" : "Miễn"}
-                      </button>
-                    </td>
+                  ) : (
+                    <span>{d.absent ? "—" : d.value}</span>
                   )}
-                </tr>
-              );
-            })}
-            {sheet.rows.length === 0 && (
-              <tr>
-                <td colSpan={7} className="py-4 opacity-70">
-                  Lớp chưa có học sinh.
+                  {problem && <p className="text-xs text-danger">{problem}</p>}
                 </td>
+                <td className="py-1 pr-3">
+                  <input
+                    type="checkbox"
+                    aria-label={`${row.fullName} vắng có lý do`}
+                    checked={d.absent}
+                    disabled={!editable}
+                    onChange={(e) => edit(row, { absent: e.target.checked, value: e.target.checked ? "" : d.value })}
+                  />
+                </td>
+                <td className="py-1 pr-3">
+                  {editable ? (
+                    <input
+                      aria-label={`Ghi chú của ${row.fullName}`}
+                      value={d.note}
+                      maxLength={SCORE_NOTE_MAX}
+                      placeholder={d.absent ? "Lý do vắng (bắt buộc)" : ""}
+                      onChange={(e) => edit(row, { note: e.target.value })}
+                      className={`${cell} w-56`}
+                    />
+                  ) : (
+                    <span className="text-muted">{row.note ?? ""}</span>
+                  )}
+                </td>
+                {sheet.canExempt && (
+                  <td className="py-1">
+                    <button type="button" className={smallButton} onClick={() => onExempt(row)}>
+                      {exempt ? "Bỏ miễn" : "Miễn"}
+                    </button>
+                  </td>
+                )}
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            );
+          })}
+          {sheet.rows.length === 0 && (
+            <tr>
+              <td colSpan={7} className="py-4 text-muted">
+                Lớp chưa có học sinh.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </Table>
 
       {(sheet.canEdit || sheet.canPublish) && (
         <div className="flex flex-wrap items-center gap-3">
@@ -280,11 +280,11 @@ export function ScoreGrid({
             </button>
           )}
           {sheet.canPublish && sheet.status === "DRAFT" && (
-            <button type="button" className="rounded bg-foreground px-4 py-1.5 text-sm text-background" onClick={onPublish}>
+            <button type="button" className="rounded-xl bg-primary px-4 py-1.5 text-sm text-primary-foreground" onClick={onPublish}>
               Công bố cho lớp
             </button>
           )}
-          <span className="text-sm opacity-70" aria-live="polite">
+          <span className="text-sm text-muted" aria-live="polite">
             {saving
               ? "Đang lưu nháp…"
               : invalid.length > 0

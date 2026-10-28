@@ -7,6 +7,7 @@ import { useState, type ReactNode } from "react";
 import { MediaLibrary } from "@/features/media";
 import { mediaSrc } from "@/shared/lib/media-url";
 import { Video } from "./video-extension";
+import { Skeleton } from "@/shared/ui";
 
 interface Props {
   // HTML ban đầu; chỉ đọc một lần, sau đó trình soạn thảo tự giữ nội dung.
@@ -23,7 +24,7 @@ export function RichTextEditor({ initialHtml, onChange }: Props) {
     content: initialHtml,
     // Next.js render phía server: chỉ dựng editor sau khi hydrate.
     immediatelyRender: false,
-    editorProps: { attributes: { class: "rich-content min-h-64 rounded-b border border-black/20 p-3 outline-none dark:border-white/20" } },
+    editorProps: { attributes: { class: "rich-content min-h-64 rounded-b border border-border-strong p-3 outline-none" } },
     onUpdate: ({ editor }) => onChange(editor.isEmpty ? "" : editor.getHTML()),
   });
 
@@ -42,7 +43,7 @@ export function RichTextEditor({ initialHtml, onChange }: Props) {
     }),
   });
 
-  if (!editor) return <p className="text-sm opacity-60">Đang tải trình soạn thảo…</p>;
+  if (!editor) return <Skeleton label="Đang tải trình soạn thảo…" />;
   const chain = () => editor.chain().focus();
 
   function setLink() {
@@ -58,7 +59,7 @@ export function RichTextEditor({ initialHtml, onChange }: Props) {
       type="button"
       title={title}
       onClick={run}
-      className={`rounded px-2 py-1 text-sm ${on ? "bg-foreground text-background" : "border border-black/20 dark:border-white/20"}`}
+      className={`rounded-xl px-2 py-1 text-sm ${on ? "bg-primary text-primary-foreground" : "border border-border-strong"}`}
     >
       {label}
     </button>
@@ -67,7 +68,7 @@ export function RichTextEditor({ initialHtml, onChange }: Props) {
   return (
     <div className="space-y-2">
       <div>
-        <div className="flex flex-wrap gap-1 rounded-t border border-b-0 border-black/20 p-2 dark:border-white/20">
+        <div className="flex flex-wrap gap-1 rounded-t border border-b-0 border-border-strong p-2">
           {button(<b>B</b>, (active?.bold ?? false), () => chain().toggleBold().run(), "In đậm")}
           {button(<i>I</i>, (active?.italic ?? false), () => chain().toggleItalic().run(), "In nghiêng")}
           {button(<u>U</u>, (active?.underline ?? false), () => chain().toggleUnderline().run(), "Gạch chân")}

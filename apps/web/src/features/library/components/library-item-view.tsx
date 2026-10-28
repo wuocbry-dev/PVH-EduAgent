@@ -38,9 +38,9 @@ export function LibraryItemView({ item }: { item: LibraryItemDto }) {
       <div className="grid gap-6 md:grid-cols-[220px_1fr]">
         {item.coverUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={mediaSrc(item.coverUrl)} alt={`Bìa: ${item.title}`} className="mx-auto w-32 rounded border border-black/10 sm:w-48 md:w-full dark:border-white/15" />
+          <img src={mediaSrc(item.coverUrl)} alt={`Bìa: ${item.title}`} className="mx-auto w-32 rounded-xl border border-border sm:w-48 md:w-full" />
         ) : (
-          <div className="mx-auto flex aspect-[3/4] w-32 items-center justify-center rounded bg-brand/10 text-5xl sm:w-48 sm:text-6xl md:w-full" aria-hidden>
+          <div className="mx-auto flex aspect-[3/4] w-32 items-center justify-center rounded-xl bg-primary-soft text-5xl sm:w-48 sm:text-6xl md:w-full" aria-hidden>
             {KIND_ICON[item.kind]}
           </div>
         )}
@@ -52,7 +52,7 @@ export function LibraryItemView({ item }: { item: LibraryItemDto }) {
               .filter(([, value]) => value)
               .map(([label, value]) => (
                 <div key={label} className="contents">
-                  <dt className="opacity-70">{label}</dt>
+                  <dt className="text-muted">{label}</dt>
                   <dd className="min-w-0 break-words">{value}</dd>
                 </div>
               ))}

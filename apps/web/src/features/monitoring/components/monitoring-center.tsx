@@ -22,6 +22,7 @@ import {
   searchUsers,
   unblock,
 } from "../api/monitoring-api";
+import { EmptyState, Skeleton, Table, useConfirm } from "@/shared/ui";
 
 // Bước 28: hai mục menu cùng dùng trang này. "Lỗi và hàng đợi" (nhóm Hệ thống) và "Bảo mật và đăng nhập" (nhóm Tài khoản).
 export type MonitoringSection = "system" | "security";
@@ -36,15 +37,16 @@ const TABS = [
 ] as const satisfies readonly { id: string; label: string; section: MonitoringSection }[];
 type TabId = (typeof TABS)[number]["id"];
 
-const smallButton = "rounded border border-black/20 px-2 py-1 text-sm hover:bg-black/5 disabled:opacity-50 dark:border-white/25 dark:hover:bg-white/10";
+const smallButton = "rounded-xl border border-border-strong px-2 py-1 text-sm hover:bg-primary-soft disabled:opacity-50";
 const th = "py-1 pr-3 font-normal";
 
 // Thao tác: chạy rồi tải lại; lỗi hiện ngay dưới nút.
 function useAction(reload: () => void) {
+  const ask = useConfirm();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   async function run(action: () => Promise<unknown>, confirmText?: string) {
-    if (confirmText && !window.confirm(confirmText)) return;
+    if (confirmText && !(await ask(confirmText))) return;
     setBusy(true);
     setError(null);
     try {
@@ -87,7 +89,7 @@ export function MonitoringCenter({ section }: { section: MonitoringSection }) {
             role="tab"
             aria-selected={tab === t.id}
             onClick={() => select(t.id)}
-            className={`rounded px-3 py-1.5 text-sm ${tab === t.id ? "bg-foreground text-background" : "border border-black/20 dark:border-white/25"}`}
+            className={`rounded-xl px-3 py-1.5 text-sm ${tab === t.id ? "bg-primary text-primary-foreground" : "border border-border-strong"}`}
           >
             {t.label}
           </button>
@@ -116,19 +118,19 @@ function AlertsTab() {
       </label>
       {(error || action.error) && <p className={errorClass}>{error ?? action.error}</p>}
       {!data ? (
-        <p className="text-sm opacity-60">Đang tải…</p>
+        <Skeleton />
       ) : data.length === 0 ? (
-        <p className="text-sm opacity-70">{open ? "Không có cảnh báo nào đang mở." : "Chưa có cảnh báo nào."}</p>
+        <p className="text-sm text-muted">{open ? "Không có cảnh báo nào đang mở." : "Chưa có cảnh báo nào."}</p>
       ) : (
         <ul className="space-y-2">
           {data.map((a) => (
-            <li key={a.id} className="space-y-1 rounded-lg border border-black/10 p-3 text-sm dark:border-white/15">
+            <li key={a.id} className="space-y-1 rounded-2xl bg-surface border border-border p-3 text-sm">
               <p>
                 <span className="font-medium">{ALERT_KIND_NAMES[a.kind]}</span> · {formatDateTime(a.openedAt)}
-                {a.resolvedAt && <span className="opacity-60"> · đã đóng {formatDateTime(a.resolvedAt)}</span>}
+                {a.resolvedAt && <span className="text-muted"> · đã đóng {formatDateTime(a.resolvedAt)}</span>}
               </p>
               <p className="font-medium">{a.title}</p>
-              {a.detail && <p className="break-words opacity-80">{a.detail}</p>}
+              {a.detail && <p className="break-words text-muted">{a.detail}</p>}
               {!a.resolvedAt && (
                 <button type="button" className={smallButton} disabled={action.busy} onClick={() => action.run(() => resolveAlert(a.id))}>
                   Đánh dấu đã xử lý
@@ -148,7 +150,7 @@ function ErrorsTab() {
   const action = useAction(reload);
   return (
     <section className="space-y-3">
-      <p className="text-sm opacity-70">
+      <p className="text-sm text-muted">
         Lỗi máy chủ (5xx) và job thất bại, gom theo nhóm. Chỉ lưu route/tên job, mã lỗi và thông điệp đã làm sạch (không có nội dung gửi lên, cookie hay token).
       </p>
       <label className="flex items-center gap-2 text-sm">
@@ -156,42 +158,40 @@ function ErrorsTab() {
       </label>
       {(error || action.error) && <p className={errorClass}>{error ?? action.error}</p>}
       {!data ? (
-        <p className="text-sm opacity-60">Đang tải…</p>
+        <Skeleton />
       ) : data.length === 0 ? (
-        <p className="text-sm opacity-70">Không có lỗi nào.</p>
+        <EmptyState>Không có lỗi nào.</EmptyState>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-black/10 opacity-70 dark:border-white/15">
-                <th className={th}>Nguồn</th>
-                <th className={th}>Route / job</th>
-                <th className={th}>Thông điệp</th>
-                <th className={`${th} text-right`}>Số lần</th>
-                <th className={th}>Lần cuối</th>
-                <th className={th} />
+        <Table>
+          <thead>
+            <tr className="border-b border-border text-muted">
+              <th className={th}>Nguồn</th>
+              <th className={th}>Route / job</th>
+              <th className={th}>Thông điệp</th>
+              <th className={`${th} text-right`}>Số lần</th>
+              <th className={th}>Lần cuối</th>
+              <th className={th} />
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((e) => (
+              <tr key={e.id} className="border-b border-border align-top">
+                <td className="py-1 pr-3">{e.source === "HTTP" ? `HTTP ${e.statusCode ?? ""}` : "Job"}</td>
+                <td className="py-1 pr-3 font-mono text-xs">{e.route}</td>
+                <td className="min-w-48 break-words py-1 pr-3">{e.message}</td>
+                <td className="py-1 pr-3 text-right">{e.count.toLocaleString("vi-VN")}</td>
+                <td className="whitespace-nowrap py-1 pr-3">{formatDateTime(e.lastSeenAt)}</td>
+                <td className="py-1">
+                  {!e.resolvedAt && (
+                    <button type="button" className={smallButton} disabled={action.busy} onClick={() => action.run(() => resolveError(e.id))}>
+                      Đã xử lý
+                    </button>
+                  )}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {data.map((e) => (
-                <tr key={e.id} className="border-b border-black/5 align-top dark:border-white/10">
-                  <td className="py-1 pr-3">{e.source === "HTTP" ? `HTTP ${e.statusCode ?? ""}` : "Job"}</td>
-                  <td className="py-1 pr-3 font-mono text-xs">{e.route}</td>
-                  <td className="min-w-48 break-words py-1 pr-3">{e.message}</td>
-                  <td className="py-1 pr-3 text-right">{e.count.toLocaleString("vi-VN")}</td>
-                  <td className="whitespace-nowrap py-1 pr-3">{formatDateTime(e.lastSeenAt)}</td>
-                  <td className="py-1">
-                    {!e.resolvedAt && (
-                      <button type="button" className={smallButton} disabled={action.busy} onClick={() => action.run(() => resolveError(e.id))}>
-                        Đã xử lý
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </Table>
       )}
     </section>
   );
@@ -202,48 +202,46 @@ function JobsTab() {
   const action = useAction(reload);
   return (
     <section className="space-y-3">
-      <p className="text-sm opacity-70">Job thất bại hẳn (đã hết lượt thử) đang lưu trong từng hàng đợi. Chạy lại khi đã khắc phục nguyên nhân.</p>
+      <p className="text-sm text-muted">Job thất bại hẳn (đã hết lượt thử) đang lưu trong từng hàng đợi. Chạy lại khi đã khắc phục nguyên nhân.</p>
       {(error || action.error) && <p className={errorClass}>{error ?? action.error}</p>}
       {!data ? (
-        <p className="text-sm opacity-60">Đang tải…</p>
+        <Skeleton />
       ) : data.length === 0 ? (
-        <p className="text-sm opacity-70">Không có job thất bại nào.</p>
+        <EmptyState>Không có job thất bại nào.</EmptyState>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-black/10 opacity-70 dark:border-white/15">
-                <th className={th}>Hàng đợi</th>
-                <th className={th}>Job</th>
-                <th className={th}>Lý do</th>
-                <th className={`${th} text-right`}>Lần thử</th>
-                <th className={th}>Lúc</th>
-                <th className={th} />
+        <Table>
+          <thead>
+            <tr className="border-b border-border text-muted">
+              <th className={th}>Hàng đợi</th>
+              <th className={th}>Job</th>
+              <th className={th}>Lý do</th>
+              <th className={`${th} text-right`}>Lần thử</th>
+              <th className={th}>Lúc</th>
+              <th className={th} />
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((j) => (
+              <tr key={`${j.queue}:${j.id}`} className="border-b border-border align-top">
+                <td className="py-1 pr-3 font-mono text-xs">{j.queue}</td>
+                <td className="py-1 pr-3 font-mono text-xs">{j.name}</td>
+                <td className="min-w-48 break-words py-1 pr-3">{j.reason}</td>
+                <td className="py-1 pr-3 text-right">{j.attemptsMade}</td>
+                <td className="whitespace-nowrap py-1 pr-3">{j.failedAt ? formatDateTime(j.failedAt) : "–"}</td>
+                <td className="py-1">
+                  <button
+                    type="button"
+                    className={smallButton}
+                    disabled={action.busy}
+                    onClick={() => action.run(() => retryJob(j.queue, j.id), `Chạy lại job ${j.name} của hàng đợi ${j.queue}?`)}
+                  >
+                    Chạy lại
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {data.map((j) => (
-                <tr key={`${j.queue}:${j.id}`} className="border-b border-black/5 align-top dark:border-white/10">
-                  <td className="py-1 pr-3 font-mono text-xs">{j.queue}</td>
-                  <td className="py-1 pr-3 font-mono text-xs">{j.name}</td>
-                  <td className="min-w-48 break-words py-1 pr-3">{j.reason}</td>
-                  <td className="py-1 pr-3 text-right">{j.attemptsMade}</td>
-                  <td className="whitespace-nowrap py-1 pr-3">{j.failedAt ? formatDateTime(j.failedAt) : "–"}</td>
-                  <td className="py-1">
-                    <button
-                      type="button"
-                      className={smallButton}
-                      disabled={action.busy}
-                      onClick={() => action.run(() => retryJob(j.queue, j.id), `Chạy lại job ${j.name} của hàng đợi ${j.queue}?`)}
-                    >
-                      Chạy lại
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </Table>
       )}
     </section>
   );
@@ -253,21 +251,21 @@ function SecurityTab() {
   const { data, error, reload } = useData(getSecurity, undefined);
   const action = useAction(reload);
   if (error && !data) return <p className={errorClass}>{error}</p>;
-  if (!data) return <p className="text-sm opacity-60">Đang tải…</p>;
+  if (!data) return <Skeleton />;
   return (
     <div className="space-y-6">
       {action.error && <p className={errorClass}>{action.error}</p>}
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">Đang bị chặn tạm thời</h2>
         {data.blocked.length === 0 ? (
-          <p className="text-sm opacity-70">Không có IP hay tài khoản nào đang bị chặn.</p>
+          <EmptyState>Không có IP hay tài khoản nào đang bị chặn.</EmptyState>
         ) : (
           <ul className="space-y-2">
             {data.blocked.map((b) => (
-              <li key={`${b.limit}:${b.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded border border-black/10 p-2 text-sm dark:border-white/15">
+              <li key={`${b.limit}:${b.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-border p-2 text-sm">
                 <span className="font-medium">{b.label}</span>
                 <span className="break-all font-mono text-xs">{b.id}</span>
-                <span className="opacity-70">
+                <span className="text-muted">
                   {b.count} lần sai · còn {Math.ceil(b.retryAfterSec / 60)} phút
                 </span>
                 <button
@@ -287,43 +285,41 @@ function SecurityTab() {
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">Đăng nhập sai trong 24 giờ</h2>
         {data.failedLogins.length === 0 ? (
-          <p className="text-sm opacity-70">Không có lần đăng nhập sai nào.</p>
+          <EmptyState>Không có lần đăng nhập sai nào.</EmptyState>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-black/10 opacity-70 dark:border-white/15">
-                  <th className={th}>Email / mã đăng nhập</th>
-                  <th className={`${th} text-right`}>Số lần</th>
-                  <th className={th}>IP</th>
-                  <th className={th}>Lần cuối</th>
+          <Table>
+            <thead>
+              <tr className="border-b border-border text-muted">
+                <th className={th}>Email / mã đăng nhập</th>
+                <th className={`${th} text-right`}>Số lần</th>
+                <th className={th}>IP</th>
+                <th className={th}>Lần cuối</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.failedLogins.map((f) => (
+                <tr key={f.identifier} className="border-b border-border align-top">
+                  <td className="break-all py-1 pr-3">{f.identifier}</td>
+                  <td className="py-1 pr-3 text-right">{f.count}</td>
+                  <td className="break-all py-1 pr-3 font-mono text-xs">{f.ips.join(", ")}</td>
+                  <td className="whitespace-nowrap py-1 pr-3">{formatDateTime(f.lastAt)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {data.failedLogins.map((f) => (
-                  <tr key={f.identifier} className="border-b border-black/5 align-top dark:border-white/10">
-                    <td className="break-all py-1 pr-3">{f.identifier}</td>
-                    <td className="py-1 pr-3 text-right">{f.count}</td>
-                    <td className="break-all py-1 pr-3 font-mono text-xs">{f.ips.join(", ")}</td>
-                    <td className="whitespace-nowrap py-1 pr-3">{formatDateTime(f.lastAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </Table>
         )}
       </section>
 
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">Sự kiện bảo mật gần đây</h2>
         {data.alerts.length === 0 ? (
-          <p className="text-sm opacity-70">Chưa có sự kiện nào.</p>
+          <EmptyState>Chưa có sự kiện nào.</EmptyState>
         ) : (
           <ul className="space-y-1 text-sm">
             {data.alerts.map((a) => (
               <li key={a.id} className="break-words">
-                <span className="opacity-70">{formatDateTime(a.openedAt)}</span> · <span className="font-medium">{ALERT_KIND_NAMES[a.kind]}:</span> {a.title}
-                {a.detail && <span className="opacity-80"> – {a.detail}</span>}
+                <span className="text-muted">{formatDateTime(a.openedAt)}</span> · <span className="font-medium">{ALERT_KIND_NAMES[a.kind]}:</span> {a.title}
+                {a.detail && <span className="text-muted"> – {a.detail}</span>}
               </li>
             ))}
           </ul>
@@ -391,21 +387,21 @@ function SessionsTab({ initialUserId }: { initialUserId: string | null }) {
       {userId && (
         <section className="space-y-2">
           <h2 className="text-lg font-semibold">Phiên đang hoạt động{selectedUser ? ` của ${selectedUser.fullName}` : ""}</h2>
-          <p className="text-sm opacity-70">
+          <p className="text-sm text-muted">
             Buộc đăng xuất thu hồi mọi phiên: người dùng phải đăng nhập lại sau tối đa 15 phút. Muốn chặn ngay, hãy khoá tài khoản ở trang Người dùng.
           </p>
           {!sessions.data ? (
-            <p className="text-sm opacity-60">Đang tải…</p>
+            <Skeleton />
           ) : sessions.data.length === 0 ? (
-            <p className="text-sm opacity-70">Không có phiên nào đang hoạt động.</p>
+            <EmptyState>Không có phiên nào đang hoạt động.</EmptyState>
           ) : (
             <>
               <ul className="space-y-1 text-sm">
                 {sessions.data.map((s) => (
-                  <li key={s.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded border border-black/10 p-2 dark:border-white/15">
+                  <li key={s.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-border p-2">
                     <span>{s.userAgent ?? "Thiết bị không rõ"}</span>
-                    <span className="font-mono text-xs opacity-80">{s.ip ?? "IP không rõ"}</span>
-                    <span className="opacity-70">từ {formatDateTime(s.createdAt)}</span>
+                    <span className="font-mono text-xs text-muted">{s.ip ?? "IP không rõ"}</span>
+                    <span className="text-muted">từ {formatDateTime(s.createdAt)}</span>
                     <button
                       type="button"
                       className={smallButton}
@@ -447,12 +443,12 @@ function UserRow({
   onSelect: () => void;
 }) {
   return (
-    <li className={`flex flex-wrap items-center gap-x-3 gap-y-1 rounded p-2 text-sm ${selected ? "bg-black/5 dark:bg-white/10" : ""}`}>
+    <li className={`flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl p-2 text-sm ${selected ? "bg-surface-muted " : ""}`}>
       <input type="checkbox" checked={checked} onChange={(e) => onCheck(e.target.checked)} aria-label={`Chọn ${user.fullName}`} />
       <span className="font-medium">{user.fullName}</span>
-      <span className="opacity-70">{user.email ?? user.code}</span>
-      <span className="opacity-70">{user.roles.map((r) => ROLE_NAMES[r]).join(", ")}</span>
-      <span className={user.status === "LOCKED" ? "text-red-700 dark:text-red-400" : "opacity-70"}>{USER_STATUS_NAMES[user.status]}</span>
+      <span className="text-muted">{user.email ?? user.code}</span>
+      <span className="text-muted">{user.roles.map((r) => ROLE_NAMES[r]).join(", ")}</span>
+      <span className={user.status === "LOCKED" ? "text-danger" : "text-muted"}>{USER_STATUS_NAMES[user.status]}</span>
       <button type="button" className="underline" onClick={onSelect}>
         Xem phiên
       </button>
@@ -484,7 +480,7 @@ function BulkForm({ userIds, onDone }: { userIds: string[]; onDone: () => void }
   }
 
   return (
-    <form onSubmit={submit} className="space-y-2 rounded-lg border border-black/10 p-3 dark:border-white/15">
+    <form onSubmit={submit} className="space-y-2 rounded-2xl bg-surface border border-border p-3">
       <p className="text-sm font-medium">Thao tác với {userIds.length} người đã chọn</p>
       <div className="flex flex-wrap items-end gap-2">
         <label className="space-y-1 text-sm">
@@ -498,7 +494,7 @@ function BulkForm({ userIds, onDone }: { userIds: string[]; onDone: () => void }
           <span>Mật khẩu của bạn (xác nhận)</span>
           <input type="password" required autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} className={`${inputClass} w-56 max-w-full`} />
         </label>
-        <button type="submit" disabled={busy || !password} className="rounded bg-foreground px-3 py-2 text-sm text-background disabled:opacity-50">
+        <button type="submit" disabled={busy || !password} className="rounded-xl bg-primary px-3 py-2 text-sm text-primary-foreground disabled:opacity-50">
           {busy ? "Đang thực hiện…" : "Thực hiện"}
         </button>
       </div>
@@ -507,7 +503,7 @@ function BulkForm({ userIds, onDone }: { userIds: string[]; onDone: () => void }
         <div className="text-sm">
           <p>Đã thực hiện cho {result.done} người.</p>
           {result.skipped.length > 0 && (
-            <ul className="list-disc pl-5 opacity-80">
+            <ul className="list-disc pl-5 text-muted">
               {result.skipped.map((s) => (
                 <li key={s.userId}>
                   #{s.userId}: {s.reason}

@@ -6,12 +6,14 @@ import { useData } from "@/shared/lib/use-data";
 import { errorClass, inputClass } from "@/shared/ui/form-styles";
 import { createFixed, deleteFixed, listFixed, saveFrame } from "../api/timetable-api";
 import { errorText, smallButton, type EditorContext } from "./context";
+import { Table, useConfirm, useToast } from "@/shared/ui";
 
 // Khung tiết học (BGH và ADMIN sửa được) và tiết cố định (Chào cờ, Sinh hoạt lớp…; chỉ BGH).
 export function FrameTab({ ctx }: { ctx: EditorContext }) {
+  const ask = useConfirm();
   const [draft, setDraft] = useState<TimetableFrameDto | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const toast = useToast();
   const fixed = useData(listFixed, undefined);
   const frame = draft ?? ctx.frame;
 
@@ -20,7 +22,6 @@ export function FrameTab({ ctx }: { ctx: EditorContext }) {
     change(next);
     next.periods.forEach((p, i) => (p.no = i + 1));
     setDraft(next);
-    setMessage(null);
   }
 
   async function onSave() {
@@ -28,7 +29,7 @@ export function FrameTab({ ctx }: { ctx: EditorContext }) {
     try {
       await saveFrame(frame);
       setDraft(null);
-      setMessage("Đã lưu khung tiết.");
+      toast.success("Đã lưu khung tiết.");
       ctx.reload();
     } catch (err) {
       setError(errorText(err));
@@ -74,7 +75,7 @@ export function FrameTab({ ctx }: { ctx: EditorContext }) {
             </label>
           ))}
         </fieldset>
-        <table className="text-sm">
+        <Table className="w-auto" wrapperClassName="w-fit max-w-full" maxHeight="none">
           <thead>
             <tr>
               <th className="p-1 text-left">Tiết</th>
@@ -108,7 +109,7 @@ export function FrameTab({ ctx }: { ctx: EditorContext }) {
               </tr>
             ))}
           </tbody>
-        </table>
+        </Table>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -120,7 +121,7 @@ export function FrameTab({ ctx }: { ctx: EditorContext }) {
           >
             Thêm tiết
           </button>
-          <button type="button" className="rounded bg-foreground px-4 py-2 text-background disabled:opacity-50" disabled={!draft} onClick={onSave}>
+          <button type="button" className="rounded-xl bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50" disabled={!draft} onClick={onSave}>
             Lưu khung tiết
           </button>
           {draft && (
@@ -128,9 +129,8 @@ export function FrameTab({ ctx }: { ctx: EditorContext }) {
               Bỏ thay đổi
             </button>
           )}
-          {message && <span className="text-sm text-green-700">{message}</span>}
         </div>
-        <p className="text-xs opacity-70">Không thu hẹp khung khi đang có tiết xếp ngoài khung mới (hệ thống sẽ báo). Chỉnh buổi học của từng lớp ở trang Học vụ.</p>
+        <p className="text-xs text-muted">Không thu hẹp khung khi đang có tiết xếp ngoài khung mới (hệ thống sẽ báo). Chỉnh buổi học của từng lớp ở trang Học vụ.</p>
       </div>
 
       <div className="space-y-3">
@@ -146,14 +146,14 @@ export function FrameTab({ ctx }: { ctx: EditorContext }) {
                 <button
                   type="button"
                   className="underline"
-                  onClick={() => confirm(`Xoá tiết cố định ${f.name}?`) && deleteFixed(f.id).then(fixed.reload).catch((err) => setError(errorText(err)))}
+                  onClick={async () => (await ask(`Xoá tiết cố định ${f.name}?`)) && deleteFixed(f.id).then(fixed.reload).catch((err) => setError(errorText(err)))}
                 >
                   Xoá
                 </button>
               )}
             </li>
           ))}
-          {fixed.data?.length === 0 && <li className="opacity-70">Chưa có tiết cố định.</li>}
+          {fixed.data?.length === 0 && <li className="text-muted">Chưa có tiết cố định.</li>}
         </ul>
         {!ctx.readOnly && (
           <form onSubmit={onAddFixed} className="flex flex-wrap items-end gap-2">
@@ -202,7 +202,7 @@ export function FrameTab({ ctx }: { ctx: EditorContext }) {
                 ))}
               </select>
             </label>
-            <button type="submit" className="rounded bg-foreground px-4 py-2 text-background">
+            <button type="submit" className="rounded-xl bg-primary px-4 py-2 text-primary-foreground">
               Thêm tiết cố định
             </button>
           </form>

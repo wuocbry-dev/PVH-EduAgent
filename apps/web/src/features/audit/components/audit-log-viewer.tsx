@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { formatDateTime } from "@/shared/lib/format";
 import { errorClass, inputClass } from "@/shared/ui/form-styles";
 import { getAuditFilters, listAuditLogs, type AuditFilters } from "../api/audit-api";
+import { Skeleton, Table } from "@/shared/ui";
 
 const EMPTY: AuditFilters = { userId: "", channel: "", action: "", from: "", to: "" };
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
@@ -118,7 +119,7 @@ export function AuditLogViewer() {
           <span className="block">Đến</span>
           <input type="datetime-local" value={draft.to} onChange={(e) => set({ to: e.target.value })} className={`${inputClass} w-auto`} />
         </label>
-        <button type="submit" className="rounded bg-foreground px-4 py-2 text-background">
+        <button type="submit" className="rounded-xl bg-primary px-4 py-2 text-primary-foreground">
           Lọc
         </button>
         <button
@@ -128,82 +129,80 @@ export function AuditLogViewer() {
             setItems(null);
             setFilters(EMPTY);
           }}
-          className="rounded border border-black/20 px-3 py-2 text-sm dark:border-white/20"
+          className="rounded-xl border border-border-strong px-3 py-2 text-sm"
         >
           Xóa lọc
         </button>
       </form>
 
       {error && <p className={errorClass}>{error}</p>}
-      {items === null && !error && <p className="text-sm opacity-60">Đang tải…</p>}
+      {items === null && !error && <Skeleton />}
 
       {items && (
         <>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[48rem] text-left text-sm">
-              <thead className="border-b border-black/10 dark:border-white/15">
-                <tr>
-                  <th className="py-2 pr-4">Thời gian</th>
-                  <th className="py-2 pr-4">Người dùng</th>
-                  <th className="py-2 pr-4">Kênh</th>
-                  <th className="py-2 pr-4">Action</th>
-                  <th className="py-2 pr-4">Đối tượng</th>
-                  <th className="py-2 pr-4">IP</th>
-                  <th className="py-2">Kết quả / chi tiết</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-black/10 dark:divide-white/15">
-                {items.map((row) => {
-                  const payload = row.payload as { ok?: boolean; error?: string } | null;
-                  const failed = payload?.ok === false;
-                  return (
-                    <tr key={row.id} className="align-top">
-                      <td className="whitespace-nowrap py-2 pr-4">{formatDateTime(row.createdAt)}</td>
-                      <td className="py-2 pr-4">{row.userName ?? <span className="opacity-50">—</span>}</td>
-                      <td className="py-2 pr-4">
-                        {AUDIT_CHANNEL_NAMES[row.channel as keyof typeof AUDIT_CHANNEL_NAMES] ?? row.channel}
-                      </td>
-                      <td className="py-2 pr-4 font-mono text-xs">{row.action}</td>
-                      <td className="py-2 pr-4 text-xs">{row.targetType ? `${row.targetType} #${row.targetId ?? "?"}` : "—"}</td>
-                      <td className="py-2 pr-4 font-mono text-xs">{row.ip ?? "—"}</td>
-                      <td className="py-2">
-                        <span className={failed ? "font-semibold text-red-600" : "text-green-700"}>
-                          {failed ? "Lỗi" : "Thành công"}
-                        </span>
-                        {failed && payload?.error && <span className="block text-xs text-red-600">{payload.error}</span>}
-                        <details className="mt-1">
-                          <summary className="cursor-pointer text-xs underline">Payload JSON</summary>
-                          <pre className="mt-1 max-w-md overflow-x-auto rounded bg-black/5 p-2 text-xs dark:bg-white/10">
-                            {JSON.stringify(row.payload, null, 2)}
-                          </pre>
-                        </details>
-                      </td>
-                    </tr>
-                  );
-                })}
-                {items.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="py-4 opacity-70">
-                      Không có bản ghi phù hợp.
+          <Table className="min-w-[48rem]">
+            <thead className="border-b border-border">
+              <tr>
+                <th className="py-2 pr-4">Thời gian</th>
+                <th className="py-2 pr-4">Người dùng</th>
+                <th className="py-2 pr-4">Kênh</th>
+                <th className="py-2 pr-4">Action</th>
+                <th className="py-2 pr-4">Đối tượng</th>
+                <th className="py-2 pr-4">IP</th>
+                <th className="py-2">Kết quả / chi tiết</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {items.map((row) => {
+                const payload = row.payload as { ok?: boolean; error?: string } | null;
+                const failed = payload?.ok === false;
+                return (
+                  <tr key={row.id} className="align-top">
+                    <td className="whitespace-nowrap py-2 pr-4">{formatDateTime(row.createdAt)}</td>
+                    <td className="py-2 pr-4">{row.userName ?? <span className="text-muted">—</span>}</td>
+                    <td className="py-2 pr-4">
+                      {AUDIT_CHANNEL_NAMES[row.channel as keyof typeof AUDIT_CHANNEL_NAMES] ?? row.channel}
+                    </td>
+                    <td className="py-2 pr-4 font-mono text-xs">{row.action}</td>
+                    <td className="py-2 pr-4 text-xs">{row.targetType ? `${row.targetType} #${row.targetId ?? "?"}` : "—"}</td>
+                    <td className="py-2 pr-4 font-mono text-xs">{row.ip ?? "—"}</td>
+                    <td className="py-2">
+                      <span className={failed ? "font-semibold text-danger" : "text-success"}>
+                        {failed ? "Lỗi" : "Thành công"}
+                      </span>
+                      {failed && payload?.error && <span className="block text-xs text-danger">{payload.error}</span>}
+                      <details className="mt-1">
+                        <summary className="cursor-pointer text-xs underline">Payload JSON</summary>
+                        <pre className="mt-1 max-w-md overflow-x-auto rounded-xl bg-surface-muted p-2 text-xs">
+                          {JSON.stringify(row.payload, null, 2)}
+                        </pre>
+                      </details>
                     </td>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                );
+              })}
+              {items.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="py-4 text-muted">
+                    Không có bản ghi phù hợp.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </Table>
           <div className="flex items-center gap-4 text-sm">
-            <span className="opacity-70">Đang hiển thị {items.length} bản ghi mới nhất theo bộ lọc</span>
+            <span className="text-muted">Đang hiển thị {items.length} bản ghi mới nhất theo bộ lọc</span>
             {nextCursor ? (
               <button
                 type="button"
                 onClick={loadMore}
                 disabled={loadingMore}
-                className="rounded border border-black/20 px-3 py-1.5 dark:border-white/20"
+                className="rounded-xl border border-border-strong px-3 py-1.5"
               >
                 {loadingMore ? "Đang tải…" : "Tải thêm"}
               </button>
             ) : (
-              items.length > 0 && <span className="opacity-70">Đã hết.</span>
+              items.length > 0 && <span className="text-muted">Đã hết.</span>
             )}
           </div>
         </>

@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { Alert, Button, buttonStyles } from "@/shared/ui";
 import { resetPassword } from "../api/auth-api";
 import { LOGIN_PATH } from "../config";
-import { buttonClass, errorClass } from "@/shared/ui/form-styles";
+import { BackToLogin } from "./forgot-password-form";
 import { NewPasswordFields, readNewPassword } from "./password-fields";
 
 export function ResetPasswordForm() {
@@ -29,14 +30,19 @@ export function ResetPasswordForm() {
   }
 
   if (!token) {
-    return <p className={errorClass}>Link đặt lại mật khẩu không hợp lệ.</p>;
+    return (
+      <div className="space-y-4">
+        <Alert tone="danger">Link đặt lại mật khẩu không hợp lệ.</Alert>
+        <BackToLogin />
+      </div>
+    );
   }
 
   if (done) {
     return (
-      <div className="space-y-4 text-sm">
-        <p>Đã đặt lại mật khẩu. Mọi phiên đăng nhập cũ đã bị đăng xuất.</p>
-        <Link href={LOGIN_PATH} className="underline">
+      <div className="space-y-4">
+        <Alert tone="success">Đã đặt lại mật khẩu. Mọi phiên đăng nhập cũ đã bị đăng xuất.</Alert>
+        <Link href={LOGIN_PATH} className={buttonStyles({ full: true })}>
           Đăng nhập
         </Link>
       </div>
@@ -46,10 +52,11 @@ export function ResetPasswordForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <NewPasswordFields />
-      {error && <p className={errorClass}>{error}</p>}
-      <button type="submit" disabled={pending} className={buttonClass}>
+      {error && <Alert tone="danger">{error}</Alert>}
+      <Button type="submit" full loading={pending}>
         Đặt lại mật khẩu
-      </button>
+      </Button>
+      <BackToLogin />
     </form>
   );
 }

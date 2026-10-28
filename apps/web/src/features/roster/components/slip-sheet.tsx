@@ -25,9 +25,9 @@ export function SlipSheet({ slips }: { slips: AccountSlipDto[] }) {
             {items.map((s) => (
               <article
                 key={s.userId}
-                className="break-inside-avoid space-y-1 rounded border border-dashed border-black/40 p-3 text-sm dark:border-white/40"
+                className="break-inside-avoid space-y-1 rounded-xl border border-dashed border-border-strong p-3 text-sm"
               >
-                <p className="text-xs uppercase opacity-70">Trường THPT Phan Văn Hớn · Phiếu tài khoản</p>
+                <p className="text-xs uppercase text-muted">Trường THPT Phan Văn Hớn · Phiếu tài khoản</p>
                 <p className="font-semibold">{s.fullName}</p>
                 <p>
                   Lớp/nhóm: <span className="font-medium">{s.className ?? "Giáo viên"}</span>
@@ -38,7 +38,7 @@ export function SlipSheet({ slips }: { slips: AccountSlipDto[] }) {
                 <p>
                   Mã kích hoạt: <span className="font-mono text-base font-bold tracking-wider">{s.activationCode}</span>
                 </p>
-                <p className="text-xs opacity-80">
+                <p className="text-xs text-muted">
                   Dùng một lần, hết hạn {fmt(s.expiresAt)}. Vào <span className="font-mono">{origin}/kich-hoat</span>, nhập mã đăng nhập, mã
                   kích hoạt và đặt mật khẩu mới.
                 </p>

@@ -13,8 +13,9 @@ import { errorText, useData } from "@/shared/lib/use-data";
 import { errorClass, inputClass } from "@/shared/ui/form-styles";
 import { createAssessment, deleteAssessment, getProgress, getScoreContext, updateAssessment } from "../api/scores-api";
 import { SheetPanel } from "./sheet-panel";
+import { EmptyState, Skeleton, Table, useConfirm } from "@/shared/ui";
 
-const smallButton = "rounded border border-black/20 px-3 py-1 text-sm disabled:opacity-50 dark:border-white/20";
+const smallButton = "rounded-xl border border-border-strong px-3 py-1 text-sm disabled:opacity-50";
 // Hạn nhập điểm chọn theo ngày: hết ngày đó theo giờ Việt Nam.
 const endOfDayVn = (date: string) => `${date}T23:59:59+07:00`;
 const loadProgress = (key: string) => {
@@ -27,6 +28,7 @@ type ProgressAssessment = ScoreProgressDto["assessments"][number];
 // Cổng BGH: tạo đợt giữa kỳ/cuối kỳ dùng chung cho một khối, đặt hạn nhập điểm, xem tiến độ nhập điểm theo lớp,
 // xem bảng điểm (chỉ xem) và đặt miễn kiểm tra. BGH không tự nhập điểm.
 export function PrincipalScores() {
+  const ask = useConfirm();
   const ctx = useData(getScoreContext, undefined);
   const [semesterId, setSemesterId] = useState<string | null>(null);
   const [type, setType] = useState<AssessmentType | "">("");
@@ -77,8 +79,8 @@ export function PrincipalScores() {
   }
 
   if (ctx.error) return <p className={errorClass}>{ctx.error}</p>;
-  if (!ctx.data) return <p className="text-sm opacity-60">Đang tải…</p>;
-  if (!ctx.data.schoolYearId) return <p className="text-sm opacity-70">Chưa có năm học hiện hành.</p>;
+  if (!ctx.data) return <Skeleton />;
+  if (!ctx.data.schoolYearId) return <EmptyState>Chưa có năm học hiện hành.</EmptyState>;
 
   const totals = progress.data?.totals;
   return (
@@ -129,13 +131,13 @@ export function PrincipalScores() {
 
       <div className="space-y-4">
         {progress.data?.assessments.map((a) => (
-          <section key={a.id} className="space-y-2 rounded border border-black/10 p-3 dark:border-white/15" aria-label={a.code}>
+          <section key={a.id} className="space-y-2 rounded-xl border border-border p-3" aria-label={a.code}>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
               <span className="font-mono font-semibold">{a.code}</span>
               <span>
                 {ASSESSMENT_TYPE_NAMES[a.type]} · {a.subjectName} · {formatDate(a.testDate)}
               </span>
-              <span className="opacity-70">Người tạo: {a.createdByName}</span>
+              <span className="text-muted">Người tạo: {a.createdByName}</span>
               <span>Hạn nhập: {a.entryDeadline ? formatDateTime(a.entryDeadline) : "không có"}</span>
               <button type="button" className={smallButton} onClick={() => onDeadline(a)}>
                 Đặt hạn
@@ -144,60 +146,58 @@ export function PrincipalScores() {
                 <button
                   type="button"
                   className={smallButton}
-                  onClick={() => window.confirm(`Xoá đợt ${a.code}?`) && void run(() => deleteAssessment(a.id))}
+                  onClick={async () => (await ask(`Xoá đợt ${a.code}?`)) && void run(() => deleteAssessment(a.id))}
                 >
                   Xoá
                 </button>
               )}
             </div>
-            {a.description && <p className="text-sm opacity-80">{a.description}</p>}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-black/10 dark:border-white/15">
-                  <tr>
-                    <th className="py-1 pr-3">Lớp</th>
-                    <th className="py-1 pr-3">Giáo viên</th>
-                    <th className="py-1 pr-3">Đã nhập</th>
-                    <th className="py-1 pr-3">Trạng thái</th>
-                    <th className="py-1">Bảng điểm</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-black/10 dark:divide-white/15">
-                  {a.classes.map((c) => {
-                    const full = c.students > 0 && c.entered >= c.students;
-                    const isOpen = open?.assessmentId === a.id && open.classId === c.classId;
-                    return (
-                      <tr key={c.classId}>
-                        <td className="py-1 pr-3 font-medium">{c.className}</td>
-                        <td className="py-1 pr-3">{c.teacherName ?? <span className="text-amber-700 dark:text-amber-400">Chưa phân công</span>}</td>
-                        <td className={`py-1 pr-3 ${full ? "text-green-700 dark:text-green-400" : ""}`}>
-                          {c.entered}/{c.students}
-                        </td>
-                        <td className="py-1 pr-3">{ASSESSMENT_CLASS_STATUS_NAMES[c.status]}</td>
-                        <td className="py-1">
-                          <button
-                            type="button"
-                            className={smallButton}
-                            onClick={() => setOpen(isOpen ? null : { assessmentId: a.id, classId: c.classId })}
-                          >
-                            {isOpen ? "Đóng" : "Xem"}
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            {a.description && <p className="text-sm text-muted">{a.description}</p>}
+            <Table>
+              <thead className="border-b border-border">
+                <tr>
+                  <th className="py-1 pr-3">Lớp</th>
+                  <th className="py-1 pr-3">Giáo viên</th>
+                  <th className="py-1 pr-3">Đã nhập</th>
+                  <th className="py-1 pr-3">Trạng thái</th>
+                  <th className="py-1">Bảng điểm</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {a.classes.map((c) => {
+                  const full = c.students > 0 && c.entered >= c.students;
+                  const isOpen = open?.assessmentId === a.id && open.classId === c.classId;
+                  return (
+                    <tr key={c.classId}>
+                      <td className="py-1 pr-3 font-medium">{c.className}</td>
+                      <td className="py-1 pr-3">{c.teacherName ?? <span className="text-warning">Chưa phân công</span>}</td>
+                      <td className={`py-1 pr-3 ${full ? "text-success " : ""}`}>
+                        {c.entered}/{c.students}
+                      </td>
+                      <td className="py-1 pr-3">{ASSESSMENT_CLASS_STATUS_NAMES[c.status]}</td>
+                      <td className="py-1">
+                        <button
+                          type="button"
+                          className={smallButton}
+                          onClick={() => setOpen(isOpen ? null : { assessmentId: a.id, classId: c.classId })}
+                        >
+                          {isOpen ? "Đóng" : "Xem"}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Table>
             {open?.assessmentId === a.id && (
               <SheetPanel key={`${open.assessmentId}:${open.classId}`} {...open} onChanged={progress.reload} />
             )}
           </section>
         ))}
-        {progress.data?.assessments.length === 0 && <p className="text-sm opacity-70">Chưa có đợt thi nào trong học kỳ này.</p>}
+        {progress.data?.assessments.length === 0 && <EmptyState>Chưa có đợt thi nào trong học kỳ này.</EmptyState>}
       </div>
 
-      <form onSubmit={onCreate} className="flex flex-wrap items-end gap-3 border-t border-black/10 pt-4 dark:border-white/15">
+      <form onSubmit={onCreate} className="flex flex-wrap items-end gap-3 border-t border-border pt-4">
         <span className="w-full text-sm font-medium">Tạo đợt giữa kỳ/cuối kỳ dùng chung cho cả khối (áp cho mọi lớp của khối)</span>
         <label className="space-y-1 text-sm">
           <span>Loại</span>
@@ -242,7 +242,7 @@ export function PrincipalScores() {
           <span>Mô tả (tuỳ chọn)</span>
           <input name="description" maxLength={500} className={`${inputClass} w-64`} />
         </label>
-        <button type="submit" className="rounded bg-foreground px-4 py-2 text-sm text-background">
+        <button type="submit" className="rounded-xl bg-primary px-4 py-2 text-sm text-primary-foreground">
           Tạo đợt thi
         </button>
       </form>

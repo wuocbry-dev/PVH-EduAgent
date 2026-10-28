@@ -11,6 +11,7 @@ import { useEffect, useState, type ChangeEvent } from "react";
 import { mediaSrc } from "@/shared/lib/media-url";
 import { errorClass } from "@/shared/ui/form-styles";
 import { deleteMedia, listMedia, uploadMedia } from "../api/media-api";
+import { EmptyState, Skeleton, useConfirm } from "@/shared/ui";
 
 interface Props {
   // Giới hạn loại được chọn/tải lên (ảnh đại diện chỉ nhận ảnh); bỏ trống = cả ảnh và video.
@@ -29,6 +30,7 @@ const FILTERS: { value: MediaKind | "ALL"; label: string }[] = [
 
 // Thư viện ảnh/video: tải file mới lên (có thanh tiến độ) hoặc bấm một file có sẵn để chọn.
 export function MediaLibrary({ kind, onSelect, onClose }: Props) {
+  const ask = useConfirm();
   const [items, setItems] = useState<MediaDto[] | null>(null);
   const [filter, setFilter] = useState<MediaKind | "ALL">(kind ?? "ALL");
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +66,7 @@ export function MediaLibrary({ kind, onSelect, onClose }: Props) {
   }
 
   async function onDelete(media: MediaDto) {
-    if (!confirm("Xoá file này khỏi thư viện?")) return;
+    if (!(await ask("Xoá file này khỏi thư viện?"))) return;
     setError(null);
     try {
       await deleteMedia(media.id);
@@ -75,7 +77,7 @@ export function MediaLibrary({ kind, onSelect, onClose }: Props) {
   }
 
   return (
-    <div className="space-y-3 rounded border border-black/10 p-4 dark:border-white/15">
+    <div className="space-y-3 rounded-xl border border-border p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-semibold">{kind === "IMAGE" ? "Thư viện ảnh" : "Thư viện ảnh và video"}</h3>
         <button type="button" onClick={onClose} className="text-sm underline">
@@ -93,7 +95,7 @@ export function MediaLibrary({ kind, onSelect, onClose }: Props) {
       {progress !== null && (
         <div className="space-y-1" role="status">
           <progress value={progress} max={100} className="w-full" aria-label="Tiến độ tải lên" />
-          <p className="text-sm opacity-70">{progress < 100 ? `Đang tải lên… ${progress}%` : "Đang kiểm tra file…"}</p>
+          <p className="text-sm text-muted">{progress < 100 ? `Đang tải lên… ${progress}%` : "Đang kiểm tra file…"}</p>
         </div>
       )}
       {error && <p className={errorClass}>{error}</p>}
@@ -109,15 +111,15 @@ export function MediaLibrary({ kind, onSelect, onClose }: Props) {
                 setItems(null);
                 setFilter(f.value);
               }}
-              className={`rounded px-2 py-1 ${filter === f.value ? "bg-foreground text-background" : "border border-black/20 dark:border-white/20"}`}
+              className={`rounded-xl px-2 py-1 ${filter === f.value ? "bg-primary text-primary-foreground" : "border border-border-strong"}`}
             >
               {f.label}
             </button>
           ))}
         </div>
       )}
-      {items === null && !error && <p className="text-sm opacity-60">Đang tải…</p>}
-      {items?.length === 0 && <p className="text-sm opacity-70">Chưa có file nào.</p>}
+      {items === null && !error && <Skeleton />}
+      {items?.length === 0 && <EmptyState>Chưa có file nào.</EmptyState>}
       <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
         {items?.map((media) => (
           <li key={media.id} className="relative">
@@ -125,12 +127,12 @@ export function MediaLibrary({ kind, onSelect, onClose }: Props) {
               type="button"
               onClick={() => onSelect(media)}
               title={media.kind === "VIDEO" ? "Chèn video" : "Chèn ảnh"}
-              className="block aspect-square w-full overflow-hidden rounded border border-black/10 hover:ring-2 dark:border-white/15"
+              className="block aspect-square w-full overflow-hidden rounded-xl border border-border hover:ring-2"
             >
               {media.kind === "VIDEO" ? (
                 <>
                   <video src={mediaSrc(media.url)} preload="metadata" muted className="h-full w-full object-cover" />
-                  <span className="absolute bottom-1 left-1 rounded bg-black/70 px-1 text-xs text-white">▶ Video</span>
+                  <span className="absolute bottom-1 left-1 rounded-xl bg-black/70 px-1 text-xs text-white">▶ Video</span>
                 </>
               ) : (
                 // Ảnh từ API/R2 khác nguồn gốc; không dùng next/image để khỏi phải khai báo remotePatterns.
@@ -143,7 +145,7 @@ export function MediaLibrary({ kind, onSelect, onClose }: Props) {
               onClick={() => onDelete(media)}
               title="Xoá file"
               aria-label="Xoá file"
-              className="absolute right-1 top-1 rounded bg-black/70 px-1.5 text-xs text-white"
+              className="absolute right-1 top-1 rounded-xl bg-black/70 px-1.5 text-xs text-white"
             >
               ✕
             </button>

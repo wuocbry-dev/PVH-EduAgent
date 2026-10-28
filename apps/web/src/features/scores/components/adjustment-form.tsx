@@ -52,12 +52,12 @@ export function AdjustmentForm({ target, onDone, onCancel }: { target: Adjustmen
 
   const current = cell.status === "GRADED" ? formatScore(cell.value) : cell.status ? SCORE_STATUS_NAMES[cell.status] : "chưa có";
   return (
-    <form onSubmit={onSubmit} className="max-w-xl space-y-3 rounded border border-amber-600/40 p-3" aria-label="Đề nghị điều chỉnh điểm">
+    <form onSubmit={onSubmit} className="max-w-xl space-y-3 rounded-xl border border-warning/40 p-3" aria-label="Đề nghị điều chỉnh điểm">
       <p className="text-sm">
         Đề nghị điều chỉnh điểm của <strong>{row.fullName}</strong> ({row.studentCode}), đợt <span className="font-mono">{column.code}</span>.
         Điểm hiện tại: <strong>{current}</strong>.
       </p>
-      {cell.pendingAdjustmentId && <p className="text-sm text-amber-700 dark:text-amber-400">Học sinh này đã có một đề nghị đang chờ duyệt.</p>}
+      {cell.pendingAdjustmentId && <p className="text-sm text-warning">Học sinh này đã có một đề nghị đang chờ duyệt.</p>}
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={absent} onChange={(e) => setAbsent(e.target.checked)} />
         Học sinh vắng có lý do (để trống điểm)

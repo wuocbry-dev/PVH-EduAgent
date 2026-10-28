@@ -4,6 +4,7 @@ import type { PostDto } from "@pvh/shared";
 import { useState } from "react";
 import { errorClass, inputClass } from "@/shared/ui/form-styles";
 import { deletePost, runPostAction } from "../api/posts-api";
+import { useConfirm } from "@/shared/ui";
 
 interface Props {
   post: PostDto;
@@ -14,11 +15,12 @@ interface Props {
 type Panel = "reject" | "approve-schedule" | "reschedule" | null;
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
-const secondaryButton = "rounded border border-black/20 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-white/20";
-const primaryButton = "rounded bg-foreground px-3 py-1.5 text-sm text-background disabled:opacity-50";
+const secondaryButton = "rounded-xl border border-border-strong px-3 py-1.5 text-sm disabled:opacity-50";
+const primaryButton = "rounded-xl bg-primary px-3 py-1.5 text-sm text-primary-foreground disabled:opacity-50";
 
 // Các nút thao tác theo `post.actions` (server đã lọc theo quyền và trạng thái).
 export function PostActions({ post, onChanged, onDeleted }: Props) {
+  const ask = useConfirm();
   const [panel, setPanel] = useState<Panel>(null);
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -53,18 +55,18 @@ export function PostActions({ post, onChanged, onDeleted }: Props) {
   // datetime-local trả giờ địa phương (không kèm múi giờ); đổi sang ISO UTC để gửi lên server.
   const publishAtIso = () => (value ? new Date(value).toISOString() : "");
 
-  function confirmDelete() {
+  async function confirmDelete() {
     const permanent = post.status !== "DRAFT";
     const message = permanent
       ? `Xóa vĩnh viễn bài "${post.title}"? Không thể khôi phục.`
       : `Xóa bài nháp "${post.title}"?`;
-    if (confirm(message)) run(async () => deletePost(post.id).then(onDeleted));
+    if (await ask(message)) run(async () => deletePost(post.id).then(onDeleted));
   }
 
   if (post.actions.length === 0) return null;
 
   return (
-    <div className="space-y-3 rounded border border-black/10 p-3 dark:border-white/15">
+    <div className="space-y-3 rounded-xl border border-border p-3">
       <div className="flex flex-wrap gap-2">
         {can("submit") && (
           <button type="button" disabled={pending} className={primaryButton} onClick={() => act("submit")}>
@@ -77,7 +79,7 @@ export function PostActions({ post, onChanged, onDeleted }: Props) {
               type="button"
               disabled={pending}
               className={primaryButton}
-              onClick={() => confirm("Duyệt và đăng ngay bài này?") && act("approve")}
+              onClick={async () => (await ask("Duyệt và đăng ngay bài này?")) && act("approve")}
             >
               Duyệt &amp; đăng ngay
             </button>
@@ -101,7 +103,7 @@ export function PostActions({ post, onChanged, onDeleted }: Props) {
             type="button"
             disabled={pending}
             className={primaryButton}
-            onClick={() => confirm("Đăng bài ngay bây giờ?") && act("publish")}
+            onClick={async () => (await ask("Đăng bài ngay bây giờ?")) && act("publish")}
           >
             Đăng ngay
           </button>
@@ -116,7 +118,7 @@ export function PostActions({ post, onChanged, onDeleted }: Props) {
             type="button"
             disabled={pending}
             className={secondaryButton}
-            onClick={() => confirm("Gỡ bài này khỏi trang công khai?") && act("unpublish")}
+            onClick={async () => (await ask("Gỡ bài này khỏi trang công khai?")) && act("unpublish")}
           >
             Gỡ bài
           </button>
@@ -127,7 +129,7 @@ export function PostActions({ post, onChanged, onDeleted }: Props) {
           </button>
         )}
         {can("delete") && (
-          <button type="button" disabled={pending} className={`${secondaryButton} text-red-600`} onClick={confirmDelete}>
+          <button type="button" disabled={pending} className={`${secondaryButton} text-danger`} onClick={confirmDelete}>
             {post.status === "DRAFT" ? "Xóa nháp" : "Xóa vĩnh viễn"}
           </button>
         )}

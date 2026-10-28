@@ -7,10 +7,12 @@ import { errorClass, inputClass } from "@/shared/ui/form-styles";
 import { approveAdjustment, listAdjustments, rejectAdjustment } from "../api/scores-api";
 import { AdjustmentList } from "./adjustment-list";
 import { smallButton } from "./score-views";
+import { useConfirm } from "@/shared/ui";
 
 // Cổng BGH: duyệt hoặc từ chối (bắt buộc lý do) đề nghị điều chỉnh điểm sau hạn. Duyệt thì điểm mới được ghi kèm lịch sử
 // (người đề nghị, người duyệt, lý do); nếu điểm đã đổi sau khi gửi đề nghị thì hệ thống từ chối áp dụng.
 export function AdjustmentReview() {
+  const ask = useConfirm();
   const [status, setStatus] = useState<ScoreAdjustmentStatus | "">("PENDING");
   const list = useData(listAdjustments, status);
   const [error, setError] = useState<string | null>(null);
@@ -48,8 +50,8 @@ export function AdjustmentReview() {
                 <button
                   type="button"
                   className={smallButton}
-                  onClick={() => {
-                    if (!window.confirm(`Duyệt điều chỉnh điểm của ${a.studentName} (${a.assessmentCode})?`)) return;
+                  onClick={async () => {
+                    if (!(await ask(`Duyệt điều chỉnh điểm của ${a.studentName} (${a.assessmentCode})?`))) return;
                     void run(() => approveAdjustment(a.id));
                   }}
                 >

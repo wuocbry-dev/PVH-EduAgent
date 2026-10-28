@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { QuizRunner } from "@/features/quizzes";
+import { Skeleton } from "@/shared/ui";
 
 export const metadata: Metadata = { title: "Làm bài ôn tập" };
 
 export default function QuizAttemptPage({ params }: PageProps<"/hoc-sinh/trac-nghiem/[attemptId]">) {
   return (
-    <Suspense fallback={<p className="text-sm opacity-70">Đang tải bài…</p>}>
+    <Suspense fallback={<Skeleton label="Đang tải bài…" />}>
       <AttemptById params={params} />
     </Suspense>
   );

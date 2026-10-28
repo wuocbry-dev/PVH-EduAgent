@@ -10,15 +10,15 @@ function formatUptime(seconds: number) {
 
 function QueueSummary({ queue }: { queue: QueueStatusDto }) {
   if (!queue.enabled) {
-    return <span className="text-amber-700">Đang tắt (chưa cấu hình Redis): bài hẹn giờ chưa tự đăng</span>;
+    return <span className="text-warning">Đang tắt (chưa cấu hình Redis): bài hẹn giờ chưa tự đăng</span>;
   }
-  if (queue.error) return <span className="text-red-600">{queue.error}</span>;
+  if (queue.error) return <span className="text-danger">{queue.error}</span>;
   const total = (key: "waiting" | "delayed" | "active" | "failed") => queue.queues.reduce((sum, q) => sum + q[key], 0);
   const failed = total("failed");
   return (
     <span>
-      <span className="font-medium text-green-700">Hoạt động</span> · {total("delayed")} đã hẹn giờ · {total("waiting") + total("active")} đang chờ/chạy ·{" "}
-      <span className={failed > 0 ? "font-semibold text-red-600" : ""}>{failed} lỗi</span>
+      <span className="font-medium text-success">Hoạt động</span> · {total("delayed")} đã hẹn giờ · {total("waiting") + total("active")} đang chờ/chạy ·{" "}
+      <span className={failed > 0 ? "font-semibold text-danger" : ""}>{failed} lỗi</span>
     </span>
   );
 }
@@ -29,10 +29,10 @@ function Card({ label, value, href, alert }: { label: string; value: number; hre
   return (
     <Link
       href={href}
-      className="block rounded-lg border border-black/10 p-4 hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10"
+      className="block rounded-2xl border border-border p-4 hover:bg-primary-soft"
     >
-      <p className="text-sm opacity-70">{label}</p>
-      <p className={`text-3xl font-bold ${alert && value > 0 ? "text-red-600" : ""}`}>{value.toLocaleString("vi-VN")}</p>
+      <p className="text-sm text-muted">{label}</p>
+      <p className={`text-3xl font-bold ${alert && value > 0 ? "text-danger" : ""}`}>{value.toLocaleString("vi-VN")}</p>
     </Link>
   );
 }
@@ -87,29 +87,29 @@ export async function DashboardCards({
       )}
 
       {groups.includes("system") && d.system && (
-        <section aria-label="Tình trạng hệ thống" className="rounded-lg border border-black/10 p-4 dark:border-white/15">
+        <section aria-label="Tình trạng hệ thống" className="rounded-2xl bg-surface border border-border p-4">
           <h2 className="mb-2 font-semibold">Tình trạng hệ thống</h2>
           <dl className="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <dt className="opacity-70">Cơ sở dữ liệu</dt>
-              <dd className={d.system.database === "ok" ? "font-medium text-green-700" : "font-medium text-red-600"}>
+              <dt className="text-muted">Cơ sở dữ liệu</dt>
+              <dd className={d.system.database === "ok" ? "font-medium text-success" : "font-medium text-danger"}>
                 {d.system.database === "ok" ? "Hoạt động" : "Mất kết nối"}
               </dd>
             </div>
             <div>
-              <dt className="opacity-70">Thời gian chạy</dt>
+              <dt className="text-muted">Thời gian chạy</dt>
               <dd>{formatUptime(d.system.uptimeSec)}</dd>
             </div>
             <div>
-              <dt className="opacity-70">Bộ nhớ</dt>
+              <dt className="text-muted">Bộ nhớ</dt>
               <dd>{d.system.memoryMb} MB</dd>
             </div>
             <div>
-              <dt className="opacity-70">Node.js</dt>
+              <dt className="text-muted">Node.js</dt>
               <dd>{d.system.node}</dd>
             </div>
             <div className="sm:col-span-2 lg:col-span-4">
-              <dt className="opacity-70">Bộ lập lịch (hàng đợi)</dt>
+              <dt className="text-muted">Bộ lập lịch (hàng đợi)</dt>
               <dd>
                 <QueueSummary queue={d.system.queue} />
               </dd>

@@ -8,14 +8,16 @@ import { formatDateTime } from "@/shared/lib/format";
 import { errorText, useData } from "@/shared/lib/use-data";
 import { errorClass, inputClass } from "@/shared/ui/form-styles";
 import { getMyAcademicClient, listClassStudents } from "../api/academic-api";
+import { Skeleton, Table, useConfirm } from "@/shared/ui";
 
-const smallButton = "rounded border border-black/20 px-3 py-1 text-sm disabled:opacity-50 dark:border-white/20";
+const smallButton = "rounded-xl border border-border-strong px-3 py-1 text-sm disabled:opacity-50";
 const STATUS: Record<ClassStudentDto["status"], string> = { ACTIVE: "Đã kích hoạt", PENDING: "Chờ kích hoạt", LOCKED: "Đang bị khoá" };
 const loadStudents = (classId: string) => (classId ? listClassStudents(classId) : Promise.resolve(null));
 
 // Cổng giáo viên – lớp chủ nhiệm: danh sách học sinh (trạng thái tài khoản, lần đăng nhập gần nhất), cấp lại mã kích hoạt
 // và in phiếu cho các em quên mật khẩu/mất phiếu. Mã chỉ hiện một lần ngay sau khi cấp.
 export function HomeroomClass() {
+  const ask = useConfirm();
   const me = useData(getMyAcademicClient, undefined);
   const [selected, setSelected] = useState<string | null>(null);
   const classId = selected ?? me.data?.homeroomClasses[0]?.id ?? "";
@@ -25,7 +27,7 @@ export function HomeroomClass() {
   const [busy, setBusy] = useState<string | null>(null);
 
   async function reissue(s: ClassStudentDto) {
-    if (!window.confirm(`Cấp lại mã kích hoạt cho ${s.fullName} (${s.studentCode})? Mã cũ và mọi phiên đăng nhập của em sẽ bị huỷ.`)) return;
+    if (!(await ask(`Cấp lại mã kích hoạt cho ${s.fullName} (${s.studentCode})? Mã cũ và mọi phiên đăng nhập của em sẽ bị huỷ.`))) return;
     setBusy(s.userId);
     setError(null);
     try {
@@ -40,9 +42,9 @@ export function HomeroomClass() {
   }
 
   if (me.error) return <p className={errorClass}>{me.error}</p>;
-  if (!me.data) return <p className="text-sm opacity-60">Đang tải…</p>;
+  if (!me.data) return <Skeleton />;
   const classes = me.data.homeroomClasses;
-  if (classes.length === 0) return <p className="text-sm opacity-70">Bạn không chủ nhiệm lớp nào trong năm học hiện hành.</p>;
+  if (classes.length === 0) return <p className="text-sm text-muted">Bạn không chủ nhiệm lớp nào trong năm học hiện hành.</p>;
   const list = students.data ?? [];
   const pending = list.filter((s) => s.status === "PENDING").length;
   const never = list.filter((s) => s.status === "ACTIVE" && !s.lastLoginAt).length;
@@ -78,36 +80,34 @@ export function HomeroomClass() {
             Sĩ số <strong>{list.length}</strong> · chờ kích hoạt <strong>{pending}</strong> · đã kích hoạt nhưng chưa đăng nhập lần nào{" "}
             <strong>{never}</strong>
           </p>
-          <div className="relative overflow-x-auto rounded border border-black/10 dark:border-white/15">
-            <table className="w-full text-left text-sm">
-              <thead className="border-b border-black/10 dark:border-white/15">
-                <tr>
-                  <th className="px-2 py-2">STT</th>
-                  <th className="px-2 py-2">Mã HS</th>
-                  <th className="px-2 py-2">Họ và tên</th>
-                  <th className="px-2 py-2">Tài khoản</th>
-                  <th className="whitespace-nowrap px-2 py-2">Đăng nhập gần nhất</th>
-                  <th className="px-2 py-2" />
+          <Table stickyFirstColumn>
+            <thead className="border-b border-border">
+              <tr>
+                <th className="px-2 py-2">STT</th>
+                <th className="px-2 py-2">Mã HS</th>
+                <th className="px-2 py-2">Họ và tên</th>
+                <th className="px-2 py-2">Tài khoản</th>
+                <th className="whitespace-nowrap px-2 py-2">Đăng nhập gần nhất</th>
+                <th className="px-2 py-2" />
+              </tr>
+            </thead>
+            <tbody>
+              {list.map((s, i) => (
+                <tr key={s.userId} className="border-b border-border">
+                  <td className="px-2 py-1.5">{i + 1}</td>
+                  <td className="px-2 py-1.5 font-mono">{s.studentCode}</td>
+                  <td className="whitespace-nowrap px-2 py-1.5">{s.fullName}</td>
+                  <td className={`whitespace-nowrap px-2 py-1.5 ${s.status === "ACTIVE" ? "" : "text-warning"}`}>{STATUS[s.status]}</td>
+                  <td className="whitespace-nowrap px-2 py-1.5">{s.lastLoginAt ? formatDateTime(s.lastLoginAt) : <span className="text-muted">chưa có</span>}</td>
+                  <td className="px-2 py-1.5">
+                    <button type="button" className={`${smallButton} whitespace-nowrap`} disabled={busy === s.userId || s.status === "LOCKED"} onClick={() => void reissue(s)}>
+                      Cấp lại mã
+                    </button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {list.map((s, i) => (
-                  <tr key={s.userId} className="border-b border-black/5 dark:border-white/10">
-                    <td className="px-2 py-1.5">{i + 1}</td>
-                    <td className="px-2 py-1.5 font-mono">{s.studentCode}</td>
-                    <td className="whitespace-nowrap px-2 py-1.5">{s.fullName}</td>
-                    <td className={`whitespace-nowrap px-2 py-1.5 ${s.status === "ACTIVE" ? "" : "text-amber-700 dark:text-amber-400"}`}>{STATUS[s.status]}</td>
-                    <td className="whitespace-nowrap px-2 py-1.5">{s.lastLoginAt ? formatDateTime(s.lastLoginAt) : <span className="opacity-50">chưa có</span>}</td>
-                    <td className="px-2 py-1.5">
-                      <button type="button" className={`${smallButton} whitespace-nowrap`} disabled={busy === s.userId || s.status === "LOCKED"} onClick={() => void reissue(s)}>
-                        Cấp lại mã
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </Table>
         </section>
       )}
 

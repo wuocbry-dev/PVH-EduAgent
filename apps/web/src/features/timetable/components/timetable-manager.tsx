@@ -9,6 +9,7 @@ import { FrameTab } from "./frame-tab";
 import { GridTab } from "./grid-tab";
 import { VersionsTab } from "./versions-tab";
 import { ViewsTab } from "./views-tab";
+import { Skeleton } from "@/shared/ui";
 
 const TABS = [
   { id: "grid", label: "Xếp lịch theo lớp" },
@@ -36,7 +37,7 @@ export function TimetableManager({ readOnly = false }: { readOnly?: boolean }) {
   const [versionId, setVersionId] = useState("");
 
   if (data.error) return <p className={errorClass}>{data.error}</p>;
-  if (!data.data) return <p className="text-sm opacity-60">Đang tải…</p>;
+  if (!data.data) return <Skeleton />;
   const d = data.data;
   // Mặc định: bản nháp mới nhất, không có thì bản công bố mới nhất.
   const version = d.versions.find((v) => v.id === versionId) ?? d.versions.find((v) => v.status === "DRAFT") ?? d.versions[0] ?? null;
@@ -47,7 +48,7 @@ export function TimetableManager({ readOnly = false }: { readOnly?: boolean }) {
       <div className="flex flex-wrap items-center gap-3 print:hidden">
         <label className="flex items-center gap-2 text-sm">
           <span>Phiên bản đang xem</span>
-          <select value={version?.id ?? ""} onChange={(e) => setVersionId(e.target.value)} className="rounded border border-black/20 bg-transparent px-2 py-1 dark:border-white/20">
+          <select value={version?.id ?? ""} onChange={(e) => setVersionId(e.target.value)} className="rounded-xl border border-border-strong bg-transparent px-2 py-1">
             {d.versions.map((v) => (
               <option key={v.id} value={v.id}>
                 {v.name} · {v.semesterName} · {v.status === "DRAFT" ? "nháp" : v.status === "PUBLISHED" ? "đã công bố" : "lưu trữ"}
@@ -65,7 +66,7 @@ export function TimetableManager({ readOnly = false }: { readOnly?: boolean }) {
             role="tab"
             aria-selected={t.id === tab}
             onClick={() => setTab(t.id)}
-            className={`rounded border px-3 py-1 text-sm ${t.id === tab ? "border-foreground bg-foreground text-background" : "border-black/20 dark:border-white/20"}`}
+            className={`rounded-xl border px-3 py-1 text-sm ${t.id === tab ? "border-primary bg-primary text-primary-foreground" : "border-border-strong"}`}
           >
             {t.label}
           </button>

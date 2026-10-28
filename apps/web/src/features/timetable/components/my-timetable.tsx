@@ -6,6 +6,7 @@ import { useData } from "@/shared/lib/use-data";
 import { errorClass } from "@/shared/ui/form-styles";
 import { getMyUnavailability, getMyWeek, saveMyUnavailability } from "../api/timetable-api";
 import { WeekGrid } from "./week-grid";
+import { Skeleton, Table, useToast } from "@/shared/ui";
 
 const addDays = (date: string, n: number) => new Date(Date.parse(`${date}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
@@ -16,7 +17,7 @@ export function MyTimetable({ withUnavailability = false }: { withUnavailability
   const week = useData(getMyWeek, date);
 
   if (week.error) return <p className={errorClass}>{week.error}</p>;
-  if (!week.data) return <p className="text-sm opacity-60">Đang tải…</p>;
+  if (!week.data) return <Skeleton />;
   const current = week.data;
 
   return (
@@ -36,7 +37,7 @@ export function MyTimetable({ withUnavailability = false }: { withUnavailability
 function UnavailabilityEditor({ frame }: { frame: { days: number[]; periods: { no: number }[] } }) {
   const mine = useData(getMyUnavailability, undefined);
   const [picked, setPicked] = useState<Set<string> | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const current = picked ?? new Set(mine.data?.map((u) => `${u.day}:${u.period}`) ?? []);
 
@@ -46,7 +47,6 @@ function UnavailabilityEditor({ frame }: { frame: { days: number[]; periods: { n
     if (next.has(key)) next.delete(key);
     else next.add(key);
     setPicked(next);
-    setMessage(null);
   }
 
   async function save() {
@@ -59,7 +59,7 @@ function UnavailabilityEditor({ frame }: { frame: { days: number[]; periods: { n
       await saveMyUnavailability(slots);
       setPicked(null);
       mine.reload();
-      setMessage("Đã lưu tiết bận.");
+      toast.success("Đã lưu tiết bận.");
     } catch (err) {
       setError(errorText(err));
     }
@@ -68,45 +68,42 @@ function UnavailabilityEditor({ frame }: { frame: { days: number[]; periods: { n
   return (
     <section className="space-y-3 print:hidden" aria-label="Đăng ký tiết bận">
       <h2 className="text-lg font-semibold">Đăng ký tiết bận</h2>
-      <p className="max-w-2xl text-sm opacity-70">
+      <p className="max-w-2xl text-sm text-muted">
         Đánh dấu các tiết bạn không thể dạy. Thông tin này chỉ để Ban giám hiệu tham khảo khi xếp lịch; nếu cần xếp vào tiết bận, họ sẽ phải xác nhận
         và việc đó được ghi nhật ký.
       </p>
-      <div className="overflow-x-auto">
-        <table className="text-sm">
-          <thead>
-            <tr>
-              <th className="p-1" />
+      <Table>
+        <thead>
+          <tr>
+            <th className="p-1" />
+            {frame.days.map((d) => (
+              <th key={d} className="p-1 font-medium">
+                {TIMETABLE_DAY_NAMES[d]?.replace("Thứ ", "T")}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {frame.periods.map((p) => (
+            <tr key={p.no}>
+              <th className="p-1 text-left font-normal">Tiết {p.no}</th>
               {frame.days.map((d) => (
-                <th key={d} className="p-1 font-medium">
-                  {TIMETABLE_DAY_NAMES[d]?.replace("Thứ ", "T")}
-                </th>
+                <td key={d} className="p-1 text-center">
+                  <input
+                    type="checkbox"
+                    checked={current.has(`${d}:${p.no}`)}
+                    onChange={() => toggle(d, p.no)}
+                    aria-label={`${TIMETABLE_DAY_NAMES[d]} tiết ${p.no} bận`}
+                    className="size-5"
+                  />
+                </td>
               ))}
             </tr>
-          </thead>
-          <tbody>
-            {frame.periods.map((p) => (
-              <tr key={p.no}>
-                <th className="p-1 text-left font-normal">Tiết {p.no}</th>
-                {frame.days.map((d) => (
-                  <td key={d} className="p-1 text-center">
-                    <input
-                      type="checkbox"
-                      checked={current.has(`${d}:${p.no}`)}
-                      onChange={() => toggle(d, p.no)}
-                      aria-label={`${TIMETABLE_DAY_NAMES[d]} tiết ${p.no} bận`}
-                      className="size-5"
-                    />
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </Table>
       {error && <p className={errorClass}>{error}</p>}
-      {message && <p className="text-sm text-green-700">{message}</p>}
-      <button type="button" onClick={save} disabled={picked === null} className="rounded bg-foreground px-4 py-2 text-background disabled:opacity-50">
+      <button type="button" onClick={save} disabled={picked === null} className="rounded-xl bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50">
         Lưu tiết bận
       </button>
     </section>

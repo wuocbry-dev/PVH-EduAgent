@@ -109,6 +109,18 @@ Xem dữ liệu: `pnpm db:studio`. Hướng dẫn đầy đủ (pgAdmin, psql, m
 - Web: `src/proxy.ts` chuyển mọi cổng (`/admin`, `/bgh`, `/bien-tap`, `/thu-thu`, `/giao-vien`, `/hoc-sinh`) về `/dang-nhap` khi chưa đăng nhập và tự refresh khi access token hết hạn. Web và API phải cùng tên miền gốc để dùng chung cookie (dev: cùng `localhost`).
 - Chế độ thử nghiệm: `DEV_AUTH=true` (API, chỉ khi `NODE_ENV=development`) + `NEXT_PUBLIC_DEV_AUTH=true` (web) → trang Trợ lý AI có ô chọn vai trò (header `x-dev-user-email`).
 
+## Giao diện (bước 29)
+
+- **Màu:** xanh nước biển nhạt (chủ đạo) và navy (phụ), cùng một tông cho mọi cổng; mỗi cổng chỉ còn một chấm màu nhỏ cạnh tên để người có nhiều cổng phân biệt. Mọi cặp chữ/nền đạt WCAG AA ở cả hai chế độ.
+- **Chế độ tối có nút gạt** Sáng / Tối / Theo máy (mặc định Theo máy), ở header trang công khai, thanh bên các cổng và trang đăng nhập. Lựa chọn nhớ trong trình duyệt, không chớp trắng khi tải trang.
+- **Thanh cố định:**
+  - header trang công khai;
+  - thanh bên của cổng (máy tính) hoặc thanh trên + ngăn kéo menu (điện thoại);
+  - tiêu đề bảng dài và cột đầu (tên học sinh/lớp/tiết) khi cuộn ngang;
+  - thanh nút Lưu của form dài.
+- **Đăng nhập / kích hoạt / quên mật khẩu** dùng chung khung hai cột. Không có đăng ký tự do: tài khoản do nhà trường tạo, lần đầu dùng thì **Kích hoạt tài khoản** (nhập mã → đặt mật khẩu → xong). **Đăng xuất** hỏi xác nhận rồi về trang `/da-dang-xuat`.
+- Các thao tác xoá/khoá/duyệt hỏi lại bằng hộp thoại của hệ thống (không còn hộp `confirm()` của trình duyệt); kết quả lưu/gửi hiện thông báo ngắn ở góc màn hình.
+
 ## Các cổng giao diện theo vai trò (bước 15)
 
 | Cổng | Vai trò | Nội dung |

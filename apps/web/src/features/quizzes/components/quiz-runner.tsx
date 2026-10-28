@@ -7,6 +7,7 @@ import { ApiError } from "@/shared/lib/api-client";
 import { errorText } from "@/shared/lib/use-data";
 import { usePortalBase } from "@/shared/lib/use-portal-base";
 import { getAttempt, saveAnswer, submitAttempt } from "../api/quizzes-api";
+import { Skeleton, useConfirm } from "@/shared/ui";
 
 const clock = (ms: number) => {
   const s = Math.max(0, Math.ceil(ms / 1000));
@@ -16,6 +17,7 @@ const clock = (ms: number) => {
 // Làm bài: đề không có đáp án đúng (chấm ở server). Mỗi lần chọn được lưu ngay lên server; đồng hồ đếm theo giờ server, hết
 // giờ thì server tự nộp phần đã lưu. Sau khi nộp hiện điểm, câu đúng/sai và (nếu bộ câu hỏi cho phép) đáp án, giải thích.
 export function QuizRunner({ attemptId }: { attemptId: string }) {
+  const ask = useConfirm();
   const base = usePortalBase();
   const [attempt, setAttempt] = useState<QuizAttemptDto | null>(null);
   const [selected, setSelected] = useState<Record<string, string[]>>({});
@@ -84,7 +86,7 @@ export function QuizRunner({ attemptId }: { attemptId: string }) {
   async function submit() {
     if (!attempt?.questions) return;
     const blank = attempt.questions.filter((q) => !(selected[q.id]?.length)).length;
-    if (!confirm(blank ? `Còn ${blank} câu chưa trả lời. Nộp bài?` : "Nộp bài?")) return;
+    if (!(await ask(blank ? `Còn ${blank} câu chưa trả lời. Nộp bài?` : "Nộp bài?"))) return;
     setBusy(true);
     try {
       const result = await submitAttempt(
@@ -100,26 +102,26 @@ export function QuizRunner({ attemptId }: { attemptId: string }) {
     }
   }
 
-  if (error && !attempt) return <p className="text-sm text-red-600">{error}</p>;
-  if (!attempt) return <p className="text-sm opacity-70">Đang tải bài…</p>;
+  if (error && !attempt) return <p className="text-sm text-danger">{error}</p>;
+  if (!attempt) return <Skeleton label="Đang tải bài…" />;
 
   if (!running) return <QuizResult attempt={attempt} back={`${base}/trac-nghiem`} />;
 
   const answered = attempt.questions!.filter((q) => selected[q.id]?.length).length;
   return (
     <div className="space-y-4">
-      <div className="sticky top-0 z-10 -mx-4 flex items-center justify-between gap-2 border-b border-black/10 bg-background/95 px-4 py-2 backdrop-blur dark:border-white/15">
+      <div className="sticky top-14 z-20 -mx-4 flex items-center justify-between gap-2 border-b border-border bg-background/95 px-4 py-2 backdrop-blur md:top-0 md:-mx-8 md:px-8 print:hidden">
         <span className="text-sm">
           Đã làm {answered}/{attempt.questions!.length} câu
         </span>
         {remaining !== null && (
-          <span role="timer" aria-live="off" className={`font-mono text-lg font-bold tabular-nums ${remaining < 60_000 ? "text-red-600" : ""}`}>
+          <span role="timer" aria-live="off" className={`font-mono text-lg font-bold tabular-nums ${remaining < 60_000 ? "text-danger" : ""}`}>
             ⏱ {clock(remaining)}
           </span>
         )}
       </div>
       <h1 className="text-xl font-bold">{attempt.quizTitle}</h1>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
       <ol className="space-y-5">
         {attempt.questions!.map((q, i) => (
           <li key={q.id} className="space-y-2">
@@ -127,7 +129,7 @@ export function QuizRunner({ attemptId }: { attemptId: string }) {
               <span className="font-semibold">Câu {i + 1}.</span>
               <div className="rich-content min-w-0 flex-1" dangerouslySetInnerHTML={{ __html: q.content }} />
             </div>
-            {q.multiple && <p className="text-xs opacity-70">Chọn tất cả đáp án đúng (phải đúng hết mới được điểm).</p>}
+            {q.multiple && <p className="text-xs text-muted">Chọn tất cả đáp án đúng (phải đúng hết mới được điểm).</p>}
             <fieldset className="space-y-2">
               <legend className="sr-only">Đáp án câu {i + 1}</legend>
               {q.options.map((o, j) => {
@@ -135,7 +137,7 @@ export function QuizRunner({ attemptId }: { attemptId: string }) {
                 return (
                   <label
                     key={o.id}
-                    className={`flex min-h-11 cursor-pointer items-start gap-3 rounded border px-3 py-2 ${checked ? "border-brand bg-brand/10" : "border-black/15 dark:border-white/20"}`}
+                    className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border px-3 py-2 ${checked ? "border-navy bg-primary-soft" : "border-border"}`}
                   >
                     <input
                       type={q.multiple ? "checkbox" : "radio"}
@@ -154,10 +156,10 @@ export function QuizRunner({ attemptId }: { attemptId: string }) {
           </li>
         ))}
       </ol>
-      <button type="button" onClick={submit} disabled={busy} className="w-full rounded bg-brand px-4 py-3 text-white disabled:opacity-50 sm:w-auto">
+      <button type="button" onClick={submit} disabled={busy} className="w-full rounded-xl bg-primary px-4 py-3 text-primary-foreground disabled:opacity-50 sm:w-auto">
         {busy ? "Đang nộp…" : "Nộp bài"}
       </button>
-      <p className="text-xs opacity-70">{QUIZ_RESULT_NOTE}</p>
+      <p className="text-xs text-muted">{QUIZ_RESULT_NOTE}</p>
     </div>
   );
 }
@@ -166,19 +168,19 @@ function QuizResult({ attempt, back }: { attempt: QuizAttemptDto; back: string }
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold">{attempt.quizTitle}</h1>
-      <div className="rounded-lg border border-black/10 p-4 text-center dark:border-white/15">
+      <div className="rounded-2xl bg-surface border border-border p-4 text-center">
         <p className="text-4xl font-bold tabular-nums">{attempt.score!.toLocaleString("vi-VN")}</p>
-        <p className="text-sm opacity-80">
+        <p className="text-sm text-muted">
           Đúng {attempt.correctCount}/{attempt.totalCount} câu{attempt.autoSubmitted ? " · bài tự nộp khi hết giờ" : ""}
         </p>
-        <p className="mt-2 text-sm font-medium text-amber-700 dark:text-amber-400">{QUIZ_RESULT_NOTE}</p>
+        <p className="mt-2 text-sm font-medium text-warning">{QUIZ_RESULT_NOTE}</p>
       </div>
-      {!attempt.showAnswers && <p className="text-sm opacity-70">Thầy cô không cho xem đáp án của bài này.</p>}
+      {!attempt.showAnswers && <p className="text-sm text-muted">Thầy cô không cho xem đáp án của bài này.</p>}
       <ol className="space-y-4">
         {attempt.results!.map((q, i) => (
-          <li key={q.id} className={`space-y-2 rounded-lg border p-3 ${q.isCorrect ? "border-green-600/40" : "border-red-600/40"}`}>
+          <li key={q.id} className={`space-y-2 rounded-2xl border p-3 ${q.isCorrect ? "border-success/40" : "border-danger/40"}`}>
             <div className="flex gap-2">
-              <span className={`font-semibold ${q.isCorrect ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}>
+              <span className={`font-semibold ${q.isCorrect ? "text-success " : "text-danger"}`}>
                 {q.isCorrect ? "✓" : "✗"} Câu {i + 1}.
               </span>
               <div className="rich-content min-w-0 flex-1" dangerouslySetInnerHTML={{ __html: q.content }} />
@@ -189,7 +191,7 @@ function QuizResult({ attempt, back }: { attempt: QuizAttemptDto; back: string }
                 return (
                   <li
                     key={o.id}
-                    className={`rounded px-2 py-1 ${o.correct ? "bg-green-100 text-green-900 dark:bg-green-950 dark:text-green-100" : mine ? "bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-100" : ""}`}
+                    className={`rounded-xl px-2 py-1 ${o.correct ? "bg-success-soft text-success " : mine ? "bg-danger-soft text-danger " : ""}`}
                   >
                     <b>{QUIZ_OPTION_LETTERS[j]}.</b> {o.content}
                     {mine && " ← em chọn"}
@@ -198,11 +200,11 @@ function QuizResult({ attempt, back }: { attempt: QuizAttemptDto; back: string }
                 );
               })}
             </ul>
-            {q.explanation && <p className="text-sm opacity-80">Giải thích: {q.explanation}</p>}
+            {q.explanation && <p className="text-sm text-muted">Giải thích: {q.explanation}</p>}
           </li>
         ))}
       </ol>
-      <Link href={back} className="inline-block rounded border border-black/20 px-4 py-2 text-sm dark:border-white/20">
+      <Link href={back} className="inline-block rounded-xl border border-border-strong px-4 py-2 text-sm">
         ← Danh sách bài ôn tập
       </Link>
     </div>

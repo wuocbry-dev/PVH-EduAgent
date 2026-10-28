@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { mediaSrc } from "@/shared/lib/media-url";
 import { getGallery } from "../api/get-gallery";
+import { EmptyState } from "@/shared/ui";
 
 // F06 – thư viện ảnh: ảnh của các bài đã đăng, bấm vào để mở bài. Đọc dữ liệu có cache nên đặt trong <Suspense>.
 export async function GalleryGrid() {
   const items = await getGallery();
 
   if (items === null) {
-    return <p className="text-sm opacity-70">Không tải được thư viện ảnh lúc này, vui lòng thử lại sau.</p>;
+    return <p className="text-sm text-muted">Không tải được thư viện ảnh lúc này, vui lòng thử lại sau.</p>;
   }
-  if (items.length === 0) return <p className="text-sm opacity-70">Chưa có ảnh hay video nào trong thư viện.</p>;
+  if (items.length === 0) return <EmptyState>Chưa có ảnh hay video nào trong thư viện.</EmptyState>;
 
   return (
     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -17,7 +18,7 @@ export async function GalleryGrid() {
         <li key={item.url}>
           <Link
             href={`/tin-tuc/${item.postSlug}`}
-            className="group block overflow-hidden rounded-lg border border-black/10 dark:border-white/15"
+            className="group block overflow-hidden rounded-2xl bg-surface border border-border"
           >
             {item.kind === "VIDEO" ? (
               <span className="relative block">
@@ -30,7 +31,7 @@ export async function GalleryGrid() {
                   aria-label={`Video trong bài: ${item.postTitle}`}
                   className="aspect-square w-full bg-black object-cover"
                 />
-                <span className="absolute left-2 top-2 rounded bg-black/70 px-1.5 text-xs text-white">▶ Video</span>
+                <span className="absolute left-2 top-2 rounded-xl bg-black/70 px-1.5 text-xs text-white">▶ Video</span>
               </span>
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
@@ -41,7 +42,7 @@ export async function GalleryGrid() {
                 className="aspect-square w-full object-cover transition group-hover:scale-105"
               />
             )}
-            <span className="block truncate px-2 py-1 text-xs opacity-80">{item.postTitle}</span>
+            <span className="block truncate px-2 py-1 text-xs text-muted">{item.postTitle}</span>
           </Link>
         </li>
       ))}

@@ -1,7 +1,7 @@
 import { FACILITIES, HISTORY, NAME_MEANING, PENDING, SCHOOL_FACTS } from "../lib/school-info";
 
 const sectionClass = "space-y-3";
-const h2Class = "text-xl font-semibold text-brand";
+const h2Class = "text-xl font-semibold text-navy";
 
 // F02 – Giới thiệu trường. Nội dung tĩnh lấy từ tài liệu phân tích (mục 1).
 export function AboutContent() {
@@ -40,20 +40,20 @@ export function AboutContent() {
       <section className={sectionClass}>
         <h2 className={h2Class}>Ban giám hiệu</h2>
         <ul className="space-y-2">
-          <li className="rounded-lg border border-black/10 p-4 dark:border-white/15">
+          <li className="rounded-2xl bg-surface border border-border p-4">
             <p className="font-semibold">Ông Nguyễn Duy Bình</p>
-            <p className="text-sm opacity-80">Hiệu trưởng (nguyên Hiệu trưởng Trường THPT Bình Hưng Hòa)</p>
+            <p className="text-sm text-muted">Hiệu trưởng (nguyên Hiệu trưởng Trường THPT Bình Hưng Hòa)</p>
           </li>
-          <li className="rounded-lg border border-black/10 p-4 dark:border-white/15">
+          <li className="rounded-2xl bg-surface border border-border p-4">
             <p className="font-semibold">Phó hiệu trưởng</p>
-            <p className="text-sm opacity-80">{PENDING}</p>
+            <p className="text-sm text-muted">{PENDING}</p>
           </li>
         </ul>
       </section>
 
       <section className={sectionClass}>
         <h2 className={h2Class}>Tổ chuyên môn</h2>
-        <p className="opacity-80">{PENDING}</p>
+        <p className="text-muted">{PENDING}</p>
       </section>
 
       <section className={sectionClass}>

@@ -7,6 +7,7 @@ import { errorText, useData } from "@/shared/lib/use-data";
 import { errorClass } from "@/shared/ui/form-styles";
 import { getAgentStats, setAgentSwitch } from "../api/monitoring-api";
 import { HourBars } from "./charts";
+import { EmptyState, Skeleton, Table, useConfirm } from "@/shared/ui";
 
 const REFRESH_MS = 60_000;
 const DAYS = [7, 14, 30] as const;
@@ -34,7 +35,7 @@ export function AgentMonitor() {
   }, [reload]);
 
   if (error && !data) return <p className={errorClass}>{error}</p>;
-  if (!data) return <p className="text-sm opacity-60">Đang tải…</p>;
+  if (!data) return <Skeleton />;
   return <AgentStats data={data} days={days} onDays={setDays} reload={reload} />;
 }
 
@@ -59,7 +60,7 @@ function AgentStats({ data, days, onDays, reload }: { data: AgentStatsDto; days:
           <Tile label="Trần mỗi người/ngày" value={`${today.limits.perUser.toLocaleString("vi-VN")} lệnh`} />
           <Tile label="Báo lạm dụng khi một người quá" value={`${today.limits.hourlyAlert.toLocaleString("vi-VN")} lệnh/giờ`} />
         </div>
-        <p className="text-xs opacity-70">Hạn mức chỉnh ở trang Cấu hình (agent.*). Ngày tính theo giờ Việt Nam.</p>
+        <p className="text-xs text-muted">Hạn mức chỉnh ở trang Cấu hình (agent.*). Ngày tính theo giờ Việt Nam.</p>
       </section>
 
       <section aria-labelledby="ai-theo-ngay" className="space-y-3">
@@ -74,7 +75,7 @@ function AgentStats({ data, days, onDays, reload }: { data: AgentStatsDto; days:
                 type="button"
                 onClick={() => onDays(d)}
                 aria-pressed={days === d}
-                className={`rounded px-2 py-1 text-sm ${days === d ? "bg-foreground text-background" : "border border-black/20 dark:border-white/25"}`}
+                className={`rounded-xl px-2 py-1 text-sm ${days === d ? "bg-primary text-primary-foreground" : "border border-border-strong"}`}
               >
                 {d} ngày
               </button>
@@ -118,32 +119,30 @@ function AgentStats({ data, days, onDays, reload }: { data: AgentStatsDto; days:
           Tool được gọi
         </h2>
         {data.tools.length === 0 ? (
-          <p className="text-sm opacity-70">Chưa có tool nào được gọi trong khoảng này.</p>
+          <EmptyState>Chưa có tool nào được gọi trong khoảng này.</EmptyState>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-black/10 opacity-70 dark:border-white/15">
-                  <th className={th}>Tool</th>
-                  <th className={`${th} text-right`}>Lượt gọi</th>
-                  <th className={`${th} text-right`}>Lỗi</th>
-                  <th className={`${th} text-right`}>Thiếu quyền</th>
-                  <th className={`${th} text-right`}>Tỷ lệ lỗi</th>
+          <Table>
+            <thead>
+              <tr className="border-b border-border text-muted">
+                <th className={th}>Tool</th>
+                <th className={`${th} text-right`}>Lượt gọi</th>
+                <th className={`${th} text-right`}>Lỗi</th>
+                <th className={`${th} text-right`}>Thiếu quyền</th>
+                <th className={`${th} text-right`}>Tỷ lệ lỗi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.tools.map((t) => (
+                <tr key={t.tool} className="border-b border-border">
+                  <td className="py-1 pr-3 font-mono text-xs">{t.tool}</td>
+                  <td className="py-1 pr-3 text-right">{t.calls.toLocaleString("vi-VN")}</td>
+                  <td className="py-1 pr-3 text-right">{t.errors.toLocaleString("vi-VN")}</td>
+                  <td className="py-1 pr-3 text-right">{t.denied.toLocaleString("vi-VN")}</td>
+                  <td className="py-1 pr-3 text-right">{t.calls ? `${Math.round((t.errors / t.calls) * 100)}%` : "–"}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {data.tools.map((t) => (
-                  <tr key={t.tool} className="border-b border-black/5 dark:border-white/10">
-                    <td className="py-1 pr-3 font-mono text-xs">{t.tool}</td>
-                    <td className="py-1 pr-3 text-right">{t.calls.toLocaleString("vi-VN")}</td>
-                    <td className="py-1 pr-3 text-right">{t.errors.toLocaleString("vi-VN")}</td>
-                    <td className="py-1 pr-3 text-right">{t.denied.toLocaleString("vi-VN")}</td>
-                    <td className="py-1 pr-3 text-right">{t.calls ? `${Math.round((t.errors / t.calls) * 100)}%` : "–"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </Table>
         )}
         <SimpleTable
           caption="Thao tác cần xác nhận 2 bước"
@@ -157,19 +156,19 @@ function AgentStats({ data, days, onDays, reload }: { data: AgentStatsDto; days:
           Cảnh báo về Trợ lý AI
         </h2>
         {data.alerts.length === 0 ? (
-          <p className="text-sm opacity-70">Chưa có cảnh báo nào.</p>
+          <EmptyState>Chưa có cảnh báo nào.</EmptyState>
         ) : (
           <ul className="space-y-1 text-sm">
             {data.alerts.map((a) => (
               <li key={a.id} className="break-words">
-                <span className="opacity-70">{formatDateTime(a.openedAt)}</span> · <span className="font-medium">{ALERT_KIND_NAMES[a.kind]}:</span> {a.title}
-                {a.detail && <span className="opacity-80"> – {a.detail}</span>}
-                {!a.resolvedAt && <span className="text-red-700 dark:text-red-400"> (đang mở)</span>}
+                <span className="text-muted">{formatDateTime(a.openedAt)}</span> · <span className="font-medium">{ALERT_KIND_NAMES[a.kind]}:</span> {a.title}
+                {a.detail && <span className="text-muted"> – {a.detail}</span>}
+                {!a.resolvedAt && <span className="text-danger"> (đang mở)</span>}
               </li>
             ))}
           </ul>
         )}
-        <p className="text-xs opacity-70">Trang này chỉ hiện số lượng và tên tool; nội dung trò chuyện không được lưu hay hiển thị ở đây.</p>
+        <p className="text-xs text-muted">Trang này chỉ hiện số lượng và tên tool; nội dung trò chuyện không được lưu hay hiển thị ở đây.</p>
       </section>
     </div>
   );
@@ -177,13 +176,14 @@ function AgentStats({ data, days, onDays, reload }: { data: AgentStatsDto; days:
 
 // Công tắc khẩn cấp: mỗi lần đổi đều hỏi xác nhận; đổi xong có ghi nhật ký và báo ADMIN qua Telegram.
 function Switches({ switches, reload }: { switches: Record<AgentSwitchKey, boolean>; reload: () => void }) {
+  const ask = useConfirm();
   const [busy, setBusy] = useState<AgentSwitchKey | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function toggle(key: AgentSwitchKey) {
     const next = !switches[key];
     const what = SETTING_META[key].label;
-    if (!window.confirm(`${next ? "BẬT" : "TẮT"}: ${what}?\n\n${SETTING_META[key].description}`)) return;
+    if (!(await ask(`${next ? "BẬT" : "TẮT"}: ${what}?\n\n${SETTING_META[key].description}`))) return;
     setBusy(key);
     setError(null);
     try {
@@ -197,7 +197,7 @@ function Switches({ switches, reload }: { switches: Record<AgentSwitchKey, boole
   }
 
   return (
-    <section aria-labelledby="cong-tac" className="space-y-2 rounded-lg border border-black/10 p-3 dark:border-white/15">
+    <section aria-labelledby="cong-tac" className="space-y-2 rounded-2xl bg-surface border border-border p-3">
       <h2 id="cong-tac" className="text-lg font-semibold">
         Công tắc khẩn cấp
       </h2>
@@ -209,16 +209,16 @@ function Switches({ switches, reload }: { switches: Record<AgentSwitchKey, boole
             <li key={key} className="flex flex-wrap items-center justify-between gap-2 text-sm">
               <div className="min-w-0 flex-1">
                 <p className="font-medium">{SETTING_META[key].label}</p>
-                <p className="text-xs opacity-70">{SETTING_META[key].description}</p>
+                <p className="text-xs text-muted">{SETTING_META[key].description}</p>
               </div>
-              <span className={`text-sm font-semibold ${on ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}>
+              <span className={`text-sm font-semibold ${on ? "text-success " : "text-danger"}`}>
                 {on ? "✓ Đang bật" : "✕ Đang tắt"}
               </span>
               <button
                 type="button"
                 disabled={busy !== null}
                 onClick={() => toggle(key)}
-                className={`rounded px-3 py-1.5 text-sm disabled:opacity-50 ${on ? "bg-red-700 text-white" : "bg-foreground text-background"}`}
+                className={`rounded-xl px-3 py-1.5 text-sm disabled:opacity-50 ${on ? "bg-danger text-danger-foreground" : "bg-primary text-primary-foreground"}`}
               >
                 {busy === key ? "Đang đổi…" : on ? "Tắt" : "Bật lại"}
               </button>
@@ -232,9 +232,9 @@ function Switches({ switches, reload }: { switches: Record<AgentSwitchKey, boole
 
 function Tile({ label, value, alert }: { label: string; value: string; alert?: boolean }) {
   return (
-    <div className="rounded-lg border border-black/10 p-3 dark:border-white/15">
-      <p className="text-sm opacity-70">{label}</p>
-      <p className={`text-xl font-bold ${alert ? "text-red-700 dark:text-red-400" : ""}`}>
+    <div className="rounded-2xl bg-surface border border-border p-3">
+      <p className="text-sm text-muted">{label}</p>
+      <p className={`text-xl font-bold ${alert ? "text-danger " : ""}`}>
         {alert && <span aria-hidden>⚠ </span>}
         {value}
       </p>
@@ -246,13 +246,13 @@ function Tile({ label, value, alert }: { label: string; value: string; alert?: b
 function Meter({ label, used, limit, text }: { label: string; used: number; limit: number; text: string }) {
   const p = percent(used, limit);
   return (
-    <div className="space-y-1 rounded-lg border border-black/10 p-3 dark:border-white/15">
-      <p className="text-sm opacity-70">{label}</p>
+    <div className="space-y-1 rounded-2xl bg-surface border border-border p-3">
+      <p className="text-sm text-muted">{label}</p>
       <p className="text-lg font-bold">{text}</p>
-      <div className="h-2 rounded bg-black/10 dark:bg-white/15" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={p} aria-label={`${label}: ${p}%`}>
-        <div className={`h-2 rounded ${p >= 90 ? "bg-[#d03b3b]" : "bg-[#2a78d6] dark:bg-[#3987e5]"}`} style={{ width: `${p}%` }} />
+      <div className="h-2 rounded-xl bg-surface-muted" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={p} aria-label={`${label}: ${p}%`}>
+        <div className={`h-2 rounded-xl ${p >= 90 ? "bg-[#d03b3b]" : "bg-[#2a78d6] dark:bg-[#3987e5]"}`} style={{ width: `${p}%` }} />
       </div>
-      <p className="text-xs opacity-70">
+      <p className="text-xs text-muted">
         {p >= 90 && <span aria-hidden>⚠ </span>}
         {p}% hạn mức
       </p>
@@ -262,10 +262,10 @@ function Meter({ label, used, limit, text }: { label: string; used: number; limi
 
 function SimpleTable({ caption, head, rows }: { caption: string; head: [string, string]; rows: (string | number)[][] }) {
   return (
-    <table className="w-full text-left text-sm">
-      <caption className="mb-1 text-left text-sm font-medium">{caption}</caption>
+    <Table maxHeight="none" label={caption}>
+      <caption className="px-3 pt-2 text-left text-sm font-medium">{caption}</caption>
       <thead>
-        <tr className="border-b border-black/10 opacity-70 dark:border-white/15">
+        <tr className="border-b border-border text-muted">
           <th className={th}>{head[0]}</th>
           <th className={`${th} text-right`}>{head[1]}</th>
         </tr>
@@ -273,19 +273,19 @@ function SimpleTable({ caption, head, rows }: { caption: string; head: [string, 
       <tbody>
         {rows.length === 0 ? (
           <tr>
-            <td colSpan={2} className="py-1 opacity-70">
+            <td colSpan={2} className="py-1 text-muted">
               Chưa có số liệu.
             </td>
           </tr>
         ) : (
           rows.map(([k, v]) => (
-            <tr key={String(k)} className="border-b border-black/5 dark:border-white/10">
+            <tr key={String(k)} className="border-b border-border">
               <td className="py-1 pr-3">{k}</td>
               <td className="py-1 pr-3 text-right">{typeof v === "number" ? v.toLocaleString("vi-VN") : v}</td>
             </tr>
           ))
         )}
       </tbody>
-    </table>
+    </Table>
   );
 }

@@ -7,8 +7,9 @@ import { formatDateTime } from "@/shared/lib/format";
 import { errorText, useData } from "@/shared/lib/use-data";
 import { errorClass } from "@/shared/ui/form-styles";
 import { getInbox, markRead } from "../api/announcements-api";
+import { EmptyState, Skeleton } from "@/shared/ui";
 
-const smallButton = "rounded border border-black/20 px-3 py-1 text-sm disabled:opacity-50 dark:border-white/20";
+const smallButton = "rounded-xl border border-border-strong px-3 py-1 text-sm disabled:opacity-50";
 
 const readBody = (item: InboxItemDto) =>
   item.kind === "ANNOUNCEMENT" ? { announcementIds: [item.id] } : { notificationIds: [item.id] };
@@ -16,7 +17,7 @@ const readBody = (item: InboxItemDto) =>
 function InboxEntry({ item, onOpen }: { item: InboxItemDto; onOpen: (item: InboxItemDto) => void }) {
   const [open, setOpen] = useState(false);
   return (
-    <li className={`rounded border p-3 ${item.read ? "border-black/10 dark:border-white/15" : "border-sky-600/50 bg-sky-500/5"}`}>
+    <li className={`rounded-xl border p-3 ${item.read ? "border-border " : "border-primary-soft-border bg-primary-soft/40"}`}>
       <button
         type="button"
         className="w-full text-left"
@@ -27,11 +28,11 @@ function InboxEntry({ item, onOpen }: { item: InboxItemDto; onOpen: (item: Inbox
         }}
       >
         <span className="flex flex-wrap items-baseline gap-x-2">
-          {!item.read && <span className="text-xs font-semibold text-sky-700 dark:text-sky-400">Mới</span>}
-          {item.pinned && <span className="text-xs font-semibold text-amber-700 dark:text-amber-400">Ghim</span>}
+          {!item.read && <span className="text-xs font-semibold text-primary">Mới</span>}
+          {item.pinned && <span className="text-xs font-semibold text-warning">Ghim</span>}
           <strong className="text-base">{item.title}</strong>
         </span>
-        <span className="block text-sm opacity-70">
+        <span className="block text-sm text-muted">
           {formatDateTime(item.createdAt)}
           {item.senderName && ` · ${item.senderName}`}
           {item.audienceLabel && ` · ${item.audienceLabel}`}
@@ -66,7 +67,7 @@ export function Inbox({ limit, moreHref }: { limit?: number; moreHref?: string }
   }
 
   if (inbox.error) return <p className={errorClass}>{inbox.error}</p>;
-  if (!inbox.data) return <p className="text-sm opacity-60">Đang tải…</p>;
+  if (!inbox.data) return <Skeleton />;
   const items = limit ? inbox.data.items.slice(0, limit) : inbox.data.items;
   return (
     <div className="space-y-3">
@@ -93,7 +94,7 @@ export function Inbox({ limit, moreHref }: { limit?: number; moreHref?: string }
       </div>
       {error && <p className={errorClass}>{error}</p>}
       {items.length === 0 ? (
-        <p className="text-sm opacity-70">Chưa có thông báo nào.</p>
+        <EmptyState>Chưa có thông báo nào.</EmptyState>
       ) : (
         <ul className="space-y-2">
           {items.map((item) => (

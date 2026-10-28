@@ -6,21 +6,23 @@ import { errorText, useData } from "@/shared/lib/use-data";
 import { errorClass, inputClass } from "@/shared/ui/form-styles";
 import { getScoreFormula, getScoreLocks, setScoreDeadline, setScoreFormula, setScoreLock } from "../api/scores-api";
 import { deadlineText, smallButton } from "./score-views";
+import { EmptyState, Skeleton, useConfirm, useToast } from "@/shared/ui";
 
 // Hạn chọn theo ngày: hết ngày đó theo giờ Việt Nam.
 const endOfDayVn = (date: string) => `${date}T23:59:59+07:00`;
 const vnDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh" }) : "");
 
 function SemesterLocks({ s, onChange }: { s: ScoreLockDto; onChange: (action: () => Promise<ScoreLockDto[]>) => void }) {
-  function onLock(e: FormEvent<HTMLFormElement>) {
+  const ask = useConfirm();
+  async function onLock(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const reason = String(new FormData(e.currentTarget).get("reason") ?? "").trim();
-    if (!window.confirm(`Khoá sổ điểm ${s.semesterName}? Giáo viên sẽ không sửa trực tiếp được nữa, chỉ gửi đề nghị điều chỉnh.`)) return;
+    if (!(await ask(`Khoá sổ điểm ${s.semesterName}? Giáo viên sẽ không sửa trực tiếp được nữa, chỉ gửi đề nghị điều chỉnh.`))) return;
     onChange(() => setScoreLock(s.semesterId, { locked: true, reason: reason || undefined }));
   }
 
   return (
-    <section className="space-y-3 rounded border border-black/10 p-3 dark:border-white/15" aria-label={s.semesterName}>
+    <section className="space-y-3 rounded-xl border border-border p-3" aria-label={s.semesterName}>
       <h3 className="font-semibold">{s.semesterName}</h3>
       <ul className="space-y-2">
         {ASSESSMENT_TYPES.map((type) => {
@@ -28,7 +30,7 @@ function SemesterLocks({ s, onChange }: { s: ScoreLockDto; onChange: (action: ()
           return (
             <li key={type} className="flex flex-wrap items-center gap-2 text-sm">
               <span className="w-28">{ASSESSMENT_TYPE_NAMES[type]}</span>
-              <span className="opacity-70">Hạn hiện tại: {deadlineText(current)}</span>
+              <span className="text-muted">Hạn hiện tại: {deadlineText(current)}</span>
               <input
                 type="date"
                 aria-label={`Hạn nhập điểm ${ASSESSMENT_TYPE_NAMES[type]}`}
@@ -49,7 +51,7 @@ function SemesterLocks({ s, onChange }: { s: ScoreLockDto; onChange: (action: ()
       </ul>
       {s.locked ? (
         <div className="flex flex-wrap items-center gap-3 text-sm">
-          <span className="text-red-600">
+          <span className="text-danger">
             Đã khoá sổ{s.lockedByName ? ` bởi ${s.lockedByName}` : ""}
             {s.lockedAt ? ` lúc ${deadlineText(s.lockedAt)}` : ""}
             {s.reason ? ` · ${s.reason}` : ""}
@@ -57,7 +59,7 @@ function SemesterLocks({ s, onChange }: { s: ScoreLockDto; onChange: (action: ()
           <button
             type="button"
             className={smallButton}
-            onClick={() => window.confirm(`Mở khoá sổ ${s.semesterName}?`) && onChange(() => setScoreLock(s.semesterId, { locked: false }))}
+            onClick={async () => (await ask(`Mở khoá sổ ${s.semesterName}?`)) && onChange(() => setScoreLock(s.semesterId, { locked: false }))}
           >
             Mở khoá sổ
           </button>
@@ -81,7 +83,7 @@ const num = (data: FormData, key: string) => Number(data.get(key));
 
 function FormulaEditor() {
   const formula = useData(getScoreFormula, undefined);
-  const [message, setMessage] = useState<string | null>(null);
+  const toast = useToast();
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -98,18 +100,17 @@ function FormulaEditor() {
       decimals: num(data, "decimals"),
     };
     setError(null);
-    setMessage(null);
     try {
       await setScoreFormula(next);
       formula.reload();
-      setMessage("Đã lưu công thức.");
+      toast.success("Đã lưu công thức.");
     } catch (err) {
       setError(errorText(err));
     }
   }
 
   if (formula.error) return <p className={errorClass}>{formula.error}</p>;
-  if (!formula.data) return <p className="text-sm opacity-60">Đang tải…</p>;
+  if (!formula.data) return <Skeleton />;
   const f = formula.data;
   const min = (max: number) => f.regularMin.find((r) => r.maxPeriodsPerWeek === max)?.count ?? f.regularMinOther;
   const field = (name: string, label: string, value: number, maxValue = 10) => (
@@ -121,7 +122,7 @@ function FormulaEditor() {
 
   return (
     <form key={JSON.stringify(f)} onSubmit={onSubmit} className="space-y-3" aria-label="Công thức điểm trung bình">
-      <p className="max-w-3xl text-sm opacity-70">{f.note}</p>
+      <p className="max-w-3xl text-sm text-muted">{f.note}</p>
       <p className="text-sm">{f.isDefault ? "Đang dùng công thức mặc định." : "Đang dùng công thức đã chỉnh."}</p>
       <div className="flex flex-wrap gap-3">
         {field("w_tx", "Hệ số thường xuyên", f.weights.THUONG_XUYEN)}
@@ -145,7 +146,6 @@ function FormulaEditor() {
         </label>
       </div>
       {error && <p className={errorClass}>{error}</p>}
-      {message && <p className="text-sm text-green-700 dark:text-green-400">{message}</p>}
       <button type="submit" className={smallButton}>
         Lưu công thức
       </button>
@@ -172,12 +172,12 @@ export function ScoreLocksManager() {
         <h2 id="han-nhap" className="text-xl font-semibold">
           Hạn nhập điểm và khoá sổ
         </h2>
-        <p className="max-w-3xl text-sm opacity-70">
+        <p className="max-w-3xl text-sm text-muted">
           Qua hạn (hoặc khi học kỳ đã khoá sổ) giáo viên không sửa điểm trực tiếp được; muốn sửa phải gửi đề nghị điều chỉnh kèm lý do để
           Ban giám hiệu duyệt. Hạn riêng đặt cho từng đợt thi được ưu tiên hơn hạn chung ở đây.
         </p>
         {(error ?? locks.error) && <p className={errorClass}>{error ?? locks.error}</p>}
-        {locks.data?.length === 0 && <p className="text-sm opacity-70">Chưa có năm học hiện hành.</p>}
+        {locks.data?.length === 0 && <EmptyState>Chưa có năm học hiện hành.</EmptyState>}
         {locks.data?.map((s) => <SemesterLocks key={s.semesterId} s={s} onChange={change} />)}
       </section>
       <section className="space-y-3" aria-labelledby="cong-thuc">

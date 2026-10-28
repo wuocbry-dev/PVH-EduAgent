@@ -14,8 +14,8 @@ export async function SchoolOverview() {
       <h2 className="text-lg font-semibold">Toàn trường{o.schoolYearName ? ` · năm học ${o.schoolYearName}` : ""}</h2>
       <ul className="grid gap-3 sm:grid-cols-3">
         {items.map((i) => (
-          <li key={i.label} className="rounded-lg border border-black/10 p-4 dark:border-white/15">
-            <p className="text-sm opacity-70">{i.label}</p>
+          <li key={i.label} className="rounded-2xl bg-surface border border-border p-4">
+            <p className="text-sm text-muted">{i.label}</p>
             <p className="text-3xl font-bold">{i.value.toLocaleString("vi-VN")}</p>
           </li>
         ))}

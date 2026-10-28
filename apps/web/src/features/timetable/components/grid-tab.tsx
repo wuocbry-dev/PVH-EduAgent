@@ -7,6 +7,7 @@ import { useData } from "@/shared/lib/use-data";
 import { errorClass, inputClass } from "@/shared/ui/form-styles";
 import { deleteSlot, getOptions, getSlots, listClassAssignments, moveSlot, placeSlot } from "../api/timetable-api";
 import { errorText, smallButton, type EditorContext } from "./context";
+import { EmptyState, Table, useConfirm } from "@/shared/ui";
 
 // Tải lưới của một lớp trong một phiên bản. `key` = "phiênbản|lớp|năm|phânCôngĐangChọn|phòng" (chuỗi để useData so sánh ổn định).
 async function loadGrid(key: string) {
@@ -21,13 +22,13 @@ async function loadGrid(key: string) {
 }
 
 // Thực hiện một thao tác xếp tiết; nếu giáo viên đã đăng ký bận thì hỏi xác nhận rồi gửi lại (ghi audit_logs ở máy chủ).
-async function withUnavailableConfirm<T>(run: (confirmed: boolean) => Promise<T>): Promise<T | undefined> {
+async function withUnavailableConfirm<T>(ask: (question: string) => Promise<boolean>, run: (confirmed: boolean) => Promise<T>): Promise<T | undefined> {
   try {
     return await run(false);
   } catch (err) {
     if (err instanceof ApiError && err.status === 409 && err.message.includes("confirmUnavailable")) {
       const message = err.message.replace(/\. Gửi confirmUnavailable=true.*$/, "");
-      if (!confirm(`${message}.\n\nVẫn xếp đè lên tiết bận? (việc này được ghi nhật ký)`)) return undefined;
+      if (!(await ask(`${message}.\n\nVẫn xếp đè lên tiết bận? (việc này được ghi nhật ký)`))) return undefined;
       return run(true);
     }
     throw err;
@@ -35,6 +36,7 @@ async function withUnavailableConfirm<T>(run: (confirmed: boolean) => Promise<T>
 }
 
 export function GridTab({ ctx }: { ctx: EditorContext }) {
+  const ask = useConfirm();
   const { frame, version, classes, rooms } = ctx;
   const editable = !ctx.readOnly && version?.status === "DRAFT";
   const [classId, setClassId] = useState("");
@@ -48,7 +50,7 @@ export function GridTab({ ctx }: { ctx: EditorContext }) {
   const key = version && cls ? `${version.id}|${cls.id}|${cls.schoolYearId}|${assignmentId}|${roomId}` : "";
   const grid = useData(loadGrid, key);
 
-  if (!version) return <p className="text-sm opacity-70">Chưa có phiên bản nào. Tạo một bản nháp ở tab «Phiên bản và công bố».</p>;
+  if (!version) return <EmptyState>Chưa có phiên bản nào. Tạo một bản nháp ở tab «Phiên bản và công bố».</EmptyState>;
 
   const data = grid.data;
   // Phân công áp dụng cho học kỳ của phiên bản: cả năm hoặc đúng học kỳ.
@@ -81,7 +83,7 @@ export function GridTab({ ctx }: { ctx: EditorContext }) {
     const moving = dragged?.startsWith("slot:") ? dragged.slice(5) : slotId;
     if (moving) {
       void run(async () => {
-        await withUnavailableConfirm((confirmed) => moveSlot(moving, { day, period, confirmUnavailable: confirmed }));
+        await withUnavailableConfirm(ask, (confirmed) => moveSlot(moving, { day, period, confirmUnavailable: confirmed }));
         setSlotId("");
       });
       return;
@@ -91,24 +93,24 @@ export function GridTab({ ctx }: { ctx: EditorContext }) {
     const option = optionAt(day, period);
     if (option && !option.ok) return setError(option.blocking.join("; "));
     void run(() =>
-      withUnavailableConfirm((confirmed) =>
+      withUnavailableConfirm(ask, (confirmed) =>
         placeSlot(version!.id, { assignmentId: assignment, day, period, roomId: roomId || null, confirmUnavailable: confirmed }),
       ),
     );
   }
 
   const cellClass = (day: number, period: number, slot: TimetableSlotDto | undefined) => {
-    if (slot) return slot.id === slotId ? "border-2 border-blue-600 bg-blue-500/20" : "bg-black/5 dark:bg-white/10";
+    if (slot) return slot.id === slotId ? "border-2 border-primary bg-primary-soft" : "bg-surface-muted";
     const o = optionAt(day, period);
     if (!o) return "";
-    if (!o.ok) return "bg-red-500/15 opacity-70";
-    return o.warnings.length > 0 ? "bg-yellow-500/25" : "bg-green-500/15";
+    if (!o.ok) return "bg-danger-soft text-muted";
+    return o.warnings.length > 0 ? "bg-warning-soft" : "bg-success-soft";
   };
 
   return (
     <section className="space-y-3" aria-label="Xếp lịch">
       {!editable && (
-        <p className="rounded border border-yellow-600/40 bg-yellow-500/10 p-2 text-sm">
+        <p className="rounded-xl border border-warning/40 bg-warning-soft p-2 text-sm">
           {ctx.readOnly
             ? "Bạn chỉ có quyền xem thời khoá biểu."
             : "Phiên bản đang chọn đã công bố nên chỉ xem. Muốn đổi lịch: tạo bản nháp từ bản này, sửa rồi công bố với ngày hiệu lực mới."}
@@ -173,29 +175,29 @@ export function GridTab({ ctx }: { ctx: EditorContext }) {
                       setSlotId("");
                     }}
                     aria-pressed={a.id === assignmentId}
-                    className={`w-full rounded border px-2 py-1 text-left text-sm disabled:opacity-100 ${
-                      a.id === assignmentId ? "border-2 border-blue-600" : "border-black/20 dark:border-white/20"
-                    } ${missing > 0 ? "bg-red-500/10" : "bg-green-500/10"}`}
+                    className={`w-full rounded-xl border px-2 py-1 text-left text-sm disabled:opacity-100 ${
+                      a.id === assignmentId ? "border-2 border-primary" : "border-border-strong"
+                    } ${missing > 0 ? "bg-danger-soft" : "bg-success-soft"}`}
                   >
                     <span className="block font-medium">{a.subjectName}</span>
-                    <span className="block text-xs opacity-80">
+                    <span className="block text-xs text-muted">
                       {a.teacherName} · {n}/{a.periodsPerWeek} tiết{missing > 0 ? ` (thiếu ${missing})` : ""}
                     </span>
                   </button>
                 </li>
               );
             })}
-            {assignments.length === 0 && <li className="text-sm opacity-70">Lớp chưa có phân công giảng dạy trong học kỳ này.</li>}
+            {assignments.length === 0 && <li className="text-sm text-muted">Lớp chưa có phân công giảng dạy trong học kỳ này.</li>}
           </ul>
           {editable && (
-            <p className="text-xs opacity-70">
-              Chọn một phân công (hoặc kéo nó) rồi bấm ô trên lưới: ô <span className="rounded bg-green-500/30 px-1">xanh</span> đặt được,{" "}
-              <span className="rounded bg-yellow-500/40 px-1">vàng</span> cần xác nhận (giáo viên báo bận), <span className="rounded bg-red-500/30 px-1">đỏ</span> không đặt
+            <p className="text-xs text-muted">
+              Chọn một phân công (hoặc kéo nó) rồi bấm ô trên lưới: ô <span className="rounded-xl bg-success-soft px-1">xanh</span> đặt được,{" "}
+              <span className="rounded-xl bg-warning-soft px-1">vàng</span> cần xác nhận (giáo viên báo bận), <span className="rounded-xl bg-danger-soft px-1">đỏ</span> không đặt
               được. Bấm một tiết đã xếp để dời hoặc xoá; có thể dùng phím Tab và Enter.
             </p>
           )}
           {selectedSlot && editable && (
-            <div className="space-y-2 rounded border border-blue-600 p-2 text-sm">
+            <div className="space-y-2 rounded-xl border border-primary p-2 text-sm">
               <p>
                 Đang chọn <strong>{selectedSlot.subjectName}</strong> ({TIMETABLE_DAY_NAMES[selectedSlot.day]} tiết {selectedSlot.period}). Bấm ô trống để dời.
               </p>
@@ -212,67 +214,65 @@ export function GridTab({ ctx }: { ctx: EditorContext }) {
         </aside>
 
         <div className="space-y-2">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] table-fixed border-collapse text-sm">
-              <thead>
-                <tr>
-                  <th className="w-24 border border-black/10 p-1 dark:border-white/15" />
-                  {frame.days.map((d) => (
-                    <th key={d} className="border border-black/10 p-1 dark:border-white/15">
-                      {TIMETABLE_DAY_NAMES[d]}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {frame.periods.map((p) => (
-                  <tr key={p.no}>
-                    <th className="border border-black/10 p-1 text-left font-normal dark:border-white/15">
-                      Tiết {p.no}
-                      <span className="block text-xs opacity-70">
-                        {p.start}–{p.end}
-                      </span>
-                    </th>
-                    {frame.days.map((d) => {
-                      const slot = slotAt(d, p.no);
-                      const option = optionAt(d, p.no);
-                      return (
-                        <td key={d} className="border border-black/10 p-0 dark:border-white/15">
-                          <button
-                            type="button"
-                            disabled={!editable && !slot}
-                            draggable={editable && !!slot}
-                            onDragStart={(e) => slot && e.dataTransfer.setData("text/plain", `slot:${slot.id}`)}
-                            onDragOver={(e) => editable && e.preventDefault()}
-                            onDrop={(e) => {
-                              e.preventDefault();
-                              dropOrClick(d, p.no, e.dataTransfer.getData("text/plain"));
-                            }}
-                            onClick={() => dropOrClick(d, p.no)}
-                            onMouseEnter={() => setHover(option ?? null)}
-                            onFocus={() => setHover(option ?? null)}
-                            title={option && !option.ok ? option.blocking.join("; ") : option?.warnings.join("; ")}
-                            aria-label={`${TIMETABLE_DAY_NAMES[d]} tiết ${p.no}${slot ? `: ${slot.subjectName}` : ""}`}
-                            className={`block h-14 w-full p-1 text-left align-top disabled:cursor-default ${cellClass(d, p.no, slot)}`}
-                          >
-                            {slot && (
-                              <>
-                                <span className="block truncate font-medium">{slot.subjectName}</span>
-                                <span className="block truncate text-xs opacity-80">
-                                  {slot.teacherName}
-                                  {slot.roomName ? ` · ${slot.roomName}` : ""}
-                                </span>
-                              </>
-                            )}
-                          </button>
-                        </td>
-                      );
-                    })}
-                  </tr>
+          <Table className="min-w-[640px] table-fixed" stickyFirstColumn>
+            <thead>
+              <tr>
+                <th className="w-24 border border-border p-1" />
+                {frame.days.map((d) => (
+                  <th key={d} className="border border-border p-1">
+                    {TIMETABLE_DAY_NAMES[d]}
+                  </th>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </tr>
+            </thead>
+            <tbody>
+              {frame.periods.map((p) => (
+                <tr key={p.no}>
+                  <th className="border border-border p-1 text-left font-normal">
+                    Tiết {p.no}
+                    <span className="block text-xs text-muted">
+                      {p.start}–{p.end}
+                    </span>
+                  </th>
+                  {frame.days.map((d) => {
+                    const slot = slotAt(d, p.no);
+                    const option = optionAt(d, p.no);
+                    return (
+                      <td key={d} className="border border-border p-0">
+                        <button
+                          type="button"
+                          disabled={!editable && !slot}
+                          draggable={editable && !!slot}
+                          onDragStart={(e) => slot && e.dataTransfer.setData("text/plain", `slot:${slot.id}`)}
+                          onDragOver={(e) => editable && e.preventDefault()}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            dropOrClick(d, p.no, e.dataTransfer.getData("text/plain"));
+                          }}
+                          onClick={() => dropOrClick(d, p.no)}
+                          onMouseEnter={() => setHover(option ?? null)}
+                          onFocus={() => setHover(option ?? null)}
+                          title={option && !option.ok ? option.blocking.join("; ") : option?.warnings.join("; ")}
+                          aria-label={`${TIMETABLE_DAY_NAMES[d]} tiết ${p.no}${slot ? `: ${slot.subjectName}` : ""}`}
+                          className={`block h-14 w-full p-1 text-left align-top disabled:cursor-default ${cellClass(d, p.no, slot)}`}
+                        >
+                          {slot && (
+                            <>
+                              <span className="block truncate font-medium">{slot.subjectName}</span>
+                              <span className="block truncate text-xs text-muted">
+                                {slot.teacherName}
+                                {slot.roomName ? ` · ${slot.roomName}` : ""}
+                              </span>
+                            </>
+                          )}
+                        </button>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </Table>
           <p className="min-h-5 text-sm" aria-live="polite">
             {hover && (hover.blocking.length > 0 || hover.warnings.length > 0)
               ? `${TIMETABLE_DAY_NAMES[hover.day]} tiết ${hover.period}: ${[...hover.blocking, ...hover.warnings].join("; ")}`

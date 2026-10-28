@@ -1,10 +1,22 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
+import { Alert, Button, Input } from "@/shared/ui";
 import { forgotPassword } from "../api/auth-api";
 import { LOGIN_PATH } from "../config";
-import { buttonClass, errorClass, inputClass } from "@/shared/ui/form-styles";
+
+export function BackToLogin() {
+  return (
+    <p className="text-center text-sm">
+      <Link href={LOGIN_PATH} className="inline-flex items-center gap-1.5 rounded-xl font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-accent focus-visible:outline-none">
+        <ArrowLeft className="size-4" aria-hidden />
+        Quay lại đăng nhập
+      </Link>
+    </p>
+  );
+}
 
 export function ForgotPasswordForm() {
   const [message, setMessage] = useState<string | null>(null);
@@ -27,33 +39,25 @@ export function ForgotPasswordForm() {
 
   if (message) {
     return (
-      <div className="space-y-4 text-sm">
-        <p>{message}. Link có hiệu lực trong 30 phút.</p>
-        <Link href={LOGIN_PATH} className="underline">
-          Quay lại đăng nhập
-        </Link>
+      <div className="space-y-4">
+        <Alert tone="success">{message}. Link có hiệu lực trong 30 phút.</Alert>
+        <BackToLogin />
       </div>
     );
   }
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <p className="text-sm opacity-70">
-        Học sinh đăng nhập bằng mã học sinh (không có email): hãy liên hệ giáo viên chủ nhiệm để được cấp lại mã kích hoạt.
-      </p>
-      <label className="block space-y-1 text-sm">
+      <Alert tone="info">Học sinh đăng nhập bằng mã học sinh (không có email): hãy liên hệ giáo viên chủ nhiệm để được cấp lại mã kích hoạt.</Alert>
+      <label className="block space-y-1.5 text-sm font-medium">
         <span>Email đăng nhập</span>
-        <input name="email" type="email" autoComplete="username" required className={inputClass} />
+        <Input name="email" type="email" autoComplete="username" required />
       </label>
-      {error && <p className={errorClass}>{error}</p>}
-      <button type="submit" disabled={pending} className={buttonClass}>
+      {error && <Alert tone="danger">{error}</Alert>}
+      <Button type="submit" full loading={pending}>
         Gửi link đặt lại mật khẩu
-      </button>
-      <p className="text-center text-sm">
-        <Link href={LOGIN_PATH} className="underline opacity-70">
-          Quay lại đăng nhập
-        </Link>
-      </p>
+      </Button>
+      <BackToLogin />
     </form>
   );
 }

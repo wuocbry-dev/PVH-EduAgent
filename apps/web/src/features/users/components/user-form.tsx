@@ -51,7 +51,7 @@ export function UserForm({ user, onSaved, onCancel }: Props) {
   return (
     <form
       onSubmit={onSubmit}
-      className="max-w-md space-y-4 rounded border border-black/10 p-4 dark:border-white/15"
+      className="max-w-md space-y-4 rounded-xl border border-border p-4"
     >
       <h2 className="text-lg font-semibold">{user ? `Sửa: ${user.email ?? user.fullName}` : "Thêm người dùng"}</h2>
       {!user && (
@@ -95,7 +95,7 @@ export function UserForm({ user, onSaved, onCancel }: Props) {
         <button type="submit" disabled={pending || roles.length === 0} className={buttonClass}>
           {user ? "Lưu thay đổi" : "Tạo người dùng"}
         </button>
-        <button type="button" onClick={onCancel} className="rounded border border-black/20 px-4 py-2 dark:border-white/20">
+        <button type="button" onClick={onCancel} className="rounded-xl border border-border-strong px-4 py-2">
           Hủy
         </button>
       </div>

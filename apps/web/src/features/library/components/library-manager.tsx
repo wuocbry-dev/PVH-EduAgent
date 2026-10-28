@@ -19,6 +19,7 @@ import {
 import { itemPath } from "./library-card";
 import { LibraryItemForm } from "./library-item-form";
 import { previewItem, smallButton, StatusBadge } from "./library-submissions";
+import { EmptyState, Skeleton, useConfirm } from "@/shared/ui";
 
 export type LibraryTab = "duyet" | "kho" | "danh-muc" | "thong-ke";
 const TAB_NAMES: Record<LibraryTab, string> = { duyet: "Hàng chờ duyệt", kho: "Kho tài liệu", "danh-muc": "Danh mục", "thong-ke": "Thống kê" };
@@ -38,7 +39,7 @@ export function LibraryManager({ tabs = ["duyet", "kho", "danh-muc", "thong-ke"]
               role="tab"
               aria-selected={tab === t}
               onClick={() => setTab(t)}
-              className={`rounded-full border px-3 py-1 text-sm ${tab === t ? "border-brand bg-brand text-white" : "border-black/20 dark:border-white/20"}`}
+              className={`rounded-full border px-3 py-1 text-sm ${tab === t ? "border-primary bg-primary text-primary-foreground" : "border-border-strong"}`}
             >
               {TAB_NAMES[t]}
             </button>
@@ -74,37 +75,37 @@ function ReviewQueue() {
   }
 
   if (list.error) return <p className={errorClass}>{list.error}</p>;
-  if (!list.data) return <p className="text-sm opacity-70">Đang tải…</p>;
+  if (!list.data) return <Skeleton />;
   return (
     <div className="space-y-3">
-      {message && <p className="text-sm text-green-700 dark:text-green-400">{message}</p>}
+      {message && <p className="text-sm text-success">{message}</p>}
       {error && <p className={errorClass}>{error}</p>}
       {list.data.length === 0 ? (
-        <p className="text-sm opacity-70">Không có tài liệu nào chờ duyệt.</p>
+        <EmptyState>Không có tài liệu nào chờ duyệt.</EmptyState>
       ) : (
         <ul className="space-y-3">
           {list.data.map((item) => (
-            <li key={item.id} className="space-y-2 rounded-lg border border-black/10 p-3 dark:border-white/15">
+            <li key={item.id} className="space-y-2 rounded-2xl bg-surface border border-border p-3">
               <p className="font-medium">{item.title}</p>
-              <p className="text-sm opacity-80">
+              <p className="text-sm text-muted">
                 {LIBRARY_KIND_NAMES[item.kind]} · {item.categoryName} · Dành cho: {item.audienceLabel}
                 {item.allowDownload && " · cho tải về"}
               </p>
               <p className="text-sm">
-                <span className="opacity-70">Người gửi:</span> {item.submittedByName} · {formatDateTime(item.updatedAt)}
+                <span className="text-muted">Người gửi:</span> {item.submittedByName} · {formatDateTime(item.updatedAt)}
               </p>
               <p className="text-sm">
-                <span className="opacity-70">Nguồn:</span> {LIBRARY_SOURCE_NAMES[item.source]} – {item.license}
+                <span className="text-muted">Nguồn:</span> {LIBRARY_SOURCE_NAMES[item.source]} – {item.license}
               </p>
-              {item.description && <p className="line-clamp-3 text-sm opacity-80">{item.description}</p>}
+              {item.description && <p className="line-clamp-3 text-sm text-muted">{item.description}</p>}
               <div className="flex flex-wrap gap-2">
                 <button type="button" className={smallButton} onClick={() => previewItem(item.id).catch((err) => setError(errorText(err)))}>
                   Xem file
                 </button>
-                <button type="button" className="rounded bg-green-700 px-3 py-1 text-sm text-white" onClick={() => act(item, "approve")}>
+                <button type="button" className="rounded-xl bg-primary px-3 py-1 text-sm text-primary-foreground" onClick={() => act(item, "approve")}>
                   Duyệt đăng
                 </button>
-                <button type="button" className={`${smallButton} text-red-700`} onClick={() => act(item, "reject")}>
+                <button type="button" className={`${smallButton} text-danger`} onClick={() => act(item, "reject")}>
                   Từ chối
                 </button>
               </div>
@@ -117,6 +118,7 @@ function ReviewQueue() {
 }
 
 function Catalog() {
+  const ask = useConfirm();
   const options = useData(getFormOptions, undefined);
   const [query, setQuery] = useState<{ scope: "all"; status: LibraryStatus | ""; q: string }>({ scope: "all", status: "", q: "" });
   const list = useData(listSubmissions, query);
@@ -172,17 +174,17 @@ function Catalog() {
       {error && <p className={errorClass}>{error}</p>}
       {list.error && <p className={errorClass}>{list.error}</p>}
       {!list.data ? (
-        <p className="text-sm opacity-70">Đang tải…</p>
+        <Skeleton />
       ) : list.data.length === 0 ? (
-        <p className="text-sm opacity-70">Không có tài liệu nào.</p>
+        <EmptyState>Không có tài liệu nào.</EmptyState>
       ) : (
-        <ul className="divide-y divide-black/10 rounded-lg border border-black/10 dark:divide-white/15 dark:border-white/15">
+        <ul className="divide-y divide-border rounded-2xl bg-surface border border-border">
           {list.data.map((item) => (
             <li key={item.id} className="flex flex-wrap items-center gap-2 p-3">
               <StatusBadge status={item.status} />
               <span className="min-w-0 flex-1 break-words">
                 <span className="font-medium">{item.title}</span>{" "}
-                <span className="text-xs opacity-70">
+                <span className="text-xs text-muted">
                   {LIBRARY_KIND_NAMES[item.kind]} · {item.audienceLabel} · {item.viewCount} lượt · {item.submittedByName}
                 </span>
               </span>
@@ -207,8 +209,8 @@ function Catalog() {
                 )}
                 <button
                   type="button"
-                  className={`${smallButton} text-red-700`}
-                  onClick={() => confirm(`Xoá hẳn "${item.title}" và file của nó?`) && run(() => deleteItem(item.id))}
+                  className={`${smallButton} text-danger`}
+                  onClick={async () => (await ask(`Xoá hẳn "${item.title}" và file của nó?`)) && run(() => deleteItem(item.id))}
                 >
                   Xoá
                 </button>
@@ -222,6 +224,7 @@ function Catalog() {
 }
 
 function Categories() {
+  const ask = useConfirm();
   const list = useData(listCategories, undefined);
   const [editing, setEditing] = useState<string | null>(null); // id, "new" hoặc null
   const [error, setError] = useState<string | null>(null);
@@ -255,14 +258,14 @@ function Categories() {
   }
 
   if (list.error) return <p className={errorClass}>{list.error}</p>;
-  if (!list.data) return <p className="text-sm opacity-70">Đang tải…</p>;
+  if (!list.data) return <Skeleton />;
   const current = list.data.find((c) => c.id === editing);
   const roots = list.data.filter((c) => !c.parentId && c.id !== editing);
   return (
     <div className="space-y-3">
       {error && <p className={errorClass}>{error}</p>}
       {editing ? (
-        <form key={editing} onSubmit={onSubmit} className="grid gap-2 rounded-lg border border-black/10 p-3 sm:grid-cols-2 dark:border-white/15">
+        <form key={editing} onSubmit={onSubmit} className="grid gap-2 rounded-2xl bg-surface border border-border p-3 sm:grid-cols-2">
           <input name="name" required maxLength={100} placeholder="Tên danh mục" defaultValue={current?.name} className={inputClass} />
           <input name="slug" maxLength={120} placeholder="Đường dẫn (để trống: tự tạo)" defaultValue={current?.slug} className={inputClass} />
           <select name="parentId" defaultValue={current?.parentId ?? ""} className={inputClass}>
@@ -275,7 +278,7 @@ function Categories() {
           </select>
           <input name="sortOrder" type="number" min={0} max={1000} defaultValue={current?.sortOrder ?? 0} className={inputClass} aria-label="Thứ tự" />
           <div className="flex gap-2 sm:col-span-2">
-            <button type="submit" className="rounded bg-brand px-4 py-2 text-sm text-white">
+            <button type="submit" className="rounded-xl bg-primary px-4 py-2 text-sm text-primary-foreground">
               Lưu
             </button>
             <button type="button" className={smallButton} onClick={() => setEditing(null)}>
@@ -284,21 +287,21 @@ function Categories() {
           </div>
         </form>
       ) : (
-        <button type="button" className="rounded bg-brand px-4 py-2 text-sm text-white" onClick={() => setEditing("new")}>
+        <button type="button" className="rounded-xl bg-primary px-4 py-2 text-sm text-primary-foreground" onClick={() => setEditing("new")}>
           + Danh mục mới
         </button>
       )}
-      <ul className="divide-y divide-black/10 rounded-lg border border-black/10 dark:divide-white/15 dark:border-white/15">
+      <ul className="divide-y divide-border rounded-2xl bg-surface border border-border">
         {list.data.map((c) => (
           <li key={c.id} className="flex flex-wrap items-center gap-2 p-3">
             <span className="min-w-0 flex-1">
               {c.parentId && "— "}
-              {c.name} <span className="text-xs opacity-60">/{c.slug} · {c.itemCount} tài liệu</span>
+              {c.name} <span className="text-xs text-muted">/{c.slug} · {c.itemCount} tài liệu</span>
             </span>
             <button type="button" className={smallButton} onClick={() => setEditing(c.id)}>
               Sửa
             </button>
-            <button type="button" className={`${smallButton} text-red-700`} onClick={() => confirm(`Xoá danh mục "${c.name}"?`) && remove(c.id)}>
+            <button type="button" className={`${smallButton} text-danger`} onClick={async () => (await ask(`Xoá danh mục "${c.name}"?`)) && remove(c.id)}>
               Xoá
             </button>
           </li>
@@ -311,7 +314,7 @@ function Categories() {
 function Stats() {
   const { data, error } = useData(getStats, undefined);
   if (error) return <p className={errorClass}>{error}</p>;
-  if (!data) return <p className="text-sm opacity-70">Đang tải…</p>;
+  if (!data) return <Skeleton />;
   const tiles: [string, number][] = [
     ["Hôm nay", data.views.today],
     ["Hôm qua", data.views.yesterday],
@@ -325,13 +328,13 @@ function Stats() {
         <h2 className="font-semibold">Lượt đọc, nghe, xem</h2>
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-5">
           {tiles.map(([label, value]) => (
-            <div key={label} className="rounded-lg border border-black/10 p-3 dark:border-white/15">
-              <dt className="text-sm opacity-70">{label}</dt>
+            <div key={label} className="rounded-2xl bg-surface border border-border p-3">
+              <dt className="text-sm text-muted">{label}</dt>
               <dd className="text-2xl font-bold tabular-nums">{value.toLocaleString("vi-VN")}</dd>
             </div>
           ))}
         </dl>
-        <p className="text-xs opacity-60">Mỗi người mở lại cùng một tài liệu trong 30 phút chỉ tính một lượt. Ngày tính theo giờ Việt Nam.</p>
+        <p className="text-xs text-muted">Mỗi người mở lại cùng một tài liệu trong 30 phút chỉ tính một lượt. Ngày tính theo giờ Việt Nam.</p>
       </section>
       <p className="text-sm">
         {data.items.published} tài liệu đã đăng · {data.items.pending} chờ duyệt · {data.items.total} tài liệu trong kho
@@ -339,7 +342,7 @@ function Stats() {
       <section className="space-y-2">
         <h2 className="font-semibold">Đọc nhiều nhất</h2>
         {data.top.length === 0 ? (
-          <p className="text-sm opacity-70">Chưa có lượt đọc nào.</p>
+          <EmptyState>Chưa có lượt đọc nào.</EmptyState>
         ) : (
           <ol className="list-decimal space-y-1 pl-6 text-sm">
             {data.top.map((t) => (
@@ -347,7 +350,7 @@ function Stats() {
                 <Link href={itemPath(t.slug)} className="underline">
                   {t.title}
                 </Link>{" "}
-                <span className="opacity-70">– {t.views.toLocaleString("vi-VN")} lượt</span>
+                <span className="text-muted">– {t.views.toLocaleString("vi-VN")} lượt</span>
               </li>
             ))}
           </ol>

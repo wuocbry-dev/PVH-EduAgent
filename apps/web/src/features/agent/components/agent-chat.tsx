@@ -70,7 +70,7 @@ export function AgentChat() {
         <label className="flex items-center gap-2 text-sm">
           Thử với vai trò
           <select
-            className="rounded border border-black/20 bg-transparent px-2 py-1 dark:border-white/20"
+            className="rounded-xl border border-border-strong bg-transparent px-2 py-1"
             value={devUserEmail}
             onChange={(e) => setDevUserEmail(e.target.value)}
           >
@@ -83,9 +83,9 @@ export function AgentChat() {
         </label>
       )}
 
-      <div className="min-h-64 space-y-3 rounded-lg border border-black/10 p-4 dark:border-white/15">
+      <div className="min-h-64 space-y-3 rounded-2xl bg-surface border border-border p-4">
         {lines.length === 0 && (
-          <p className="text-sm opacity-60">Ví dụ: “Hôm nay có việc nào sắp đến hạn không?”</p>
+          <p className="text-sm text-muted">Ví dụ: “Hôm nay có việc nào sắp đến hạn không?”</p>
         )}
         {lines.map((line, i) =>
           line.role === "action" ? (
@@ -94,7 +94,7 @@ export function AgentChat() {
             <p
               key={i}
               className={`whitespace-pre-wrap text-sm ${
-                line.role === "user" ? "font-medium" : line.role === "error" ? "text-red-600" : ""
+                line.role === "user" ? "font-medium" : line.role === "error" ? "text-danger" : ""
               }`}
             >
               {line.role === "user" ? "Bạn: " : line.role === "agent" ? "Trợ lý: " : "Lỗi: "}
@@ -102,12 +102,12 @@ export function AgentChat() {
             </p>
           ),
         )}
-        {pending && <p className="text-sm opacity-60">Trợ lý đang xử lý…</p>}
+        {pending && <p className="text-sm text-muted">Trợ lý đang xử lý…</p>}
       </div>
 
       <form onSubmit={onSubmit} className="flex gap-2">
         <input
-          className="flex-1 rounded border border-black/20 bg-transparent px-3 py-2 dark:border-white/20"
+          className="flex-1 rounded-xl border border-border-strong bg-transparent px-3 py-2"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Nhập yêu cầu cho trợ lý…"
@@ -115,7 +115,7 @@ export function AgentChat() {
         <button
           type="submit"
           disabled={pending}
-          className="rounded bg-foreground px-4 py-2 text-background disabled:opacity-50"
+          className="rounded-xl bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
         >
           Gửi
         </button>

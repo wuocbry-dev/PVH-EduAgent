@@ -9,6 +9,7 @@ import { usePortalBase } from "@/shared/lib/use-portal-base";
 import { errorClass } from "@/shared/ui/form-styles";
 import { checkNow, getOverview } from "../api/monitoring-api";
 import { HourBars, StatusBadge } from "./charts";
+import { EmptyState, Skeleton, Table } from "@/shared/ui";
 
 const REFRESH_MS = 30_000;
 
@@ -29,17 +30,17 @@ function formatUptime(seconds: number) {
 function Tile({ label, value, note, alert, href }: { label: string; value: string; note?: string; alert?: boolean; href?: string }) {
   const body = (
     <>
-      <p className="text-sm opacity-70">{label}</p>
-      <p className={`text-2xl font-bold ${alert ? "text-red-700 dark:text-red-400" : ""}`}>
+      <p className="text-sm text-muted">{label}</p>
+      <p className={`text-2xl font-bold ${alert ? "text-danger " : ""}`}>
         {alert && <span aria-hidden>⚠ </span>}
         {value}
       </p>
-      {note && <p className="text-xs opacity-70">{note}</p>}
+      {note && <p className="text-xs text-muted">{note}</p>}
     </>
   );
-  const cls = "block h-full rounded-lg border border-black/10 p-3 dark:border-white/15";
+  const cls = "block h-full rounded-2xl bg-surface border border-border p-3";
   return href ? (
-    <Link href={href} className={`${cls} hover:bg-black/5 dark:hover:bg-white/10`}>
+    <Link href={href} className={`${cls} hover:bg-primary-soft`}>
       {body}
     </Link>
   ) : (
@@ -73,7 +74,7 @@ export function MonitoringDashboard() {
   }
 
   if (error && !data) return <p className={errorClass}>{error}</p>;
-  if (!data) return <p className="text-sm opacity-60">Đang tải…</p>;
+  if (!data) return <Skeleton />;
   return <Overview data={data} base={base} checking={checking} onCheck={runCheck} actionError={actionError ?? error} />;
 }
 
@@ -102,12 +103,12 @@ function Overview({
           type="button"
           onClick={onCheck}
           disabled={checking}
-          className="rounded bg-foreground px-3 py-1.5 text-background disabled:opacity-60"
+          className="rounded-xl bg-primary px-3 py-1.5 text-primary-foreground disabled:opacity-60"
         >
           {checking ? "Đang kiểm tra…" : "Kiểm tra ngay"}
         </button>
-        <span className="opacity-70">Tự làm mới mỗi 30 giây</span>
-        <span className="opacity-70">
+        <span className="text-muted">Tự làm mới mỗi 30 giây</span>
+        <span className="text-muted">
           Cảnh báo Telegram: <strong>{data.alertsEnabled ? "đang bật" : "đang tắt"}</strong> (
           <Link className="underline" href={`${base}/cau-hinh`}>
             cấu hình
@@ -117,21 +118,21 @@ function Overview({
       </div>
       {actionError && <p className={errorClass}>{actionError}</p>}
       {!data.monitoringEnabled && (
-        <p className="rounded border border-amber-600/40 bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+        <p className="rounded-xl border border-warning/40 bg-warning-soft p-3 text-sm text-warning">
           Job kiểm tra định kỳ đang tắt (MONITORING_ENABLED=false hoặc chưa có Redis). Số liệu chỉ cập nhật khi bấm “Kiểm tra ngay”.
         </p>
       )}
 
       {data.openAlerts.length > 0 && (
-        <section aria-labelledby="canh-bao-mo" className="space-y-2 rounded-lg border border-red-600/40 p-3">
-          <h2 id="canh-bao-mo" className="font-semibold text-red-700 dark:text-red-400">
+        <section aria-labelledby="canh-bao-mo" className="space-y-2 rounded-2xl border border-danger/40 p-3">
+          <h2 id="canh-bao-mo" className="font-semibold text-danger">
             ⚠ {data.openAlerts.length} cảnh báo đang mở
           </h2>
           <ul className="space-y-1 text-sm">
             {data.openAlerts.slice(0, 5).map((a) => (
               <li key={a.id}>
                 <span className="font-medium">{ALERT_KIND_NAMES[a.kind]}:</span> {a.title}{" "}
-                <span className="opacity-60">({formatDateTime(a.openedAt)})</span>
+                <span className="text-muted">({formatDateTime(a.openedAt)})</span>
               </li>
             ))}
           </ul>
@@ -143,18 +144,18 @@ function Overview({
 
       <section aria-labelledby="dich-vu" className="space-y-2">
         <h2 id="dich-vu" className="text-lg font-semibold">
-          Dịch vụ {down.length > 0 && <span className="text-red-700 dark:text-red-400">– {down.length} đang ngừng</span>}
+          Dịch vụ {down.length > 0 && <span className="text-danger">– {down.length} đang ngừng</span>}
         </h2>
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {data.services.map((s) => (
-            <li key={s.service} className="space-y-1 rounded-lg border border-black/10 p-3 dark:border-white/15">
+            <li key={s.service} className="space-y-1 rounded-2xl bg-surface border border-border p-3">
               <p className="font-medium">{s.name}</p>
               <StatusBadge status={s.status} />
-              <p className="break-words text-xs opacity-70">
+              <p className="break-words text-xs text-muted">
                 {s.latencyMs !== null && `${s.latencyMs} ms · `}
                 {s.message}
               </p>
-              {s.checkedAt && <p className="text-xs opacity-60">Kiểm tra lúc {formatDateTime(s.checkedAt)}</p>}
+              {s.checkedAt && <p className="text-xs text-muted">Kiểm tra lúc {formatDateTime(s.checkedAt)}</p>}
             </li>
           ))}
         </ul>
@@ -201,7 +202,7 @@ function Overview({
           Độ trễ 24 giờ (trung bình mỗi giờ)
         </h2>
         {latencies.length === 0 ? (
-          <p className="text-sm opacity-70">Chưa có số liệu kiểm tra trong 24 giờ.</p>
+          <EmptyState>Chưa có số liệu kiểm tra trong 24 giờ.</EmptyState>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
             {latencies.map((l) => (
@@ -223,38 +224,36 @@ function Overview({
           Hàng đợi
         </h2>
         {!data.queue.enabled ? (
-          <p className="text-sm text-amber-700">Đang tắt (chưa cấu hình Redis): bài hẹn giờ chưa tự đăng.</p>
+          <p className="text-sm text-warning">Đang tắt (chưa cấu hình Redis): bài hẹn giờ chưa tự đăng.</p>
         ) : data.queue.error ? (
           <p className={errorClass}>{data.queue.error}</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-black/10 opacity-70 dark:border-white/15">
-                  <th className="py-1 pr-3 font-normal">Hàng đợi</th>
-                  <th className="py-1 pr-3 text-right font-normal">Chờ</th>
-                  <th className="py-1 pr-3 text-right font-normal">Hẹn giờ</th>
-                  <th className="py-1 pr-3 text-right font-normal">Đang chạy</th>
-                  <th className="py-1 text-right font-normal">Thất bại</th>
+          <Table>
+            <thead>
+              <tr className="border-b border-border text-muted">
+                <th className="py-1 pr-3 font-normal">Hàng đợi</th>
+                <th className="py-1 pr-3 text-right font-normal">Chờ</th>
+                <th className="py-1 pr-3 text-right font-normal">Hẹn giờ</th>
+                <th className="py-1 pr-3 text-right font-normal">Đang chạy</th>
+                <th className="py-1 text-right font-normal">Thất bại</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.queue.queues.map((q) => (
+                <tr key={q.name} className="border-b border-border">
+                  <td className="py-1 pr-3 font-mono text-xs">{q.name}</td>
+                  <td className="py-1 pr-3 text-right">{q.waiting}</td>
+                  <td className="py-1 pr-3 text-right">{q.delayed}</td>
+                  <td className="py-1 pr-3 text-right">{q.active}</td>
+                  <td className={`py-1 text-right ${q.failed > 0 ? "font-semibold text-danger " : ""}`}>{q.failed}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {data.queue.queues.map((q) => (
-                  <tr key={q.name} className="border-b border-black/5 dark:border-white/10">
-                    <td className="py-1 pr-3 font-mono text-xs">{q.name}</td>
-                    <td className="py-1 pr-3 text-right">{q.waiting}</td>
-                    <td className="py-1 pr-3 text-right">{q.delayed}</td>
-                    <td className="py-1 pr-3 text-right">{q.active}</td>
-                    <td className={`py-1 text-right ${q.failed > 0 ? "font-semibold text-red-700 dark:text-red-400" : ""}`}>{q.failed}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </Table>
         )}
       </section>
 
-      <p className="text-xs opacity-60">
+      <p className="text-xs text-muted">
         Máy chủ API chạy {formatUptime(data.system.uptimeSec)} · bộ nhớ {data.system.memoryMb} MB · Node {data.system.node}
       </p>
     </div>

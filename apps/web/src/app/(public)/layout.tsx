@@ -6,15 +6,15 @@ export default function PublicLayout({ children }: LayoutProps<"/">) {
     <>
       <a
         href="#noi-dung"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-30 focus:bg-background focus:p-3"
+        className="sr-only z-50 rounded-xl bg-surface p-3 text-primary focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:ring-2 focus:ring-accent"
       >
         Bỏ qua điều hướng
       </a>
       <SiteHeader />
-      <main id="noi-dung" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+      <main id="noi-dung" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 focus:outline-none">
         {children}
       </main>
-      <Suspense fallback={<div className="mt-12 h-40 bg-brand" aria-hidden />}>
+      <Suspense fallback={<div className="mt-12 h-40 bg-navy" aria-hidden />}>
         <SiteFooter />
       </Suspense>
     </>

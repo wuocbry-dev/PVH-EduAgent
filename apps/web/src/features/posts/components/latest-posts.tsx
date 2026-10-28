@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatDate } from "@/shared/lib/format";
 import { getPublicPosts } from "../api/public-posts";
 import { NewsCard } from "./news-card";
+import { EmptyState } from "@/shared/ui";
 
 interface Props {
   category: string;
@@ -14,9 +15,9 @@ export async function LatestPosts({ category, count, variant }: Props) {
   const result = await getPublicPosts({ category, page: 1, pageSize: count });
 
   if (result === null) {
-    return <p className="text-sm opacity-70">Không tải được dữ liệu lúc này, vui lòng thử lại sau.</p>;
+    return <p className="text-sm text-muted">Không tải được dữ liệu lúc này, vui lòng thử lại sau.</p>;
   }
-  if (result.items.length === 0) return <p className="text-sm opacity-70">Chưa có bài viết nào.</p>;
+  if (result.items.length === 0) return <EmptyState>Chưa có bài viết nào.</EmptyState>;
 
   if (variant === "cards") {
     return (
@@ -30,13 +31,13 @@ export async function LatestPosts({ category, count, variant }: Props) {
     );
   }
   return (
-    <ul className="divide-y divide-black/10 dark:divide-white/15">
+    <ul className="divide-y divide-border">
       {result.items.map((post) => (
         <li key={post.id} className="flex flex-wrap items-baseline justify-between gap-x-4 py-3">
           <Link href={`/tin-tuc/${post.slug}`} className="font-medium hover:underline">
             {post.title}
           </Link>
-          <time dateTime={post.publishedAt} className="text-xs opacity-70">
+          <time dateTime={post.publishedAt} className="text-xs text-muted">
             {formatDate(post.publishedAt)}
           </time>
         </li>

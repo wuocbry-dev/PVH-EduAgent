@@ -7,8 +7,8 @@ export async function StudentHome() {
   const [user, me] = await Promise.all([getCurrentUser(), getMyAcademic()]);
   return (
     <section className="space-y-1" aria-label="Lời chào">
-      <h2 className="text-2xl font-bold">Xin chào, {user.fullName}!</h2>
-      <p className="opacity-80">
+      <h1 className="text-2xl font-bold">Xin chào, {user.fullName}!</h1>
+      <p className="text-muted">
         {me.className ? `Lớp ${me.className}` : "Chưa xếp lớp"}
         {me.schoolYearName && ` · năm học ${me.schoolYearName}`}
         {me.homeroomTeacherName && ` · chủ nhiệm: ${me.homeroomTeacherName}`}
@@ -28,21 +28,21 @@ export async function StudentProfile() {
   return (
     <div className="space-y-4">
       <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-[auto_1fr]">
-        <dt className="opacity-70">Họ và tên</dt>
+        <dt className="text-muted">Họ và tên</dt>
         <dd className="font-semibold">{user.fullName}</dd>
-        <dt className="opacity-70">Mã học sinh (dùng để đăng nhập)</dt>
+        <dt className="text-muted">Mã học sinh (dùng để đăng nhập)</dt>
         <dd className="font-mono font-semibold">{me.studentCode ?? "—"}</dd>
-        <dt className="opacity-70">Lớp</dt>
+        <dt className="text-muted">Lớp</dt>
         <dd className="font-semibold">{me.className ?? "Chưa xếp lớp"}</dd>
-        <dt className="opacity-70">Năm học</dt>
+        <dt className="text-muted">Năm học</dt>
         <dd>{me.schoolYearName ?? "—"}</dd>
-        <dt className="opacity-70">Giáo viên chủ nhiệm</dt>
+        <dt className="text-muted">Giáo viên chủ nhiệm</dt>
         <dd>{me.homeroomTeacherName ?? "—"}</dd>
       </dl>
-      <p className="max-w-2xl text-sm opacity-70">
+      <p className="max-w-2xl text-sm text-muted">
         Thông tin sai thì em báo giáo viên chủ nhiệm để nhà trường sửa. Quên mật khẩu thì nhờ giáo viên chủ nhiệm cấp lại mã kích hoạt.
       </p>
-      <Link href="/hoc-sinh/doi-mat-khau" className="inline-block rounded border border-black/20 px-4 py-2 dark:border-white/20">
+      <Link href="/hoc-sinh/doi-mat-khau" className="inline-block rounded-xl border border-border-strong px-4 py-2">
         Đổi mật khẩu
       </Link>
     </div>

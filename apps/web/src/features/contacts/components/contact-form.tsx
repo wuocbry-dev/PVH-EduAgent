@@ -67,8 +67,8 @@ export function ContactForm() {
         </label>
       </div>
       {error && <p className={errorClass} role="alert">{error}</p>}
-      {done && <p className="text-sm text-green-700" role="status">{done}</p>}
-      <button type="submit" disabled={pending} className="w-full rounded bg-brand px-6 py-2 font-medium text-white disabled:opacity-50 sm:w-auto">
+      {done && <p className="text-sm text-success" role="status">{done}</p>}
+      <button type="submit" disabled={pending} className="w-full rounded-xl bg-primary px-6 py-2 font-medium text-primary-foreground disabled:opacity-50 sm:w-auto">
         {pending ? "Đang gửi…" : "Gửi liên hệ"}
       </button>
     </form>

@@ -23,4 +23,4 @@ export interface TeachingContext {
   reload: () => void;
 }
 
-export const smallButton = "rounded border border-black/20 px-3 py-1 text-sm disabled:opacity-50 dark:border-white/20";
+export const smallButton = "rounded-xl border border-border-strong px-3 py-1 text-sm disabled:opacity-50";

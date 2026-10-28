@@ -9,18 +9,19 @@ import { errorText, useData } from "@/shared/lib/use-data";
 import { accessItem, deleteItem, getFormOptions, listSubmissions, submitItem } from "../api/library-api";
 import { itemPath } from "./library-card";
 import { LibraryItemForm } from "./library-item-form";
+import { Skeleton, useConfirm, useToast } from "@/shared/ui";
 
 export const STATUS_STYLE: Record<LibraryStatus, string> = {
-  DRAFT: "bg-neutral-200 text-neutral-800",
-  PENDING_REVIEW: "bg-amber-100 text-amber-900",
-  PUBLISHED: "bg-green-100 text-green-900",
-  REJECTED: "bg-red-100 text-red-900",
-  ARCHIVED: "bg-neutral-300 text-neutral-800",
+  DRAFT: "border border-border bg-surface-muted text-muted",
+  PENDING_REVIEW: "bg-warning-soft text-warning",
+  PUBLISHED: "bg-success-soft text-success",
+  REJECTED: "bg-danger-soft text-danger",
+  ARCHIVED: "border border-border bg-surface-muted text-muted",
 };
-export const smallButton = "rounded border border-black/20 px-3 py-1 text-sm disabled:opacity-50 dark:border-white/20";
+export const smallButton = "rounded-xl border border-border-strong px-3 py-1 text-sm disabled:opacity-50";
 
 export function StatusBadge({ status }: { status: LibraryStatus }) {
-  return <span className={`rounded px-1.5 py-0.5 text-xs ${STATUS_STYLE[status]}`}>{LIBRARY_STATUS_NAMES[status]}</span>;
+  return <span className={`rounded-full px-1.5 py-0.5 text-xs ${STATUS_STYLE[status]}`}>{LIBRARY_STATUS_NAMES[status]}</span>;
 }
 
 // Mở file để xem lại (người gửi xem tài liệu của mình, người quản lý xem trước khi duyệt) trong thẻ mới.
@@ -39,26 +40,26 @@ const mineQuery = { scope: "mine" as const };
 
 // "Tài liệu tôi gửi": soạn, tải file, gửi duyệt, xem lý do bị từ chối.
 export function LibrarySubmissions() {
+  const ask = useConfirm();
   const options = useData(getFormOptions, undefined);
   const list = useData(listSubmissions, mineQuery);
   const [editing, setEditing] = useState<LibraryItemDto | null | "new">(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const toast = useToast();
   const [error, setError] = useState<string | null>(null);
 
   async function run(action: () => Promise<unknown>, done: string) {
     setError(null);
-    setMessage(null);
     try {
       await action();
-      setMessage(done);
+      toast.success(done);
       list.reload();
     } catch (err) {
       setError(errorText(err));
     }
   }
 
-  if (options.error) return <p className="text-sm text-red-600">{options.error}</p>;
-  if (!options.data || !list.data) return <p className="text-sm opacity-70">Đang tải…</p>;
+  if (options.error) return <p className="text-sm text-danger">{options.error}</p>;
+  if (!options.data || !list.data) return <Skeleton />;
   return (
     <div className="space-y-4">
       {editing ? (
@@ -68,7 +69,7 @@ export function LibrarySubmissions() {
           item={editing === "new" ? null : editing}
           onSaved={(saved) => {
             setEditing(null);
-            setMessage(saved.hasFile ? `Đã lưu "${saved.title}". Bấm "Gửi duyệt" khi sẵn sàng.` : `Đã lưu "${saved.title}" nhưng chưa có file tài liệu.`);
+            toast.success(saved.hasFile ? `Đã lưu "${saved.title}". Bấm "Gửi duyệt" khi sẵn sàng.` : `Đã lưu "${saved.title}" nhưng chưa có file tài liệu.`);
             list.reload();
           }}
           onCancel={() => {
@@ -77,17 +78,16 @@ export function LibrarySubmissions() {
           }}
         />
       ) : (
-        <button type="button" onClick={() => setEditing("new")} className="rounded bg-brand px-4 py-2 text-sm text-white">
+        <button type="button" onClick={() => setEditing("new")} className="rounded-xl bg-primary px-4 py-2 text-sm text-primary-foreground">
           + Tài liệu mới
         </button>
       )}
-      {message && <p className="text-sm text-green-700 dark:text-green-400">{message}</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       {list.data.length === 0 ? (
-        <p className="text-sm opacity-70">Bạn chưa gửi tài liệu nào.</p>
+        <p className="text-sm text-muted">Bạn chưa gửi tài liệu nào.</p>
       ) : (
-        <ul className="divide-y divide-black/10 rounded-lg border border-black/10 dark:divide-white/15 dark:border-white/15">
+        <ul className="divide-y divide-border rounded-2xl bg-surface border border-border">
           {list.data.map((item) => {
             const editable = item.status === "DRAFT" || item.status === "REJECTED";
             return (
@@ -95,12 +95,12 @@ export function LibrarySubmissions() {
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge status={item.status} />
                   <span className="font-medium">{item.title}</span>
-                  <span className="text-xs opacity-70">
+                  <span className="text-xs text-muted">
                     {LIBRARY_KIND_NAMES[item.kind]} · {item.categoryName} · {item.audienceLabel} · sửa {formatDateTime(item.updatedAt)}
                   </span>
                 </div>
-                {!item.hasFile && <p className="text-xs text-amber-700">Chưa có file tài liệu.</p>}
-                {item.status === "REJECTED" && item.rejectReason && <p className="text-sm text-red-700">Lý do từ chối: {item.rejectReason}</p>}
+                {!item.hasFile && <p className="text-xs text-warning">Chưa có file tài liệu.</p>}
+                {item.status === "REJECTED" && item.rejectReason && <p className="text-sm text-danger">Lý do từ chối: {item.rejectReason}</p>}
                 <div className="flex flex-wrap gap-2">
                   {item.status === "PUBLISHED" && (
                     <Link href={itemPath(item.slug)} className={smallButton}>
@@ -127,8 +127,8 @@ export function LibrarySubmissions() {
                       </button>
                       <button
                         type="button"
-                        className={`${smallButton} text-red-700`}
-                        onClick={() => confirm(`Xoá "${item.title}"?`) && run(() => deleteItem(item.id), `Đã xoá "${item.title}".`)}
+                        className={`${smallButton} text-danger`}
+                        onClick={async () => (await ask(`Xoá "${item.title}"?`)) && run(() => deleteItem(item.id), `Đã xoá "${item.title}".`)}
                       >
                         Xoá
                       </button>

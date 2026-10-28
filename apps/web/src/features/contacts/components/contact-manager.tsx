@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { formatDateTime } from "@/shared/lib/format";
 import { errorClass, inputClass } from "@/shared/ui/form-styles";
 import { CONTACTS_PAGE_SIZE, listContacts, updateContactStatus, type ContactList } from "../api/contacts-api";
+import { Skeleton } from "@/shared/ui";
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
@@ -61,13 +62,13 @@ export function ContactManager() {
       </select>
 
       {error && <p className={errorClass}>{error}</p>}
-      {result === null && !error && <p className="text-sm opacity-60">Đang tải…</p>}
+      {result === null && !error && <Skeleton />}
 
       {result && (
         <>
           <ul className="space-y-3">
             {result.items.map((contact) => (
-              <li key={contact.id} className="space-y-2 rounded border border-black/10 p-4 dark:border-white/15">
+              <li key={contact.id} className="space-y-2 rounded-xl border border-border p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h2 className="font-semibold">{contact.subject}</h2>
                   <select
@@ -83,7 +84,7 @@ export function ContactManager() {
                     ))}
                   </select>
                 </div>
-                <p className="text-xs opacity-70">
+                <p className="text-xs text-muted">
                   {contact.fullName} · {contact.email ?? "không có email"} · {contact.phone ?? "không có số điện thoại"} ·{" "}
                   {formatDateTime(contact.createdAt)}
                 </p>
@@ -91,7 +92,7 @@ export function ContactManager() {
                 <p className="whitespace-pre-wrap text-sm">{contact.message}</p>
               </li>
             ))}
-            {result.items.length === 0 && <li className="text-sm opacity-70">Không có liên hệ nào.</li>}
+            {result.items.length === 0 && <li className="text-sm text-muted">Không có liên hệ nào.</li>}
           </ul>
           <div className="flex items-center gap-4 text-sm">
             <button type="button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="underline disabled:opacity-40">

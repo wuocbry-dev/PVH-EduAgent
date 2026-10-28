@@ -34,7 +34,7 @@ async function ItemBySlug({ params }: Pick<PageProps<"/thu-vien/tai-lieu/[slug]"
   if (missing) notFound();
   if (!item) {
     return (
-      <p className="rounded border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+      <p className="rounded-xl border border-warning/40 bg-warning-soft p-4 text-sm text-warning">
         Không tải được tài liệu lúc này, vui lòng thử lại sau.
       </p>
     );

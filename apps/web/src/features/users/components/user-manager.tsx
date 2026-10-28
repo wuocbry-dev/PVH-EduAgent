@@ -24,6 +24,7 @@ import {
   type UserFilters,
 } from "../api/users-api";
 import { UserForm } from "./user-form";
+import { Skeleton, Table, useConfirm, useToast } from "@/shared/ui";
 
 type Editing = { mode: "create" } | { mode: "edit"; user: UserDto } | null;
 
@@ -31,6 +32,8 @@ const EMPTY_FILTERS: UserFilters = { q: "", status: "", role: "", classId: "", p
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 export function UserManager() {
+  const ask = useConfirm();
+  const toast = useToast();
   const base = usePortalBase();
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [result, setResult] = useState<UserListDto | null>(null);
@@ -79,7 +82,7 @@ export function UserManager() {
 
   async function toggleLock(user: UserDto) {
     const lock = user.status !== "LOCKED";
-    if (lock && !confirm(`Khóa tài khoản ${user.fullName}? Người này sẽ bị đăng xuất ngay.`)) return;
+    if (lock && !(await ask(`Khóa tài khoản ${user.fullName}? Người này sẽ bị đăng xuất ngay.`))) return;
     try {
       await setUserStatus(user.id, lock ? "LOCKED" : "ACTIVE");
       reload();
@@ -93,7 +96,7 @@ export function UserManager() {
     if (!newPassword) return;
     try {
       await resetUserPassword(user.id, newPassword);
-      alert("Đã đặt lại mật khẩu. Các phiên đăng nhập của người này đã bị đăng xuất.");
+      toast.success("Đã đặt lại mật khẩu. Các phiên đăng nhập của người này đã bị đăng xuất.");
     } catch (err) {
       setError(errorText(err));
     }
@@ -101,7 +104,7 @@ export function UserManager() {
 
   async function reissue(user: UserDto) {
     const warn = `Cấp lại mã kích hoạt cho ${user.fullName}? Mã in trước đó sẽ mất hiệu lực và mọi phiên đăng nhập của người này bị đăng xuất.`;
-    if (!confirm(warn)) return;
+    if (!(await ask(warn))) return;
     try {
       setSlip(await reissueActivationCode(user.id));
       reload();
@@ -141,14 +144,14 @@ export function UserManager() {
               </option>
             ))}
           </select>
-          <button type="submit" className="rounded border border-black/20 px-4 py-2 dark:border-white/20">
+          <button type="submit" className="rounded-xl border border-border-strong px-4 py-2">
             Lọc
           </button>
         </form>
         <button
           type="button"
           onClick={() => setEditing({ mode: "create" })}
-          className="rounded bg-foreground px-4 py-2 text-background"
+          className="rounded-xl bg-primary px-4 py-2 text-primary-foreground"
         >
           Thêm người dùng
         </button>
@@ -169,16 +172,16 @@ export function UserManager() {
       {error && <p className={errorClass}>{error}</p>}
 
       {slip && (
-        <section className="space-y-3 rounded border border-yellow-600/40 p-4 print:border-0 print:p-0" aria-label="Phiếu tài khoản mới">
+        <section className="space-y-3 rounded-xl border border-warning/40 p-4 print:border-0 print:p-0" aria-label="Phiếu tài khoản mới">
           <p className="text-sm print:hidden">
             <strong>Mã kích hoạt chỉ hiện một lần ngay bây giờ.</strong> Hãy in phiếu cho {slip.fullName} trước khi đóng.
           </p>
           <SlipSheet slips={[slip]} />
           <div className="flex gap-2 print:hidden">
-            <button type="button" onClick={() => window.print()} className="rounded bg-foreground px-4 py-2 text-background">
+            <button type="button" onClick={() => window.print()} className="rounded-xl bg-primary px-4 py-2 text-primary-foreground">
               In phiếu
             </button>
-            <button type="button" onClick={() => setSlip(null)} className="rounded border border-black/20 px-4 py-2 dark:border-white/20">
+            <button type="button" onClick={() => setSlip(null)} className="rounded-xl border border-border-strong px-4 py-2">
               Đóng
             </button>
           </div>
@@ -186,66 +189,66 @@ export function UserManager() {
       )}
 
       {result === null && !error ? (
-        <p className="text-sm opacity-60">Đang tải…</p>
+        <Skeleton />
       ) : (
         result && (
           <>
-            <div className="overflow-x-auto print:hidden">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-black/10 dark:border-white/15">
-                  <tr>
-                    <th className="py-2 pr-4">Họ tên</th>
-                    <th className="py-2 pr-4">Mã</th>
-                    <th className="py-2 pr-4">Email</th>
-                    <th className="py-2 pr-4">Lớp</th>
-                    <th className="py-2 pr-4">Vai trò</th>
-                    <th className="py-2 pr-4">Trạng thái</th>
-                    <th className="py-2">Thao tác</th>
+            <Table className="min-w-[56rem]" wrapperClassName="print:hidden" stickyFirstColumn label="Danh sách người dùng">
+              <thead className="border-b border-border">
+                <tr>
+                  <th className="py-2 pr-4">Họ tên</th>
+                  <th className="py-2 pr-4">Mã</th>
+                  <th className="py-2 pr-4">Email</th>
+                  <th className="py-2 pr-4">Lớp</th>
+                  <th className="py-2 pr-4">Vai trò</th>
+                  <th className="py-2 pr-4">Trạng thái</th>
+                  <th className="py-2">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {result.items.map((user) => (
+                  <tr key={user.id}>
+                    <td className="py-2 pr-4">{user.fullName}</td>
+                    <td className="py-2 pr-4 font-mono">{user.code ?? ""}</td>
+                    <td className="py-2 pr-4">{user.email ?? "—"}</td>
+                    <td className="py-2 pr-4">{user.className ?? ""}</td>
+                    <td className="py-2 pr-4">{user.roles.map((r) => ROLE_NAMES[r]).join(", ")}</td>
+                    <td className={`py-2 pr-4 ${user.status === "LOCKED" ? "text-danger" : ""}`}>
+                      {USER_STATUS_NAMES[user.status]}
+                    </td>
+                    <td className="py-2">
+                      <div className="flex flex-wrap gap-x-3 gap-y-1">
+                      <button type="button" className="underline" onClick={() => setEditing({ mode: "edit", user })}>
+                        Sửa
+                      </button>
+                      <button type="button" className="underline" onClick={() => toggleLock(user)}>
+                        {user.status === "LOCKED" ? "Mở khóa" : "Khóa"}
+                      </button>
+                      <button type="button" className="underline" onClick={() => resetPassword(user)}>
+                        Đặt lại mật khẩu
+                      </button>
+                      {/* Bước 26: xem/thu hồi phiên, buộc đăng xuất ở trang Bảo mật và đăng nhập. */}
+                      <Link className="underline" href={`${base}/giam-sat?tab=phien&user=${user.id}`}>
+                        Phiên đăng nhập
+                      </Link>
+                      {user.code && user.status !== "LOCKED" && (
+                        <button type="button" className="underline" onClick={() => reissue(user)}>
+                          Cấp lại mã kích hoạt
+                        </button>
+                      )}
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-black/10 dark:divide-white/15">
-                  {result.items.map((user) => (
-                    <tr key={user.id}>
-                      <td className="py-2 pr-4">{user.fullName}</td>
-                      <td className="py-2 pr-4 font-mono">{user.code ?? ""}</td>
-                      <td className="py-2 pr-4">{user.email ?? "—"}</td>
-                      <td className="py-2 pr-4">{user.className ?? ""}</td>
-                      <td className="py-2 pr-4">{user.roles.map((r) => ROLE_NAMES[r]).join(", ")}</td>
-                      <td className={`py-2 pr-4 ${user.status === "LOCKED" ? "text-red-600" : ""}`}>
-                        {USER_STATUS_NAMES[user.status]}
-                      </td>
-                      <td className="flex flex-wrap gap-3 py-2">
-                        <button type="button" className="underline" onClick={() => setEditing({ mode: "edit", user })}>
-                          Sửa
-                        </button>
-                        <button type="button" className="underline" onClick={() => toggleLock(user)}>
-                          {user.status === "LOCKED" ? "Mở khóa" : "Khóa"}
-                        </button>
-                        <button type="button" className="underline" onClick={() => resetPassword(user)}>
-                          Đặt lại mật khẩu
-                        </button>
-                        {/* Bước 26: xem/thu hồi phiên, buộc đăng xuất ở trang Bảo mật và đăng nhập. */}
-                        <Link className="underline" href={`${base}/giam-sat?tab=phien&user=${user.id}`}>
-                          Phiên đăng nhập
-                        </Link>
-                        {user.code && user.status !== "LOCKED" && (
-                          <button type="button" className="underline" onClick={() => reissue(user)}>
-                            Cấp lại mã kích hoạt
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {result.items.length === 0 && (
-                    <tr>
-                      <td colSpan={8} className="py-4 opacity-70">
-                        Không có người dùng phù hợp.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                ))}
+                {result.items.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="py-4 text-muted">
+                      Không có người dùng phù hợp.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </Table>
             <div className="flex items-center gap-4 text-sm print:hidden">
               <button
                 type="button"

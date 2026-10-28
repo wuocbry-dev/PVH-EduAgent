@@ -19,18 +19,18 @@ export async function TeacherHome() {
     <div className="space-y-6">
       <p className="text-sm">
         Xin chào <strong>{user.fullName}</strong>
-        {me.teacherCode ? <span className="opacity-70"> · mã giáo viên {me.teacherCode}</span> : null}
+        {me.teacherCode ? <span className="text-muted"> · mã giáo viên {me.teacherCode}</span> : null}
       </p>
       <section className="space-y-2" aria-label="Lớp chủ nhiệm">
         <h2 className="text-lg font-semibold">Lớp chủ nhiệm{me.schoolYearName ? ` (${me.schoolYearName})` : ""}</h2>
         {me.homeroomClasses.length === 0 ? (
-          <p className="text-sm opacity-70">Bạn không chủ nhiệm lớp nào trong năm học hiện hành.</p>
+          <p className="text-sm text-muted">Bạn không chủ nhiệm lớp nào trong năm học hiện hành.</p>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-3">
             {me.homeroomClasses.map((c) => (
-              <li key={c.id} className="rounded-lg border border-black/10 p-4 dark:border-white/15">
+              <li key={c.id} className="rounded-2xl bg-surface border border-border p-4">
                 <p className="text-2xl font-bold">{c.name}</p>
-                <p className="text-sm opacity-70">{c.studentCount} học sinh</p>
+                <p className="text-sm text-muted">{c.studentCount} học sinh</p>
               </li>
             ))}
           </ul>
@@ -41,7 +41,7 @@ export async function TeacherHome() {
         <ul className="grid gap-3 sm:grid-cols-3">
           {SHORTCUTS.map(([href, label]) => (
             <li key={href}>
-              <Link href={href} className="block rounded-lg border border-black/10 p-4 font-medium hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/10">
+              <Link href={href} className="block rounded-2xl border border-border p-4 font-medium hover:bg-primary-soft">
                 {label}
               </Link>
             </li>

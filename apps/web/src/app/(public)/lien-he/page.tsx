@@ -15,13 +15,13 @@ export default function ContactPage() {
     <PageShell title="Liên hệ" description="Gửi câu hỏi hoặc góp ý, nhà trường sẽ phản hồi qua email hoặc điện thoại bạn để lại.">
       <div className="grid gap-10 lg:grid-cols-[3fr_2fr]">
         <section aria-labelledby="gui-lien-he" className="space-y-4">
-          <h2 id="gui-lien-he" className="text-xl font-semibold text-brand">
+          <h2 id="gui-lien-he" className="text-xl font-semibold text-navy">
             Gửi liên hệ
           </h2>
           <ContactForm />
         </section>
         <section aria-labelledby="thong-tin" className="space-y-4">
-          <h2 id="thong-tin" className="text-xl font-semibold text-brand">
+          <h2 id="thong-tin" className="text-xl font-semibold text-navy">
             Thông tin liên lạc
           </h2>
           <Suspense fallback={<Loading />}>

@@ -1,29 +1,187 @@
 @import "tailwindcss";
 
+/* Bước 29: chế độ tối theo nút gạt. Script trong layout gốc đặt data-theme="light|dark" trên <html> trước khi vẽ trang
+   ("Theo máy" được quy về light/dark ngay trong script), nên mọi lớp dark: đều theo nút gạt chứ không theo media query. */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/* Bảng màu: xanh nước biển nhạt (chủ đạo) + navy (phụ). Component chỉ dùng token (bg-primary, text-muted, border-border…),
+   không viết cứng mã màu. Mọi cặp chữ/nền đạt WCAG AA (≥ 4.5:1), số đo ghi trong docs/TIEN-DO.md (bước 29). */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+  --background: #f0f9ff;
+  --surface: #ffffff;
+  --surface-muted: #f8fafc;
+  --foreground: #0f172a;
+  --muted: #475569;
+  --border: #dbe7f0;
+  --border-strong: #b6cad9;
+  --primary: #0369a1;
+  --primary-hover: #075985;
+  --primary-foreground: #ffffff;
+  --primary-soft: #e0f2fe;
+  --primary-soft-border: #bae6fd;
+  --accent: #0ea5e9;
+  --navy: #0c4a6e;
+  --navy-foreground: #ffffff;
+  --danger: #b91c1c;
+  --danger-soft: #fef2f2;
+  --danger-foreground: #ffffff;
+  --warning: #b45309;
+  --warning-soft: #fffbeb;
+  --success: #15803d;
+  --success-soft: #f0fdf4;
+  --overlay: rgb(15 23 42 / 0.45);
+  --shadow-color: rgb(12 74 110 / 0.08);
+  /* Khối nền gradient (trang đăng nhập, đầu trang chủ): chữ trắng trên cả dải màu đạt AA. */
+  --hero-from: #0369a1;
+  --hero-to: #0c4a6e;
+  --hero-foreground: #ffffff;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0b1220;
+  --surface: #111a2e;
+  --surface-muted: #16213a;
+  --foreground: #e2e8f0;
+  --muted: #94a3b8;
+  --border: #22314d;
+  --border-strong: #33476b;
+  --primary: #38bdf8;
+  --primary-hover: #7dd3fc;
+  --primary-foreground: #0b1220;
+  --primary-soft: #0c2d48;
+  --primary-soft-border: #155e8a;
+  --accent: #38bdf8;
+  --navy: #bae6fd;
+  --navy-foreground: #0b1220;
+  --danger: #f87171;
+  --danger-soft: #3b1219;
+  --danger-foreground: #0b1220;
+  --warning: #fbbf24;
+  --warning-soft: #3a2a0a;
+  --success: #4ade80;
+  --success-soft: #0f2e1c;
+  --overlay: rgb(0 0 0 / 0.6);
+  --shadow-color: rgb(0 0 0 / 0.35);
+  --hero-from: #0c4a6e;
+  --hero-to: #0b1220;
+  --hero-foreground: #f0f9ff;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
   --color-foreground: var(--foreground);
-  /* Xanh đậm trang nhã cho thanh điều hướng, nút và tiêu đề của website công khai. */
-  --color-brand: #1d4f91;
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-soft-border: var(--primary-soft-border);
+  --color-accent: var(--accent);
+  --color-navy: var(--navy);
+  --color-navy-foreground: var(--navy-foreground);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-overlay: var(--overlay);
+  --color-hero-from: var(--hero-from);
+  --color-hero-to: var(--hero-to);
+  --color-hero-foreground: var(--hero-foreground);
+  --shadow-card: 0 1px 2px var(--shadow-color), 0 4px 16px var(--shadow-color);
   --font-sans: var(--font-be-vietnam-pro);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), sans-serif;
+}
+
+@layer base {
+  /* Vòng focus thống nhất cho mọi phần tử bấm được (component tự đặt focus-visible:ring-… thì lớp của nó thắng). */
+  :where(a, button, input, select, textarea, summary, [role="tab"], [tabindex]:not([tabindex="-1"])):focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  :where(button:not(:disabled), [role="button"], summary, label:has(input[type="checkbox"], input[type="radio"])) {
+    cursor: pointer;
+  }
+  :where(input[type="checkbox"], input[type="radio"]) {
+    accent-color: var(--primary);
+  }
+}
+
+/* Mục neo không bị header dính của trang công khai che mất. */
+:target,
+[id] {
+  scroll-margin-top: 5rem;
+}
+
+/* Hiệu ứng chuyển ngắn; tắt khi người dùng chọn giảm chuyển động. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Kiểu mặc định của bảng (Table ở src/shared/ui). Trong @layer components nên lớp tiện ích của từng ô (text-right, pr-3…) thắng. */
+@layer components {
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  .data-table :where(th, td) {
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+  }
+  .data-table :where(tbody tr) {
+    border-top: 1px solid var(--border);
+  }
+  .data-table :where(thead th) {
+    font-weight: 500;
+    color: var(--muted);
+  }
+}
+
+/* Khi in: bảng không cuộn, in đủ mọi dòng (maxHeight đặt bằng style nên cần !important). */
+@media print {
+  .table-scroll {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}
+
+/* Bảng dài: tiêu đề dính trong khung cuộn của bảng, cột đầu dính khi khung bật stickyFirstColumn. */
+.data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface-muted);
+}
+.data-table[data-sticky-first] tbody th:first-child,
+.data-table[data-sticky-first] tbody td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface);
+}
+.data-table[data-sticky-first] thead th:first-child {
+  left: 0;
+  z-index: 3;
 }
 
 /* Nội dung bài viết (HTML từ trình soạn thảo). Tailwind preflight đã xóa kiểu mặc định của thẻ HTML. */
@@ -33,10 +191,12 @@ body {
 .rich-content h2 {
   font-size: 1.5rem;
   font-weight: 700;
+  color: var(--navy);
 }
 .rich-content h3 {
   font-size: 1.25rem;
   font-weight: 600;
+  color: var(--navy);
 }
 .rich-content h4 {
   font-weight: 600;
@@ -50,17 +210,19 @@ body {
   padding-left: 1.5rem;
 }
 .rich-content blockquote {
-  border-left: 3px solid currentColor;
-  opacity: 0.8;
+  border-left: 3px solid var(--accent);
+  color: var(--muted);
   padding-left: 1rem;
 }
 .rich-content a {
+  color: var(--primary);
   text-decoration: underline;
 }
 .rich-content img,
 .rich-content video {
   max-width: 100%;
   height: auto;
+  border-radius: 0.75rem;
 }
 .rich-content video {
   display: block;
@@ -69,12 +231,6 @@ body {
 .rich-content pre {
   overflow-x: auto;
   padding: 0.75rem;
-  background: rgb(127 127 127 / 0.15);
-}
-
-/* Chữ màu thương hiệu phải sáng hơn trên nền tối để đủ tương phản (nền bg-brand giữ nguyên). */
-@media (prefers-color-scheme: dark) {
-  .text-brand {
-    color: #8ab8f0;
-  }
+  border-radius: 0.75rem;
+  background: var(--surface-muted);
 }

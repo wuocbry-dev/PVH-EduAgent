@@ -2,6 +2,7 @@
 
 import type { PDFDocumentProxy, RenderTask } from "pdfjs-dist";
 import { useEffect, useRef, useState } from "react";
+import { Skeleton } from "@/shared/ui";
 
 // pdf.js từ gói npm pdfjs-dist (đúng phiên bản trong package.json), worker được bundler đóng gói cùng trang:
 // không tải script từ nguồn ngoài.
@@ -19,7 +20,7 @@ interface Props {
   onPage: (page: number) => void;
 }
 
-const navButton = "rounded border border-black/20 px-3 py-1 disabled:opacity-40 dark:border-white/20";
+const navButton = "rounded-xl border border-border-strong px-3 py-1 disabled:opacity-40";
 
 // Trình đọc PDF trong trang: từng trang vẽ lên canvas vừa bề ngang khung (dùng tốt ở 375 px), chuyển trang, phóng to.
 export function PdfViewer({ url, initialPage, onPage }: Props) {
@@ -84,7 +85,7 @@ export function PdfViewer({ url, initialPage, onPage }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [doc, page, width, zoom]);
 
-  if (error) return <p className="text-sm text-red-600">{error}</p>;
+  if (error) return <p className="text-sm text-danger">{error}</p>;
   const total = doc?.numPages ?? 0;
   return (
     <div className="space-y-2">
@@ -103,7 +104,7 @@ export function PdfViewer({ url, initialPage, onPage }: Props) {
               const n = Number(e.target.value);
               if (n >= 1 && n <= total) setPage(n);
             }}
-            className="w-16 rounded border border-black/20 bg-transparent px-2 py-1 dark:border-white/20"
+            className="w-16 rounded-xl border border-border-strong bg-transparent px-2 py-1"
           />
           / {total || "…"}
         </label>
@@ -119,8 +120,8 @@ export function PdfViewer({ url, initialPage, onPage }: Props) {
           </button>
         </span>
       </div>
-      <div ref={box} className="max-h-[80vh] overflow-auto rounded border border-black/10 bg-neutral-100 dark:border-white/15 dark:bg-neutral-900">
-        {!doc && <p className="p-4 text-sm opacity-70">Đang tải tài liệu…</p>}
+      <div ref={box} className="max-h-[80vh] overflow-auto rounded-xl border border-border bg-neutral-100">
+        {!doc && <Skeleton className="p-4" label="Đang tải tài liệu…" />}
         <canvas ref={canvas} className="mx-auto block bg-white" aria-label={`Trang ${page} của tài liệu`} />
       </div>
     </div>

@@ -31,7 +31,7 @@ export async function NewsBrowser({ searchParams, basePath, fixedCategory, empty
   const totalPages = result ? Math.max(1, Math.ceil(result.total / result.pageSize)) : 1;
   const params = { category: fixedCategory ? undefined : category, q };
   const tabClass = (active: boolean) =>
-    `rounded-full border px-3 py-1 text-sm ${active ? "border-brand bg-brand text-white" : "border-black/20 hover:bg-brand/10 dark:border-white/20"}`;
+    `rounded-full border px-3 py-1 text-sm ${active ? "border-primary bg-primary text-primary-foreground" : "border-border-strong hover:bg-primary-soft"}`;
 
   return (
     <div className="space-y-6">
@@ -63,26 +63,26 @@ export async function NewsBrowser({ searchParams, basePath, fixedCategory, empty
             maxLength={100}
             placeholder="Tìm kiếm bài viết"
             aria-label="Tìm kiếm bài viết"
-            className="w-full rounded border border-black/20 bg-transparent px-3 py-2 text-sm sm:w-64 dark:border-white/20"
+            className="w-full rounded-xl border border-border-strong bg-transparent px-3 py-2 text-sm sm:w-64"
           />
-          <button type="submit" className="rounded bg-brand px-4 py-2 text-sm text-white">
+          <button type="submit" className="rounded-xl bg-primary px-4 py-2 text-sm text-primary-foreground">
             Tìm
           </button>
         </form>
       </div>
 
       {q && result && (
-        <p className="text-sm opacity-80">
+        <p className="text-sm text-muted">
           {result.total} kết quả cho “{q}”
         </p>
       )}
 
       {result === null ? (
-        <p className="rounded border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+        <p className="rounded-xl border border-warning/40 bg-warning-soft p-4 text-sm text-warning">
           Không tải được danh sách bài viết lúc này, vui lòng thử lại sau.
         </p>
       ) : result.items.length === 0 ? (
-        <p className="opacity-70">{q ? "Không tìm thấy bài viết phù hợp." : emptyText}</p>
+        <p className="text-muted">{q ? "Không tìm thấy bài viết phù hợp." : emptyText}</p>
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {result.items.map((post) => (

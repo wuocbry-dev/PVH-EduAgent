@@ -22,6 +22,7 @@ import {
   type TaskFilters,
 } from "../api/tasks-api";
 import { TaskForm } from "./task-form";
+import { Skeleton, Table, useConfirm } from "@/shared/ui";
 
 type Editing = { mode: "create" } | { mode: "edit"; task: TaskDto } | null;
 
@@ -30,6 +31,7 @@ const errorText = (err: unknown) => (err instanceof Error ? err.message : String
 
 // F14 – công việc và hạn chót. Giáo viên (chỉ task:read:own) chỉ thấy việc của mình; người có task:assign giao/sửa/xóa.
 export function TaskManager() {
+  const ask = useConfirm();
   const [me, setMe] = useState<AuthMeDto | null>(null);
   const [assignees, setAssignees] = useState<TaskAssigneeDto[]>([]);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
@@ -86,7 +88,7 @@ export function TaskManager() {
   }
 
   async function remove(task: TaskDto) {
-    if (!confirm(`Xóa công việc "${task.title}"?`)) return;
+    if (!(await ask(`Xóa công việc "${task.title}"?`))) return;
     setError(null);
     try {
       await deleteTask(task.id);
@@ -140,12 +142,12 @@ export function TaskManager() {
             <span className="block">đến ngày</span>
             <input type="date" value={filters.dueTo} onChange={(e) => setFilter({ dueTo: e.target.value })} className={`${inputClass} w-auto`} />
           </label>
-          <button type="button" onClick={() => setFilters(EMPTY_FILTERS)} className="rounded border border-black/20 px-3 py-2 text-sm dark:border-white/20">
+          <button type="button" onClick={() => setFilters(EMPTY_FILTERS)} className="rounded-xl border border-border-strong px-3 py-2 text-sm">
             Xóa lọc
           </button>
         </div>
         {canAssign && (
-          <button type="button" onClick={() => setEditing({ mode: "create" })} className="rounded bg-foreground px-4 py-2 text-background">
+          <button type="button" onClick={() => setEditing({ mode: "create" })} className="rounded-xl bg-primary px-4 py-2 text-primary-foreground">
             Giao việc mới
           </button>
         )}
@@ -165,81 +167,79 @@ export function TaskManager() {
       )}
 
       {error && <p className={errorClass}>{error}</p>}
-      {tasks === null && !error && <p className="text-sm opacity-60">Đang tải…</p>}
+      {tasks === null && !error && <Skeleton />}
 
       {tasks && (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[40rem] text-left text-sm">
-            <thead className="border-b border-black/10 dark:border-white/15">
-              <tr>
-                <th className="py-2 pr-4">Công việc</th>
-                <th className="py-2 pr-4">Phụ trách</th>
-                <th className="py-2 pr-4">Ưu tiên</th>
-                <th className="py-2 pr-4">Hạn chót</th>
-                <th className="py-2 pr-4">Trạng thái</th>
-                {canAssign && <th className="py-2">Thao tác</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-black/10 dark:divide-white/15">
-              {tasks.map((task) => {
-                const mayChange = task.assigneeId === me?.id || canAssign;
-                return (
-                  <tr key={task.id} className={task.status === "DONE" ? "opacity-60" : ""}>
-                    <td className="py-2 pr-4">
-                      <span className="font-medium">{task.title}</span>
-                      {task.description && <span className="block text-xs opacity-70">{task.description}</span>}
-                      <span className="block text-xs opacity-50">Giao bởi {task.createdByName}</span>
-                    </td>
-                    <td className="py-2 pr-4">{task.assigneeName}</td>
-                    <td className="py-2 pr-4">{TASK_PRIORITY_NAMES[task.priority]}</td>
-                    <td className={`py-2 pr-4 ${task.overdue ? "font-semibold text-red-600" : ""}`}>
-                      {task.overdue && "Quá hạn · "}
-                      {formatDateTime(task.dueAt)}
-                      {task.completedAt && <span className="block text-xs font-normal opacity-70">Xong {formatDateTime(task.completedAt)}</span>}
-                    </td>
-                    <td className="py-2 pr-4">
-                      <select
-                        value={task.status}
-                        disabled={!mayChange}
-                        onChange={(e) => changeStatus(task, e.target.value as SettableTaskStatus)}
-                        aria-label={`Trạng thái: ${task.title}`}
-                        className={`${inputClass} w-auto py-1 text-sm`}
-                      >
-                        {task.status === "OVERDUE" && (
-                          <option value="OVERDUE" disabled>
-                            {TASK_STATUS_NAMES.OVERDUE}
-                          </option>
-                        )}
-                        {SETTABLE_TASK_STATUSES.map((s) => (
-                          <option key={s} value={s}>
-                            {TASK_STATUS_NAMES[s]}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    {canAssign && (
-                      <td className="flex gap-3 py-2">
-                        <button type="button" className="underline" onClick={() => setEditing({ mode: "edit", task })}>
-                          Sửa
-                        </button>
-                        <button type="button" className="underline" onClick={() => remove(task)}>
-                          Xóa
-                        </button>
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-              {tasks.length === 0 && (
-                <tr>
-                  <td colSpan={canAssign ? 6 : 5} className="py-4 opacity-70">
-                    Không có công việc nào.
+        <Table className="min-w-[40rem]">
+          <thead className="border-b border-border">
+            <tr>
+              <th className="py-2 pr-4">Công việc</th>
+              <th className="py-2 pr-4">Phụ trách</th>
+              <th className="py-2 pr-4">Ưu tiên</th>
+              <th className="py-2 pr-4">Hạn chót</th>
+              <th className="py-2 pr-4">Trạng thái</th>
+              {canAssign && <th className="py-2">Thao tác</th>}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {tasks.map((task) => {
+              const mayChange = task.assigneeId === me?.id || canAssign;
+              return (
+                <tr key={task.id} className={task.status === "DONE" ? "text-muted" : ""}>
+                  <td className="py-2 pr-4">
+                    <span className="font-medium">{task.title}</span>
+                    {task.description && <span className="block text-xs text-muted">{task.description}</span>}
+                    <span className="block text-xs text-muted">Giao bởi {task.createdByName}</span>
                   </td>
+                  <td className="py-2 pr-4">{task.assigneeName}</td>
+                  <td className="py-2 pr-4">{TASK_PRIORITY_NAMES[task.priority]}</td>
+                  <td className={`py-2 pr-4 ${task.overdue ? "font-semibold text-danger" : ""}`}>
+                    {task.overdue && "Quá hạn · "}
+                    {formatDateTime(task.dueAt)}
+                    {task.completedAt && <span className="block text-xs font-normal text-muted">Xong {formatDateTime(task.completedAt)}</span>}
+                  </td>
+                  <td className="py-2 pr-4">
+                    <select
+                      value={task.status}
+                      disabled={!mayChange}
+                      onChange={(e) => changeStatus(task, e.target.value as SettableTaskStatus)}
+                      aria-label={`Trạng thái: ${task.title}`}
+                      className={`${inputClass} w-auto py-1 text-sm`}
+                    >
+                      {task.status === "OVERDUE" && (
+                        <option value="OVERDUE" disabled>
+                          {TASK_STATUS_NAMES.OVERDUE}
+                        </option>
+                      )}
+                      {SETTABLE_TASK_STATUSES.map((s) => (
+                        <option key={s} value={s}>
+                          {TASK_STATUS_NAMES[s]}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  {canAssign && (
+                    <td className="py-2"><div className="flex gap-3">
+                      <button type="button" className="underline" onClick={() => setEditing({ mode: "edit", task })}>
+                        Sửa
+                      </button>
+                      <button type="button" className="underline" onClick={() => remove(task)}>
+                        Xóa
+                      </button>
+                    </div></td>
+                  )}
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              );
+            })}
+            {tasks.length === 0 && (
+              <tr>
+                <td colSpan={canAssign ? 6 : 5} className="py-4 text-muted">
+                  Không có công việc nào.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </Table>
       )}
     </div>
   );

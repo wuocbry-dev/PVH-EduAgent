@@ -6,6 +6,7 @@ import { useData } from "@/shared/lib/use-data";
 import { errorClass, inputClass } from "@/shared/ui/form-styles";
 import { downloadExport, getSlots, getStats } from "../api/timetable-api";
 import { errorText, smallButton, type EditorContext } from "./context";
+import { EmptyState, Table } from "@/shared/ui";
 
 type Mode = "class" | "teacher" | "room";
 
@@ -20,43 +21,41 @@ async function loadSlots(key: string) {
 
 function StaticGrid({ frame, slots, mode }: { frame: TimetableFrameDto; slots: TimetableSlotDto[]; mode: Mode }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] table-fixed border-collapse text-sm">
-        <thead>
-          <tr>
-            <th className="w-24 border border-black/10 p-1 dark:border-white/15" />
+    <Table className="min-w-[640px] table-fixed" stickyFirstColumn>
+      <thead>
+        <tr>
+          <th className="w-24 border border-border p-1" />
+          {frame.days.map((d) => (
+            <th key={d} className="border border-border p-1">
+              {TIMETABLE_DAY_NAMES[d]}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {frame.periods.map((p) => (
+          <tr key={p.no}>
+            <th className="border border-border p-1 text-left font-normal">Tiết {p.no}</th>
             {frame.days.map((d) => (
-              <th key={d} className="border border-black/10 p-1 dark:border-white/15">
-                {TIMETABLE_DAY_NAMES[d]}
-              </th>
+              <td key={d} className="border border-border p-1 align-top">
+                {slots
+                  .filter((s) => s.day === d && s.period === p.no)
+                  .map((s) => (
+                    <div key={s.id} className="leading-tight">
+                      <p className="font-medium">{s.subjectName}</p>
+                      <p className="text-xs text-muted">
+                        {mode === "class" ? s.teacherName : s.className}
+                        {mode === "room" ? ` · ${s.teacherName}` : ""}
+                        {mode !== "room" && s.roomName ? ` · ${s.roomName}` : ""}
+                      </p>
+                    </div>
+                  ))}
+              </td>
             ))}
           </tr>
-        </thead>
-        <tbody>
-          {frame.periods.map((p) => (
-            <tr key={p.no}>
-              <th className="border border-black/10 p-1 text-left font-normal dark:border-white/15">Tiết {p.no}</th>
-              {frame.days.map((d) => (
-                <td key={d} className="border border-black/10 p-1 align-top dark:border-white/15">
-                  {slots
-                    .filter((s) => s.day === d && s.period === p.no)
-                    .map((s) => (
-                      <div key={s.id} className="leading-tight">
-                        <p className="font-medium">{s.subjectName}</p>
-                        <p className="text-xs opacity-80">
-                          {mode === "class" ? s.teacherName : s.className}
-                          {mode === "room" ? ` · ${s.teacherName}` : ""}
-                          {mode !== "room" && s.roomName ? ` · ${s.roomName}` : ""}
-                        </p>
-                      </div>
-                    ))}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+        ))}
+      </tbody>
+    </Table>
   );
 }
 
@@ -76,7 +75,7 @@ export function ViewsTab({ ctx }: { ctx: EditorContext }) {
   const slots = useData(loadSlots, version ? `${version.id}|${mode}|${activeId}` : "");
   const stats = useData(loadStats, version?.id ?? "");
 
-  if (!version) return <p className="text-sm opacity-70">Chưa có phiên bản nào.</p>;
+  if (!version) return <EmptyState>Chưa có phiên bản nào.</EmptyState>;
 
   const teacherStats = mode === "teacher" ? stats.data?.teachers.find((t) => t.teacherId === activeId) : undefined;
 

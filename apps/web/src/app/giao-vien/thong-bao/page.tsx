@@ -11,7 +11,7 @@ export default function TeacherAnnouncementsPage() {
         <h2 id="gui-thong-bao" className="text-xl font-semibold">
           Gửi thông báo cho lớp
         </h2>
-        <p className="max-w-3xl text-sm opacity-70">Bạn gửi được cho lớp mình dạy hoặc chủ nhiệm; chỉ học sinh lớp đó và giáo viên của lớp thấy.</p>
+        <p className="max-w-3xl text-sm text-muted">Bạn gửi được cho lớp mình dạy hoặc chủ nhiệm; chỉ học sinh lớp đó và giáo viên của lớp thấy.</p>
         <AnnouncementComposer />
       </section>
       <section className="space-y-3" aria-labelledby="hop-thu">

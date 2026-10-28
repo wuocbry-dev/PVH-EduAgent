@@ -18,7 +18,7 @@ function href(basePath: string, params: Props["params"], page: number) {
 
 export function Pagination({ basePath, page, totalPages, params }: Props) {
   if (totalPages <= 1) return null;
-  const linkClass = "rounded border border-black/20 px-3 py-1.5 text-sm hover:bg-brand/10 dark:border-white/20";
+  const linkClass = "rounded-xl border border-border-strong px-3 py-1.5 text-sm hover:bg-primary-soft";
   return (
     <nav aria-label="Phân trang" className="flex items-center justify-center gap-3">
       {page > 1 ? (

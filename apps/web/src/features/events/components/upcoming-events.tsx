@@ -12,28 +12,28 @@ export async function UpcomingEvents() {
   const events = await getUpcomingEvents();
 
   if (events === null) {
-    return <p className="text-sm opacity-70">Không tải được lịch sự kiện lúc này, vui lòng thử lại sau.</p>;
+    return <p className="text-sm text-muted">Không tải được lịch sự kiện lúc này, vui lòng thử lại sau.</p>;
   }
-  if (events.length === 0) return <p className="opacity-70">Hiện chưa có sự kiện sắp tới.</p>;
+  if (events.length === 0) return <p className="text-muted">Hiện chưa có sự kiện sắp tới.</p>;
 
   return (
     <ol className="space-y-3">
       {events.map((e) => {
         const sameDay = dayKey(e.startAt) === dayKey(e.endAt);
         return (
-          <li key={e.id} className="flex gap-4 rounded-lg border border-black/10 p-4 dark:border-white/15">
-            <time dateTime={e.startAt} className="w-20 shrink-0 self-start rounded bg-brand p-2 text-center text-white">
+          <li key={e.id} className="flex gap-4 rounded-2xl bg-surface border border-border p-4">
+            <time dateTime={e.startAt} className="w-20 shrink-0 self-start rounded-xl bg-primary p-2 text-center text-primary-foreground">
               <span className="block text-2xl font-bold leading-none">{part(e.startAt, { day: "2-digit" })}</span>
               <span className="block text-xs">Tháng {part(e.startAt, { month: "numeric" })}</span>
             </time>
             <div className="space-y-1">
               <h3 className="font-semibold">{e.title}</h3>
-              <p className="text-sm opacity-80">
+              <p className="text-sm text-muted">
                 {sameDay
                   ? `${formatDate(e.startAt)} · ${time(e.startAt)} – ${time(e.endAt)}`
                   : `${formatDate(e.startAt)} ${time(e.startAt)} – ${formatDate(e.endAt)} ${time(e.endAt)}`}
               </p>
-              {e.location && <p className="text-sm opacity-80">Địa điểm: {e.location}</p>}
+              {e.location && <p className="text-sm text-muted">Địa điểm: {e.location}</p>}
             </div>
           </li>
         );

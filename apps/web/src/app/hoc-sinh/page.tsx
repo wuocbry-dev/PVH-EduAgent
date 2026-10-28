@@ -4,13 +4,14 @@ import { StudentHome } from "@/features/academic";
 import { Inbox } from "@/features/announcements";
 import { UpcomingMyEvents } from "@/features/events";
 import { TodayTimetable } from "@/features/timetable";
+import { Skeleton } from "@/shared/ui";
 
 export const metadata: Metadata = { title: "Trang của em" };
 
 export default function StudentHomePage() {
   return (
     <div className="space-y-8">
-      <Suspense fallback={<p className="text-sm opacity-60">Đang tải…</p>}>
+      <Suspense fallback={<Skeleton />}>
         <StudentHome />
       </Suspense>
       <div className="grid gap-8 lg:grid-cols-2">

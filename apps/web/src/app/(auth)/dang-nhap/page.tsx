@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { LoginForm } from "@/features/auth";
+import { AuthHeading, LoginForm } from "@/features/auth";
+import { Skeleton } from "@/shared/ui";
 
 export const metadata: Metadata = { title: "Đăng nhập" };
 
 export default function LoginPage() {
   return (
-    <div className="space-y-4">
-      <h1 className="text-xl font-bold">Đăng nhập quản trị</h1>
-      <Suspense>
+    <>
+      <AuthHeading title="Đăng nhập">Dùng tài khoản nhà trường cấp cho học sinh, giáo viên và cán bộ.</AuthHeading>
+      <Suspense fallback={<Skeleton lines={4} />}>
         <LoginForm />
       </Suspense>
-    </div>
+    </>
   );
 }

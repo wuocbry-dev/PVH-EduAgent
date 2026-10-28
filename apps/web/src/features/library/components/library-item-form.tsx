@@ -83,7 +83,7 @@ export function LibraryItemForm({ options, item, onSaved, onCancel }: Props) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4 rounded-lg border border-black/10 p-4 dark:border-white/15">
+    <form onSubmit={onSubmit} className="space-y-4 rounded-2xl bg-surface border border-border p-4">
       <h2 className="text-lg font-semibold">{current ? `Sửa: ${current.title}` : "Tài liệu mới"}</h2>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className={`${label} sm:col-span-2`}>
@@ -150,9 +150,9 @@ export function LibraryItemForm({ options, item, onSaved, onCancel }: Props) {
         </label>
       </div>
 
-      <fieldset className="space-y-3 rounded border border-amber-300 p-3 dark:border-amber-700">
+      <fieldset className="space-y-3 rounded-xl border border-warning/40 p-3">
         <legend className="px-1 text-sm font-semibold">Nguồn và giấy phép (bắt buộc)</legend>
-        <p className="text-xs opacity-80">Chỉ đăng tài liệu nhà trường được phép chia sẻ. Ghi rõ xuất xứ để thủ thư kiểm tra khi duyệt.</p>
+        <p className="text-xs text-muted">Chỉ đăng tài liệu nhà trường được phép chia sẻ. Ghi rõ xuất xứ để thủ thư kiểm tra khi duyệt.</p>
         <label className={label}>
           <span>Nguồn *</span>
           <select name="source" required defaultValue={item?.source ?? ""} className={inputClass}>
@@ -229,13 +229,13 @@ export function LibraryItemForm({ options, item, onSaved, onCancel }: Props) {
         </label>
       </div>
 
-      {progress && <p className="text-sm opacity-80">{progress}</p>}
+      {progress && <p className="text-sm text-muted">{progress}</p>}
       {error && <p className={errorClass}>{error}</p>}
       <div className="flex gap-2">
-        <button type="submit" disabled={busy} className="rounded bg-brand px-4 py-2 text-sm text-white disabled:opacity-50">
+        <button type="submit" disabled={busy} className="rounded-xl bg-primary px-4 py-2 text-sm text-primary-foreground disabled:opacity-50">
           {busy ? "Đang lưu…" : "Lưu"}
         </button>
-        <button type="button" onClick={onCancel} className="rounded border border-black/20 px-4 py-2 text-sm dark:border-white/20">
+        <button type="button" onClick={onCancel} className="rounded-xl border border-border-strong px-4 py-2 text-sm">
           Đóng
         </button>
       </div>

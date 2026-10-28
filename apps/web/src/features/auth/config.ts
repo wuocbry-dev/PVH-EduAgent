@@ -5,6 +5,8 @@ export const ACCESS_COOKIE = "pvh_access";
 export const REFRESH_COOKIE = "pvh_refresh";
 
 export const LOGIN_PATH = "/dang-nhap";
+// Trang báo đã đăng xuất (bước 29): công khai, không vào sitemap.
+export const LOGGED_OUT_PATH = "/da-dang-xuat";
 
 // Nơi đến sau đăng nhập/kích hoạt: `next` hợp lệ (cùng origin, và nếu thuộc một cổng thì cổng đó người này được vào)
 // thì ưu tiên, không thì cổng chính theo vai trò (ADMIN → PRINCIPAL → EDITOR → LIBRARIAN → TEACHER → STUDENT).

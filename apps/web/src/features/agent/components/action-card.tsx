@@ -4,8 +4,8 @@ import type { AgentActionDto } from "@pvh/shared";
 import { useEffect, useState } from "react";
 import { cancelAction, confirmAction } from "../api/agent-actions-api";
 
-const buttonClass = "rounded bg-foreground px-3 py-1.5 text-sm text-background disabled:opacity-50";
-const secondaryClass = "rounded border border-black/20 px-3 py-1.5 text-sm disabled:opacity-50 dark:border-white/20";
+const buttonClass = "rounded-xl bg-primary px-3 py-1.5 text-sm text-primary-foreground disabled:opacity-50";
+const secondaryClass = "rounded-xl border border-border-strong px-3 py-1.5 text-sm disabled:opacity-50";
 
 function countdown(ms: number) {
   const total = Math.max(0, Math.ceil(ms / 1000));
@@ -15,13 +15,13 @@ function countdown(ms: number) {
 function resultLine(action: AgentActionDto) {
   switch (action.status) {
     case "DONE":
-      return { text: `✅ ${action.resultMessage ?? "Đã thực hiện"}`, className: "text-green-700" };
+      return { text: `✅ ${action.resultMessage ?? "Đã thực hiện"}`, className: "text-success" };
     case "FAILED":
-      return { text: `⚠️ Không thực hiện được: ${action.resultMessage ?? ""}`, className: "text-red-600" };
+      return { text: `⚠️ Không thực hiện được: ${action.resultMessage ?? ""}`, className: "text-danger" };
     case "CANCELLED":
-      return { text: "❌ Đã huỷ", className: "opacity-70" };
+      return { text: "❌ Đã huỷ", className: "text-muted" };
     case "EXPIRED":
-      return { text: "⌛ Đã hết hạn, chưa thực hiện", className: "opacity-70" };
+      return { text: "⌛ Đã hết hạn, chưa thực hiện", className: "text-muted" };
     default:
       return null;
   }
@@ -62,11 +62,11 @@ export function ActionCard({ initial }: { initial: AgentActionDto }) {
   const result = resultLine(expired ? { ...action, status: "EXPIRED" } : action);
 
   return (
-    <div className="space-y-2 rounded border border-amber-500/50 bg-amber-500/5 p-3 text-sm">
+    <div className="space-y-2 rounded-xl border border-warning/40 bg-warning-soft p-3 text-sm">
       <p className="whitespace-pre-line font-medium">Cần xác nhận: {action.description}</p>
       {waiting && !expired && (
         <>
-          <p className="text-xs opacity-70">
+          <p className="text-xs text-muted">
             Còn hiệu lực <span className="tabular-nums">{now > 0 ? countdown(remaining) : "10:00"}</span>
           </p>
           <div className="flex gap-2">
@@ -85,7 +85,7 @@ export function ActionCard({ initial }: { initial: AgentActionDto }) {
           Xem bài trên website
         </a>
       )}
-      {error && <p className="text-red-600">{error}</p>}
+      {error && <p className="text-danger">{error}</p>}
     </div>
   );
 }

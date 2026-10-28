@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { Alert, Button, PasswordInput } from "@/shared/ui";
 import { changePassword } from "../api/auth-api";
-import { buttonClass, errorClass, inputClass } from "@/shared/ui/form-styles";
 import { NewPasswordFields, readNewPassword } from "./password-fields";
 
 export function ChangePasswordForm() {
@@ -33,22 +33,18 @@ export function ChangePasswordForm() {
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <label className="block space-y-1 text-sm">
-        <span>Mật khẩu hiện tại</span>
-        <input
-          name="currentPassword"
-          type="password"
-          autoComplete="current-password"
-          required
-          className={inputClass}
-        />
-      </label>
+      <div className="space-y-1.5 text-sm font-medium">
+        <label htmlFor="mat-khau-hien-tai" className="block">
+          Mật khẩu hiện tại
+        </label>
+        <PasswordInput id="mat-khau-hien-tai" name="currentPassword" autoComplete="current-password" required />
+      </div>
       <NewPasswordFields />
-      {error && <p className={errorClass}>{error}</p>}
-      {done && <p className="text-sm text-green-700">Đã đổi mật khẩu. Các phiên đăng nhập khác đã bị đăng xuất.</p>}
-      <button type="submit" disabled={pending} className={buttonClass}>
+      {error && <Alert tone="danger">{error}</Alert>}
+      {done && <Alert tone="success">Đã đổi mật khẩu. Các phiên đăng nhập khác đã bị đăng xuất.</Alert>}
+      <Button type="submit" loading={pending}>
         Đổi mật khẩu
-      </button>
+      </Button>
     </form>
   );
 }

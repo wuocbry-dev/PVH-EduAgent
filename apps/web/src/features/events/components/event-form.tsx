@@ -6,6 +6,7 @@ import { useData } from "@/shared/lib/use-data";
 import { fromDateTimeLocal, toDateTimeLocal } from "@/shared/lib/format";
 import { buttonClass, errorClass, inputClass } from "@/shared/ui/form-styles";
 import { createEvent, deleteEvent, getEventTargets, updateEvent } from "../api/events-api";
+import { useConfirm } from "@/shared/ui";
 
 interface Props {
   // Có `event` thì là sửa, không thì là thêm mới với giờ gợi ý `defaultStart` (datetime-local).
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export function EventForm({ event, defaultStart, onSaved, onCancel }: Props) {
+  const ask = useConfirm();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [audience, setAudience] = useState<Audience>(event?.audience ?? "SCHOOL");
@@ -47,7 +49,7 @@ export function EventForm({ event, defaultStart, onSaved, onCancel }: Props) {
   }
 
   async function remove() {
-    if (!event || !confirm(`Xóa sự kiện "${event.title}"?`)) return;
+    if (!event || !(await ask(`Xóa sự kiện "${event.title}"?`))) return;
     setPending(true);
     setError(null);
     try {
@@ -60,7 +62,7 @@ export function EventForm({ event, defaultStart, onSaved, onCancel }: Props) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="max-w-xl space-y-4 rounded border border-black/10 p-4 dark:border-white/15">
+    <form onSubmit={onSubmit} className="max-w-xl space-y-4 rounded-xl border border-border p-4">
       <h2 className="text-lg font-semibold">{event ? "Sửa sự kiện" : "Thêm sự kiện"}</h2>
       <label className="block space-y-1 text-sm">
         <span>Tên sự kiện</span>
@@ -106,7 +108,7 @@ export function EventForm({ event, defaultStart, onSaved, onCancel }: Props) {
           </label>
         )}
       </div>
-      {audience !== "SCHOOL" && <p className="text-xs opacity-70">Sự kiện này chỉ hiện trong cổng của đúng đối tượng, không hiện trên website công khai.</p>}
+      {audience !== "SCHOOL" && <p className="text-xs text-muted">Sự kiện này chỉ hiện trong cổng của đúng đối tượng, không hiện trên website công khai.</p>}
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block space-y-1 text-sm">
           <span>Bắt đầu</span>
@@ -134,11 +136,11 @@ export function EventForm({ event, defaultStart, onSaved, onCancel }: Props) {
         <button type="submit" disabled={pending} className={`${buttonClass} w-auto`}>
           {event ? "Lưu thay đổi" : "Thêm sự kiện"}
         </button>
-        <button type="button" onClick={onCancel} className="rounded border border-black/20 px-4 py-2 dark:border-white/20">
+        <button type="button" onClick={onCancel} className="rounded-xl border border-border-strong px-4 py-2">
           Hủy
         </button>
         {event && (
-          <button type="button" disabled={pending} onClick={remove} className="rounded border border-red-400 px-4 py-2 text-red-600">
+          <button type="button" disabled={pending} onClick={remove} className="rounded-xl border border-danger/40 px-4 py-2 text-danger">
             Xóa
           </button>
         )}

@@ -12,11 +12,13 @@ import {
   updateSchoolYear,
 } from "../api/academic-api";
 import { errorText, useData } from "@/shared/lib/use-data";
+import { Table, useConfirm } from "@/shared/ui";
 
 const fmt = (iso: string) => iso.split("-").reverse().join("/");
-const smallButton = "rounded border border-black/20 px-3 py-1 text-sm dark:border-white/20";
+const smallButton = "rounded-xl border border-border-strong px-3 py-1 text-sm";
 
 export function SchoolYearSection() {
+  const ask = useConfirm();
   const years = useData(listSchoolYears, undefined);
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,52 +73,50 @@ export function SchoolYearSection() {
 
       <div className="space-y-3">
         <h2 className="text-lg font-semibold">Năm học</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-black/10 dark:border-white/15">
-              <tr>
-                <th className="py-2 pr-4">Năm học</th>
-                <th className="py-2 pr-4">Bắt đầu</th>
-                <th className="py-2 pr-4">Kết thúc</th>
-                <th className="py-2 pr-4">Hiện hành</th>
-                <th className="py-2">Thao tác</th>
+        <Table>
+          <thead className="border-b border-border">
+            <tr>
+              <th className="py-2 pr-4">Năm học</th>
+              <th className="py-2 pr-4">Bắt đầu</th>
+              <th className="py-2 pr-4">Kết thúc</th>
+              <th className="py-2 pr-4">Hiện hành</th>
+              <th className="py-2">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {years.data?.map((y) => (
+              <tr key={y.id} className={y.id === activeId ? "bg-surface-muted" : ""}>
+                <td className="py-2 pr-4 font-medium">{y.name}</td>
+                <td className="py-2 pr-4">{fmt(y.startDate)}</td>
+                <td className="py-2 pr-4">{fmt(y.endDate)}</td>
+                <td className="py-2 pr-4">{y.isCurrent ? "Có" : ""}</td>
+                <td className="py-2"><div className="flex flex-wrap gap-2">
+                  <button type="button" className={smallButton} onClick={() => setSelected(y.id)}>
+                    Xem học kỳ
+                  </button>
+                  {!y.isCurrent && (
+                    <>
+                      <button
+                        type="button"
+                        className={smallButton}
+                        onClick={() => run(() => updateSchoolYear(y.id, { isCurrent: true }))}
+                      >
+                        Đặt làm hiện hành
+                      </button>
+                      <button
+                        type="button"
+                        className={smallButton}
+                        onClick={async () => (await ask(`Xóa năm học ${y.name}?`)) && run(() => deleteSchoolYear(y.id))}
+                      >
+                        Xóa
+                      </button>
+                    </>
+                  )}
+                </div></td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-black/10 dark:divide-white/15">
-              {years.data?.map((y) => (
-                <tr key={y.id} className={y.id === activeId ? "bg-black/5 dark:bg-white/10" : ""}>
-                  <td className="py-2 pr-4 font-medium">{y.name}</td>
-                  <td className="py-2 pr-4">{fmt(y.startDate)}</td>
-                  <td className="py-2 pr-4">{fmt(y.endDate)}</td>
-                  <td className="py-2 pr-4">{y.isCurrent ? "Có" : ""}</td>
-                  <td className="flex flex-wrap gap-2 py-2">
-                    <button type="button" className={smallButton} onClick={() => setSelected(y.id)}>
-                      Xem học kỳ
-                    </button>
-                    {!y.isCurrent && (
-                      <>
-                        <button
-                          type="button"
-                          className={smallButton}
-                          onClick={() => run(() => updateSchoolYear(y.id, { isCurrent: true }))}
-                        >
-                          Đặt làm hiện hành
-                        </button>
-                        <button
-                          type="button"
-                          className={smallButton}
-                          onClick={() => confirm(`Xóa năm học ${y.name}?`) && run(() => deleteSchoolYear(y.id))}
-                        >
-                          Xóa
-                        </button>
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </Table>
         <form onSubmit={onAddYear} className="flex flex-wrap items-end gap-2">
           <label className="space-y-1 text-sm">
             <span>Tên (vd. 2027-2028)</span>
@@ -130,7 +130,7 @@ export function SchoolYearSection() {
             <span>Kết thúc</span>
             <input name="endDate" type="date" required className={`${inputClass} w-auto`} />
           </label>
-          <button type="submit" className="rounded bg-foreground px-4 py-2 text-background">
+          <button type="submit" className="rounded-xl bg-primary px-4 py-2 text-primary-foreground">
             Thêm năm học
           </button>
         </form>
@@ -149,13 +149,13 @@ export function SchoolYearSection() {
                 <button
                   type="button"
                   className="underline"
-                  onClick={() => confirm(`Xóa ${s.name}?`) && run(() => deleteSemester(s.id), semesters.reload)}
+                  onClick={async () => (await ask(`Xóa ${s.name}?`)) && run(() => deleteSemester(s.id), semesters.reload)}
                 >
                   Xóa
                 </button>
               </li>
             ))}
-            {semesters.data?.length === 0 && <li className="opacity-70">Chưa có học kỳ.</li>}
+            {semesters.data?.length === 0 && <li className="text-muted">Chưa có học kỳ.</li>}
           </ul>
           {taken.size < 2 && (
             <form onSubmit={onAddSemester} className="flex flex-wrap items-end gap-2">
@@ -179,7 +179,7 @@ export function SchoolYearSection() {
                 <span>Kết thúc</span>
                 <input name="endDate" type="date" required className={`${inputClass} w-auto`} />
               </label>
-              <button type="submit" className="rounded bg-foreground px-4 py-2 text-background">
+              <button type="submit" className="rounded-xl bg-primary px-4 py-2 text-primary-foreground">
                 Thêm học kỳ
               </button>
             </form>

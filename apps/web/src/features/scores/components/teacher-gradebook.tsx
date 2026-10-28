@@ -16,6 +16,7 @@ import {
 import { AdjustmentForm, type AdjustmentTarget } from "./adjustment-form";
 import { AdjustmentList } from "./adjustment-list";
 import { ClassSummaryTable, GradebookTable, smallButton, StudentReportView } from "./score-views";
+import { EmptyState, Skeleton } from "@/shared/ui";
 
 // Loader nhận khoá dạng chuỗi (ổn định cho useData); khoá rỗng = chưa chọn.
 const loadGradebook = (key: string) => {
@@ -61,8 +62,8 @@ export function TeacherGradebook() {
   }
 
   if (ctx.error) return <p className={errorClass}>{ctx.error}</p>;
-  if (!ctx.data) return <p className="text-sm opacity-60">Đang tải…</p>;
-  if (!ctx.data.schoolYearId) return <p className="text-sm opacity-70">Chưa có năm học hiện hành.</p>;
+  if (!ctx.data) return <Skeleton />;
+  if (!ctx.data.schoolYearId) return <EmptyState>Chưa có năm học hiện hành.</EmptyState>;
   const { semesters, homeroomClasses } = ctx.data;
 
   return (
@@ -105,7 +106,7 @@ export function TeacherGradebook() {
             </button>
           )}
         </div>
-        {pairs.length === 0 && <p className="text-sm opacity-70">Bạn chưa được phân công lớp–môn tính điểm nào trong học kỳ này.</p>}
+        {pairs.length === 0 && <p className="text-sm text-muted">Bạn chưa được phân công lớp–môn tính điểm nào trong học kỳ này.</p>}
         {gradebook.error && <p className={errorClass}>{gradebook.error}</p>}
         {gradebook.data && (
           <>
@@ -172,7 +173,7 @@ export function TeacherGradebook() {
           {summary.error && <p className={errorClass}>{summary.error}</p>}
           {summary.data && <ClassSummaryTable s={summary.data} onStudent={setStudentId} />}
           {studentId && (
-            <div className="space-y-2 rounded border border-black/10 p-3 dark:border-white/15">
+            <div className="space-y-2 rounded-xl border border-border p-3">
               <button type="button" className={smallButton} onClick={() => setStudentId("")}>
                 Đóng chi tiết
               </button>

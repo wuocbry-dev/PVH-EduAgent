@@ -5,17 +5,18 @@ import { ApiError } from "@/shared/lib/api-client";
 import { errorClass, inputClass } from "@/shared/ui/form-styles";
 import { createAssignment, deleteAssignment, updateAssignment } from "../api/teaching-api";
 import type { TeachingContext } from "./context";
+import { Table, useConfirm } from "@/shared/ui";
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 // Thao tác có thể cần xác nhận dạy chéo tổ: API trả 409 kèm lời nhắc, người dùng đồng ý thì gửi lại.
-async function withCrossConfirm<T>(run: (confirmed: boolean) => Promise<T>): Promise<T | undefined> {
+async function withCrossConfirm<T>(ask: (question: string) => Promise<boolean>, run: (confirmed: boolean) => Promise<T>): Promise<T | undefined> {
   try {
     return await run(false);
   } catch (err) {
     if (err instanceof ApiError && err.status === 409 && err.message.includes("confirmCrossDepartment")) {
       const message = err.message.replace(/ Gửi confirmCrossDepartment=true.*$/, "");
-      if (!confirm(`${message}\n\nVẫn giao dạy chéo tổ?`)) return undefined;
+      if (!(await ask(`${message}\n\nVẫn giao dạy chéo tổ?`))) return undefined;
       return run(true);
     }
     throw err;
@@ -24,6 +25,7 @@ async function withCrossConfirm<T>(run: (confirmed: boolean) => Promise<T>): Pro
 
 // Bảng phân công theo lớp: hàng là môn, cột là giáo viên và số tiết; ô thiếu/thừa tô màu cảnh báo.
 export function ClassView({ ctx }: { ctx: TeachingContext }) {
+  const ask = useConfirm();
   const { summary, assignments, readOnly, scope, semesters } = ctx;
   const [classId, setClassId] = useState(summary.classes[0]?.classId ?? "");
   const [error, setError] = useState<string | null>(null);
@@ -73,117 +75,115 @@ export function ClassView({ ctx }: { ctx: TeachingContext }) {
         )}
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-black/10 dark:border-white/15">
-            <tr>
-              <th className="py-2 pr-3">Môn</th>
-              <th className="py-2 pr-3">Định mức</th>
-              <th className="py-2 pr-3">Giáo viên</th>
-              <th className="py-2 pr-3">Số tiết</th>
-              <th className="py-2 pr-3">Tình trạng</th>
-              <th className="py-2" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-black/10 dark:divide-white/15">
-            {shown.map((row) => {
-              const a = assignments.find(
-                (x) => x.classId === classId && x.subjectId === row.subjectId && (x.semesterId === null || x.semesterId === semesterId),
-              );
-              const status =
-                row.requiredPeriods > 0 && row.teachers.length === 0
-                  ? { label: "Chưa có giáo viên", cls: "bg-red-500/15" }
-                  : row.requiredPeriods > 0 && row.assignedPeriods < row.requiredPeriods
-                    ? { label: `Thiếu ${row.requiredPeriods - row.assignedPeriods} tiết`, cls: "bg-red-500/15" }
-                    : row.requiredPeriods > 0 && row.assignedPeriods > row.requiredPeriods
-                      ? { label: `Thừa ${row.assignedPeriods - row.requiredPeriods} tiết`, cls: "bg-yellow-500/15" }
-                      : row.requiredPeriods === 0 && a
-                        ? { label: "Môn chưa có định mức", cls: "bg-yellow-500/15" }
-                        : { label: row.requiredPeriods > 0 ? "Đủ" : "", cls: "" };
-              return (
-                <tr key={row.subjectId} className={status.cls}>
-                  <td className="py-2 pr-3 font-medium">{row.subjectName}</td>
-                  <td className="py-2 pr-3">{row.requiredPeriods || "—"}</td>
-                  <td className="py-2 pr-3">
-                    <select
+      <Table stickyFirstColumn>
+        <thead className="border-b border-border">
+          <tr>
+            <th className="py-2 pr-3">Môn</th>
+            <th className="py-2 pr-3">Định mức</th>
+            <th className="py-2 pr-3">Giáo viên</th>
+            <th className="py-2 pr-3">Số tiết</th>
+            <th className="py-2 pr-3">Tình trạng</th>
+            <th className="py-2" />
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {shown.map((row) => {
+            const a = assignments.find(
+              (x) => x.classId === classId && x.subjectId === row.subjectId && (x.semesterId === null || x.semesterId === semesterId),
+            );
+            const status =
+              row.requiredPeriods > 0 && row.teachers.length === 0
+                ? { label: "Chưa có giáo viên", cls: "bg-danger-soft" }
+                : row.requiredPeriods > 0 && row.assignedPeriods < row.requiredPeriods
+                  ? { label: `Thiếu ${row.requiredPeriods - row.assignedPeriods} tiết`, cls: "bg-danger-soft" }
+                  : row.requiredPeriods > 0 && row.assignedPeriods > row.requiredPeriods
+                    ? { label: `Thừa ${row.assignedPeriods - row.requiredPeriods} tiết`, cls: "bg-warning-soft" }
+                    : row.requiredPeriods === 0 && a
+                      ? { label: "Môn chưa có định mức", cls: "bg-warning-soft" }
+                      : { label: row.requiredPeriods > 0 ? "Đủ" : "", cls: "" };
+            return (
+              <tr key={row.subjectId} className={status.cls}>
+                <td className="py-2 pr-3 font-medium">{row.subjectName}</td>
+                <td className="py-2 pr-3">{row.requiredPeriods || "—"}</td>
+                <td className="py-2 pr-3">
+                  <select
+                    disabled={readOnly}
+                    aria-label={`Giáo viên môn ${row.subjectName}`}
+                    value={a?.teacherId ?? ""}
+                    onChange={(e) => {
+                      const teacherId = e.target.value;
+                      if (!teacherId) return;
+                      void run(() =>
+                        withCrossConfirm(ask, (confirmed) =>
+                          a
+                            ? updateAssignment(a.id, { teacherId, confirmCrossDepartment: confirmed })
+                            : createAssignment({
+                                classId,
+                                subjectId: row.subjectId,
+                                teacherId,
+                                semesterId,
+                                periodsPerWeek: row.requiredPeriods || 2,
+                                confirmCrossDepartment: confirmed,
+                              }),
+                        ),
+                      );
+                    }}
+                    className={`${inputClass} w-56`}
+                  >
+                    <option value="">— Chưa có —</option>
+                    {summary.teachers.map((t) => (
+                      <option key={t.teacherId} value={t.teacherId}>
+                        {t.teacherName} ({t.teacherCode}){t.departmentName ? ` · ${t.departmentName}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {a?.crossDepartment && <span className="ml-2 text-xs text-warning">dạy chéo tổ</span>}
+                  {a && a.semesterId === null && semesterId && <span className="ml-2 text-xs text-muted">(cả năm)</span>}
+                </td>
+                <td className="py-2 pr-3">
+                  {a ? (
+                    <input
+                      key={`${a.id}:${a.periodsPerWeek}`}
+                      type="number"
+                      min={1}
+                      max={10}
                       disabled={readOnly}
-                      aria-label={`Giáo viên môn ${row.subjectName}`}
-                      value={a?.teacherId ?? ""}
-                      onChange={(e) => {
-                        const teacherId = e.target.value;
-                        if (!teacherId) return;
-                        void run(() =>
-                          withCrossConfirm((confirmed) =>
-                            a
-                              ? updateAssignment(a.id, { teacherId, confirmCrossDepartment: confirmed })
-                              : createAssignment({
-                                  classId,
-                                  subjectId: row.subjectId,
-                                  teacherId,
-                                  semesterId,
-                                  periodsPerWeek: row.requiredPeriods || 2,
-                                  confirmCrossDepartment: confirmed,
-                                }),
-                          ),
-                        );
+                      defaultValue={a.periodsPerWeek}
+                      aria-label={`Số tiết môn ${row.subjectName}`}
+                      onBlur={(e) => {
+                        const value = Number(e.target.value);
+                        if (value !== a.periodsPerWeek) void run(() => updateAssignment(a.id, { periodsPerWeek: value }));
                       }}
-                      className={`${inputClass} w-56`}
+                      className={`${inputClass} w-20`}
+                    />
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td className="py-2 pr-3">{status.label}</td>
+                <td className="py-2">
+                  {a && !readOnly && (
+                    <button
+                      type="button"
+                      className="underline"
+                      onClick={async () => (await ask(`Bỏ phân công ${row.subjectName} của lớp?`)) && run(() => deleteAssignment(a.id))}
                     >
-                      <option value="">— Chưa có —</option>
-                      {summary.teachers.map((t) => (
-                        <option key={t.teacherId} value={t.teacherId}>
-                          {t.teacherName} ({t.teacherCode}){t.departmentName ? ` · ${t.departmentName}` : ""}
-                        </option>
-                      ))}
-                    </select>
-                    {a?.crossDepartment && <span className="ml-2 text-xs text-amber-700">dạy chéo tổ</span>}
-                    {a && a.semesterId === null && semesterId && <span className="ml-2 text-xs opacity-60">(cả năm)</span>}
-                  </td>
-                  <td className="py-2 pr-3">
-                    {a ? (
-                      <input
-                        key={`${a.id}:${a.periodsPerWeek}`}
-                        type="number"
-                        min={1}
-                        max={10}
-                        disabled={readOnly}
-                        defaultValue={a.periodsPerWeek}
-                        aria-label={`Số tiết môn ${row.subjectName}`}
-                        onBlur={(e) => {
-                          const value = Number(e.target.value);
-                          if (value !== a.periodsPerWeek) void run(() => updateAssignment(a.id, { periodsPerWeek: value }));
-                        }}
-                        className={`${inputClass} w-20`}
-                      />
-                    ) : (
-                      "—"
-                    )}
-                  </td>
-                  <td className="py-2 pr-3">{status.label}</td>
-                  <td className="py-2">
-                    {a && !readOnly && (
-                      <button
-                        type="button"
-                        className="underline"
-                        onClick={() => confirm(`Bỏ phân công ${row.subjectName} của lớp?`) && run(() => deleteAssignment(a.id))}
-                      >
-                        Bỏ
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-            {shown.length === 0 && (
-              <tr>
-                <td colSpan={6} className="py-4 opacity-70">
-                  Chưa có định mức môn cho khối này. Đặt ở tab «Định mức môn».
+                      Bỏ
+                    </button>
+                  )}
                 </td>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            );
+          })}
+          {shown.length === 0 && (
+            <tr>
+              <td colSpan={6} className="py-4 text-muted">
+                Chưa có định mức môn cho khối này. Đặt ở tab «Định mức môn».
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </Table>
 
       {!readOnly && addable.length > 0 && (
         <label className="flex flex-wrap items-center gap-2 text-sm">

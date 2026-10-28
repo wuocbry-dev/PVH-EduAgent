@@ -18,9 +18,10 @@ import {
   updateSubject,
 } from "../api/academic-api";
 import { errorText, useData } from "@/shared/lib/use-data";
+import { Table, useConfirm } from "@/shared/ui";
 
-const smallButton = "rounded border border-black/20 px-3 py-1 text-sm dark:border-white/20";
-const submitButton = "rounded bg-foreground px-4 py-2 text-background";
+const smallButton = "rounded-xl border border-border-strong px-3 py-1 text-sm";
+const submitButton = "rounded-xl bg-primary px-4 py-2 text-primary-foreground";
 
 // Chạy một thao tác, báo lỗi tiếng Việt từ API và tải lại danh sách khi xong.
 function useRunner(reload: () => void) {
@@ -38,6 +39,7 @@ function useRunner(reload: () => void) {
 }
 
 export function DepartmentSection() {
+  const ask = useConfirm();
   const departments = useData(listDepartments, undefined);
   const { error, run } = useRunner(departments.reload);
 
@@ -67,7 +69,7 @@ export function DepartmentSection() {
             >
               Đổi tên
             </button>
-            <button type="button" className={smallButton} onClick={() => confirm(`Xóa ${d.name}?`) && run(() => deleteDepartment(d.id))}>
+            <button type="button" className={smallButton} onClick={async () => (await ask(`Xóa ${d.name}?`)) && run(() => deleteDepartment(d.id))}>
               Xóa
             </button>
           </li>
@@ -87,6 +89,7 @@ export function DepartmentSection() {
 }
 
 export function SubjectSection() {
+  const ask = useConfirm();
   const subjects = useData(listSubjects, undefined);
   const departments = useData(listDepartments, undefined);
   const { error, run } = useRunner(subjects.reload);
@@ -109,71 +112,69 @@ export function SubjectSection() {
   return (
     <section className="space-y-4" aria-label="Môn học">
       {(error ?? subjects.error) && <p className={errorClass}>{error ?? subjects.error}</p>}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-black/10 dark:border-white/15">
-            <tr>
-              <th className="py-2 pr-4">Mã</th>
-              <th className="py-2 pr-4">Tên môn</th>
-              <th className="py-2 pr-4">Tổ chuyên môn</th>
-              <th className="py-2 pr-4">Đánh giá</th>
-              <th className="py-2">Thao tác</th>
+      <Table>
+        <thead className="border-b border-border">
+          <tr>
+            <th className="py-2 pr-4">Mã</th>
+            <th className="py-2 pr-4">Tên môn</th>
+            <th className="py-2 pr-4">Tổ chuyên môn</th>
+            <th className="py-2 pr-4">Đánh giá</th>
+            <th className="py-2">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {subjects.data?.map((s) => (
+            <tr key={s.id}>
+              <td className="py-2 pr-4 font-mono">{s.code}</td>
+              <td className="py-2 pr-4">{s.name}</td>
+              <td className="py-2 pr-4">
+                <select
+                  aria-label={`Tổ của môn ${s.name}`}
+                  value={s.departmentId ?? ""}
+                  onChange={(e) => run(() => updateSubject(s.id, { departmentId: e.target.value || null }))}
+                  className={`${inputClass} w-56`}
+                >
+                  <option value="">— Chưa có —</option>
+                  {departments.data?.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </td>
+              <td className="py-2 pr-4">
+                <select
+                  aria-label={`Cách đánh giá môn ${s.name}`}
+                  value={s.gradingType}
+                  onChange={(e) => run(() => updateSubject(s.id, { gradingType: e.target.value as GradingType }))}
+                  className={`${inputClass} w-36`}
+                >
+                  {GRADING_TYPES.map((g) => (
+                    <option key={g} value={g}>
+                      {GRADING_TYPE_NAMES[g]}
+                    </option>
+                  ))}
+                </select>
+              </td>
+              <td className="py-2"><div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className={smallButton}
+                  onClick={() => {
+                    const name = prompt("Tên môn mới:", s.name)?.trim();
+                    if (name && name !== s.name) void run(() => updateSubject(s.id, { name }));
+                  }}
+                >
+                  Đổi tên
+                </button>
+                <button type="button" className={smallButton} onClick={async () => (await ask(`Xóa môn ${s.name}?`)) && run(() => deleteSubject(s.id))}>
+                  Xóa
+                </button>
+              </div></td>
             </tr>
-          </thead>
-          <tbody className="divide-y divide-black/10 dark:divide-white/15">
-            {subjects.data?.map((s) => (
-              <tr key={s.id}>
-                <td className="py-2 pr-4 font-mono">{s.code}</td>
-                <td className="py-2 pr-4">{s.name}</td>
-                <td className="py-2 pr-4">
-                  <select
-                    aria-label={`Tổ của môn ${s.name}`}
-                    value={s.departmentId ?? ""}
-                    onChange={(e) => run(() => updateSubject(s.id, { departmentId: e.target.value || null }))}
-                    className={`${inputClass} w-56`}
-                  >
-                    <option value="">— Chưa có —</option>
-                    {departments.data?.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className="py-2 pr-4">
-                  <select
-                    aria-label={`Cách đánh giá môn ${s.name}`}
-                    value={s.gradingType}
-                    onChange={(e) => run(() => updateSubject(s.id, { gradingType: e.target.value as GradingType }))}
-                    className={`${inputClass} w-36`}
-                  >
-                    {GRADING_TYPES.map((g) => (
-                      <option key={g} value={g}>
-                        {GRADING_TYPE_NAMES[g]}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className="flex flex-wrap gap-2 py-2">
-                  <button
-                    type="button"
-                    className={smallButton}
-                    onClick={() => {
-                      const name = prompt("Tên môn mới:", s.name)?.trim();
-                      if (name && name !== s.name) void run(() => updateSubject(s.id, { name }));
-                    }}
-                  >
-                    Đổi tên
-                  </button>
-                  <button type="button" className={smallButton} onClick={() => confirm(`Xóa môn ${s.name}?`) && run(() => deleteSubject(s.id))}>
-                    Xóa
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </Table>
       <form onSubmit={onAdd} className="flex flex-wrap items-end gap-2">
         <label className="space-y-1 text-sm">
           <span>Mã môn</span>
@@ -213,6 +214,7 @@ export function SubjectSection() {
 }
 
 export function RoomSection() {
+  const ask = useConfirm();
   const rooms = useData(listRooms, undefined);
   const { error, run } = useRunner(rooms.reload);
 
@@ -228,13 +230,13 @@ export function RoomSection() {
 
   return (
     <section className="space-y-4" aria-label="Phòng bộ môn">
-      <p className="text-sm opacity-70">Chỉ phòng bộ môn (Tin học, thí nghiệm, nhà/sân thể chất…), không quản lý từng phòng học thường.</p>
+      <p className="text-sm text-muted">Chỉ phòng bộ môn (Tin học, thí nghiệm, nhà/sân thể chất…), không quản lý từng phòng học thường.</p>
       {(error ?? rooms.error) && <p className={errorClass}>{error ?? rooms.error}</p>}
       <ul className="space-y-2 text-sm">
         {rooms.data?.map((r) => (
           <li key={r.id} className="flex flex-wrap items-center gap-3">
             <span className="min-w-56 font-medium">{r.name}</span>
-            <span className="min-w-28 opacity-70">{r.kind ?? ""}</span>
+            <span className="min-w-28 text-muted">{r.kind ?? ""}</span>
             <button
               type="button"
               className={smallButton}
@@ -245,7 +247,7 @@ export function RoomSection() {
             >
               Đổi tên
             </button>
-            <button type="button" className={smallButton} onClick={() => confirm(`Xóa ${r.name}?`) && run(() => deleteRoom(r.id))}>
+            <button type="button" className={smallButton} onClick={async () => (await ask(`Xóa ${r.name}?`)) && run(() => deleteRoom(r.id))}>
               Xóa
             </button>
           </li>
